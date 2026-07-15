@@ -870,6 +870,60 @@
     syncTotalUsd();
 
     const assessmentEl = form.querySelector('#tj-assessment');
+    let aiSetupComment = '';
+    let aiSetupLoading = false;
+    let aiSetupError = '';
+
+    async function runSetupCheck(){
+      aiSetupLoading = true; aiSetupError = ''; aiSetupComment = '';
+      renderAssessment();
+      try {
+        const currentTradeType = tradeTypeSel.value;
+        const typeLabel = (KEYS.tradeTypes.find(t=>t.value===currentTradeType) || {}).label || currentTradeType;
+        const magnet = form.querySelector('[name=magnet]') ? form.querySelector('[name=magnet]').value : '';
+        const signalQuality = form.querySelector('[name=signalQuality]') ? form.querySelector('[name=signalQuality]').value : '';
+        const direction = form.querySelector('[name=direction]') ? form.querySelector('[name=direction]').value : '';
+        const reasons = Array.from(form.querySelectorAll('input[name=reasons]:checked')).map(b=>b.value);
+        const veto = Array.from(form.querySelectorAll('input[name=veto]:checked')).map(b=>b.value);
+        const majorReversalConditionsChecked = Array.from(form.querySelectorAll('input[name=majorReversalConditions]:checked')).map(b=>b.value);
+        const trendDayTypesChecked = Array.from(form.querySelectorAll('input[name=trendDayTypes]:checked')).map(b=>b.value);
+        const criteriaChecked2 = Array.from(form.querySelectorAll('input[name=criteria]:checked')).map(b=>b.value);
+        const trendlineBreakSel = form.querySelector('[name=trendlineBreak]');
+        const reversalTypeSel2 = form.querySelector('#tj-reversalType');
+
+        function winRateFor(matchFn){
+          const m = trades.filter(t=>t.outcome && matchFn(t));
+          if (m.length < 3) return null;
+          return { winRate: Math.round(m.filter(t=>t.outcome==='win').length / m.length * 100), n: m.length };
+        }
+        const stats = {
+          tradeType: winRateFor(t=>(t.tradeType||'opening_reversal')===currentTradeType),
+          magnet: magnet ? winRateFor(t=>t.magnet===magnet) : null,
+          signalQuality: signalQuality ? winRateFor(t=>t.signalQuality===signalQuality) : null
+        };
+
+        const setup = {
+          tradeType: typeLabel, direction, magnet: magnet || undefined, signalQuality: signalQuality || undefined,
+          reasons, veto,
+          majorReversalConditions: majorReversalConditionsChecked.length ? majorReversalConditionsChecked : undefined,
+          trendDayTypes: trendDayTypesChecked.length ? trendDayTypesChecked : undefined,
+          criteria: criteriaChecked2.length ? criteriaChecked2 : undefined,
+          trendlineBreak: (trendlineBreakSel && trendlineBreakSel.value) ? trendlineBreakSel.value : undefined,
+          reversalType: (reversalTypeSel2 && reversalTypeSel2.value) ? reversalTypeSel2.value : undefined
+        };
+
+        const { data, error } = await supabase.functions.invoke('check-setup', { body: { setup, stats } });
+        if (error) throw error;
+        if (data && data.error) throw new Error(data.error);
+        aiSetupComment = (data && data.comment) ? data.comment : 'პასუხი ვერ მოვიდა.';
+      } catch (err) {
+        aiSetupError = 'AI-ს კომენტარის მიღება ვერ მოხერხდა — სცადეთ ისევ. (' + (err.message || 'უცნობი შეცდომა') + ')';
+      } finally {
+        aiSetupLoading = false;
+        renderAssessment();
+      }
+    }
+
     const vetoExplanations = {
       'Barb Wire-ში შესვლა': 'Barb Wire — ვიწრო, doji-ებით სავსე რეინჯი; საიმედოა მხოლოდ ბაზრის fade რეინჯის კიდესთან, არა ეს setup.',
       'Doji signal bar': 'Doji Signal Bar — წონასწორობას გამოხატავს კონტროლის ნაცვლად, არასდროს არის კარგი სიგნალი.',
@@ -1018,11 +1072,21 @@
           </div>
           ${a.statLine ? `<div style="margin-top:10px; padding-top:10px; border-top:0.5px solid var(--tj-border); font-size:12px; color:var(--tj-text2);">${a.statLine}</div>` : ''}
           <div style="margin-top:10px; font-size:10.5px; color:var(--tj-text3);">ეს არის ავტომატური, წესებზე დაფუძნებული შეფასება (Al Brooks-ის მეთოდოლოგია) — არა გარანტია. საბოლოო გადაწყვეტილება თქვენია.</div>
+          <div style="margin-top:14px; padding-top:14px; border-top:0.5px dashed var(--tj-border);">
+            <button type="button" id="tj-ask-ai-setup" ${aiSetupLoading ? 'disabled' : ''} style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.14); color:var(--tj-text); font-size:12px; cursor:pointer; ${aiSetupLoading ? 'opacity:0.5; cursor:default;' : ''}">
+              ${aiSetupLoading ? 'AI ფიქრობს…' : '🤖 მკითხე AI-ს ამ setup-ზე'}
+            </button>
+            ${aiSetupError ? `<div style="margin-top:8px; font-size:11.5px; color:var(--tj-red);">${aiSetupError}</div>` : ''}
+            ${aiSetupComment ? `<div class="tj-ai-content" style="margin-top:10px; padding:12px 14px; background:var(--tj-panel2); border-radius:8px; font-size:12.5px;">${marked.parse(aiSetupComment)}</div>` : ''}
+          </div>
         </div>
       `;
+      const askBtn = assessmentEl.querySelector('#tj-ask-ai-setup');
+      if (askBtn) askBtn.onclick = runSetupCheck;
     }
-    form.addEventListener('change', renderAssessment);
-    form.addEventListener('input', renderAssessment);
+    function onAssessmentFieldChange(){ aiSetupComment = ''; aiSetupError = ''; renderAssessment(); }
+    form.addEventListener('change', onAssessmentFieldChange);
+    form.addEventListener('input', onAssessmentFieldChange);
     renderAssessment();
 
     form.addEventListener('submit', async (e)=>{
@@ -1091,6 +1155,7 @@
         msg.textContent = 'შენახულია (' + trades.length + ' ტრეიდი სულ).';
         form.querySelector('[name=date]').value = lastUsedDate;
         form.querySelector('[name=instrument]').value = lastUsedInstrument;
+        aiSetupComment = ''; aiSetupError = '';
         renderAssessment();
       } else {
         msg.style.color = 'var(--tj-red)';
