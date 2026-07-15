@@ -713,6 +713,8 @@
           <textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;" placeholder="ერთი წინადადება საკმარისია">${prefill && prefill.notes ? prefill.notes : ''}</textarea>
         </div>
 
+        <div id="tj-assessment" style="margin:20px 0;"></div>
+
         <button type="submit" style="margin-top:6px; padding:9px 20px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${isEdit ? 'ცვლილებების შენახვა' : 'ტრეიდის შენახვა'}</button>
         <span id="tj-save-msg" style="margin-left:10px; font-size:12px; color:var(--tj-green);"></span>
       </form>
@@ -807,6 +809,82 @@
     });
     syncTotalUsd();
 
+    const assessmentEl = form.querySelector('#tj-assessment');
+    function computeAssessment(){
+      const flags = []; // {level:'red'|'yellow'|'green', text}
+      const currentTradeType = tradeTypeSel.value;
+      const signalQuality = form.querySelector('[name=signalQuality]') ? form.querySelector('[name=signalQuality]').value : '';
+      const magnet = form.querySelector('[name=magnet]') ? form.querySelector('[name=magnet]').value : '';
+      const reasonsN = form.querySelectorAll('input[name=reasons]:checked').length;
+      const majorBoxes = form.querySelectorAll('input[name=majorReversalConditions]');
+      const majorChecked = form.querySelectorAll('input[name=majorReversalConditions]:checked').length;
+      const reversalTypeSel = form.querySelector('#tj-reversalType');
+
+      if (reasonsN === 0) flags.push({level:'red', text:'შესვლის მიზეზი საერთოდ არ გაქვთ მონიშნული.'});
+      else if (reasonsN === 1) flags.push({level:'yellow', text:'მხოლოდ 1 მიზეზი გაქვთ მონიშნული — Al Brooks: „Have at Least Two Reasons to Enter a Trade".'});
+      else flags.push({level:'green', text: reasonsN + ' მიზეზი მონიშნული — საკმარისია.'});
+
+      if (signalQuality === 'Doji') flags.push({level:'red', text:'Doji არასდროს არის კარგი Signal Bar — წონასწორობას გამოხატავს, არა კონტროლს.'});
+      else if (signalQuality === 'საპირისპირო ტრენდული ბარი') flags.push({level:'red', text:'Signal Bar საწინააღმდეგო მიმართულების ტრენდულია — სუსტი სიგნალია.'});
+      else if (signalQuality === 'სუსტი trend bar') flags.push({level:'yellow', text:'Signal Bar სუსტი trend bar-ია — არაიდეალურია, მაგრამ არა კრიტიკული.'});
+      else if (signalQuality === 'ძლიერი trend bar') flags.push({level:'green', text:'Signal Bar ძლიერი trend bar-ია სავაჭრო მიმართულებით.'});
+
+      if (!magnet) flags.push({level:'yellow', text:'Magnet/დონე არ არის მითითებული — შესვლას სჭირდება მიზეზი მიზნისკენ.'});
+
+      if (currentTradeType === 'reversal' && reversalTypeSel && reversalTypeSel.value === 'Major Trend Reversal' && majorBoxes.length){
+        if (majorChecked < 4) flags.push({level: majorChecked <= 1 ? 'red' : 'yellow', text: `Major Reversal-ის 4 პირობიდან მხოლოდ ${majorChecked} დაკმაყოფილებულია.`});
+        else flags.push({level:'green', text:'Major Reversal-ის ყველა 4 პირობა დაკმაყოფილებულია.'});
+      }
+
+      // ისტორიული სტატისტიკა ამ tradeType-ზე
+      const historyMatches = trades.filter(t => (t.tradeType || 'opening_reversal') === currentTradeType && t.outcome);
+      let statLine = '';
+      if (historyMatches.length >= 5){
+        const wins = historyMatches.filter(t=>t.outcome==='win').length;
+        const winRate = Math.round((wins / historyMatches.length) * 100);
+        const typeLabel = (KEYS.tradeTypes.find(t=>t.value===currentTradeType) || {}).label || currentTradeType;
+        statLine = `თქვენი ისტორიული Win rate „${typeLabel}"-ზე: <strong>${winRate}%</strong> (${historyMatches.length} ტრეიდი).`;
+        if (winRate < 40) flags.push({level:'yellow', text:`ისტორიულად სუსტი შედეგი გაქვთ „${typeLabel}"-ში (${winRate}% Win rate, ${historyMatches.length} ტრეიდზე).`});
+      }
+
+      const redCount = flags.filter(f=>f.level==='red').length;
+      const yellowCount = flags.filter(f=>f.level==='yellow').length;
+      let verdict, verdictColor, verdictBorder, verdictBg;
+      if (redCount >= 2 || (redCount>=1 && yellowCount>=2)){
+        verdict = 'სუსტი setup — ბევრი წითელი დროშაა'; verdictColor='var(--tj-red)'; verdictBorder='var(--tj-red)'; verdictBg='rgba(189,90,76,0.1)';
+      } else if (redCount >= 1 || yellowCount >= 2){
+        verdict = 'საშუალო — სიფრთხილე გმართებთ'; verdictColor='var(--tj-amber)'; verdictBorder='var(--tj-amber)'; verdictBg='rgba(201,154,80,0.1)';
+      } else {
+        verdict = 'ძლიერი setup — კრიტერიუმები დაკმაყოფილებულია'; verdictColor='var(--tj-green)'; verdictBorder='var(--tj-green)'; verdictBg='rgba(79,158,118,0.1)';
+      }
+
+      return { verdict, verdictColor, verdictBorder, verdictBg, flags, statLine };
+    }
+
+    function dotColor(level){ return level==='red' ? 'var(--tj-red)' : level==='yellow' ? 'var(--tj-amber)' : 'var(--tj-green)'; }
+
+    function renderAssessment(){
+      const a = computeAssessment();
+      assessmentEl.innerHTML = `
+        <div style="border:0.5px solid ${a.verdictBorder}; background:${a.verdictBg}; border-radius:10px; padding:14px 16px;">
+          <div style="font-size:13px; font-weight:600; color:${a.verdictColor}; margin-bottom:10px;">წინასწარი შეფასება: ${a.verdict}</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${a.flags.map(f=>`
+              <div style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--tj-text2); line-height:1.5;">
+                <span style="width:7px; height:7px; border-radius:50%; background:${dotColor(f.level)}; margin-top:5px; flex-shrink:0;"></span>
+                <span>${f.text}</span>
+              </div>
+            `).join('')}
+          </div>
+          ${a.statLine ? `<div style="margin-top:10px; padding-top:10px; border-top:0.5px solid var(--tj-border); font-size:12px; color:var(--tj-text2);">${a.statLine}</div>` : ''}
+          <div style="margin-top:10px; font-size:10.5px; color:var(--tj-text3);">ეს არის ავტომატური, წესებზე დაფუძნებული შეფასება (Al Brooks-ის მეთოდოლოგია) — არა გარანტია. საბოლოო გადაწყვეტილება თქვენია.</div>
+        </div>
+      `;
+    }
+    form.addEventListener('change', renderAssessment);
+    form.addEventListener('input', renderAssessment);
+    renderAssessment();
+
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const fd = new FormData(form);
@@ -873,6 +951,7 @@
         msg.textContent = 'შენახულია (' + trades.length + ' ტრეიდი სულ).';
         form.querySelector('[name=date]').value = lastUsedDate;
         form.querySelector('[name=instrument]').value = lastUsedInstrument;
+        renderAssessment();
       } else {
         msg.style.color = 'var(--tj-red)';
         msg.textContent = 'ვერ შეინახა — იხილეთ შეტყობინება ზემოთ. მონაცემი ფორმაში დარჩა, სცადეთ ისევ.';
