@@ -1731,12 +1731,12 @@
     aiProgressPct = 0;
     if (aiProgressTimer) clearInterval(aiProgressTimer);
     aiProgressTimer = setInterval(() => {
-      // ასიმპტოტური მატება — სწრაფად იწყება, 90%-თან ანელებს, არასდროს ეშვება 92-ს ზემოთ
-      // სანამ რეალური პასუხი არ მოვა
+      // ნელი, ექსპონენციალური მიახლოება 92%-კენ — გათვლილია ~60 წამიან ლოდინზე,
+      // ისე რომ ზოლი არასდროს "გაჩერდეს" ან არასდროს მიაღწიოს 92%-ს ნამდვილ პასუხამდე
       const remaining = 92 - aiProgressPct;
-      aiProgressPct = Math.min(92, aiProgressPct + Math.max(0.4, remaining * 0.055));
+      aiProgressPct = Math.min(92, aiProgressPct + remaining * 0.022);
       updateProgressDOM();
-    }, 180);
+    }, 450);
   }
 
   function stopAiProgress(){
