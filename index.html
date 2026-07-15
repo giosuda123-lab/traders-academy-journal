@@ -23,20 +23,33 @@
     .tj { border-radius: 0; border-left: none; border-right: none; }
     .tj-serif { font-size: 17px !important; }
   }
-  .tj-ai-content { font-size: 13.5px; line-height: 1.75; color: var(--tj-text2); }
-  .tj-ai-content h1, .tj-ai-content h2, .tj-ai-content h3 { color: var(--tj-text); font-family: 'Source Serif 4', Georgia, serif; margin: 20px 0 10px; }
-  .tj-ai-content h1 { font-size: 17px; }
-  .tj-ai-content h2 { font-size: 15px; }
-  .tj-ai-content h3 { font-size: 13.5px; }
-  .tj-ai-content p { margin: 0 0 12px; }
-  .tj-ai-content strong { color: var(--tj-text); font-weight: 600; }
-  .tj-ai-content ul, .tj-ai-content ol { margin: 0 0 12px; padding-left: 20px; }
-  .tj-ai-content li { margin-bottom: 4px; }
-  .tj-ai-content hr { border: none; border-top: 1px solid var(--tj-border); margin: 18px 0; }
-  .tj-ai-content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12.5px; }
-  .tj-ai-content th { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--tj-border); color: var(--tj-text); font-weight: 600; }
-  .tj-ai-content td { padding: 7px 10px; border-bottom: 1px solid var(--tj-border); }
-  .tj-ai-content code { font-family: 'IBM Plex Mono', monospace; background: var(--tj-panel2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .tj-ai-card { background: linear-gradient(180deg, var(--tj-panel), var(--tj-panel) 60px, var(--tj-panel2) 60px, var(--tj-panel2)); background: var(--tj-panel); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 28px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+  .tj-ai-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 0.5px solid var(--tj-border); }
+  .tj-ai-card-header .tj-ai-icon { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--tj-accent), #8fc4e8); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+  .tj-ai-card-header .tj-ai-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; color: var(--tj-text); font-weight: 600; }
+  .tj-ai-card-header .tj-ai-sub { font-size: 11px; color: var(--tj-text3); margin-top: 1px; }
+  .tj-ai-content { font-size: 13.5px; line-height: 1.8; color: var(--tj-text2); }
+  .tj-ai-content h1, .tj-ai-content h2, .tj-ai-content h3 { color: var(--tj-text); font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; }
+  .tj-ai-content h1 { font-size: 18px; margin: 28px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--tj-border); }
+  .tj-ai-content h1:first-child { margin-top: 0; }
+  .tj-ai-content h2 { font-size: 15px; margin: 26px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .tj-ai-content h2:first-child { margin-top: 0; }
+  .tj-ai-content h2::before { content: ''; width: 4px; height: 15px; border-radius: 3px; background: var(--tj-accent); display: inline-block; }
+  .tj-ai-content h3 { font-size: 13.5px; margin: 18px 0 8px; color: var(--tj-accent); }
+  .tj-ai-content p { margin: 0 0 14px; }
+  .tj-ai-content strong { color: var(--tj-text); font-weight: 700; }
+  .tj-ai-content ul, .tj-ai-content ol { margin: 0 0 14px; padding-left: 22px; }
+  .tj-ai-content li { margin-bottom: 6px; }
+  .tj-ai-content li::marker { color: var(--tj-accent); }
+  .tj-ai-content hr { border: none; border-top: 1px dashed var(--tj-border); margin: 24px 0; }
+  .tj-ai-content table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 14px 0 18px; font-size: 12.5px; border: 0.5px solid var(--tj-border); border-radius: 10px; overflow: hidden; }
+  .tj-ai-content th { text-align: left; padding: 9px 12px; background: var(--tj-panel2); color: var(--tj-text); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tj-ai-content td { padding: 9px 12px; border-top: 0.5px solid var(--tj-border); }
+  .tj-ai-content tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .tj-ai-content tbody tr:hover { background: rgba(110,147,176,0.07); }
+  .tj-ai-content code { font-family: 'IBM Plex Mono', monospace; background: var(--tj-panel2); padding: 1px 6px; border-radius: 5px; font-size: 12px; color: var(--tj-accent); }
+  .tj-ai-content > *:last-child { margin-bottom: 0; }
+  .tj-ai-content h2:last-of-type, .tj-ai-content h1:last-of-type { color: var(--tj-green); }
   .tj-progress-track { position: relative; height: 10px; border-radius: 999px; background: var(--tj-panel2); overflow: hidden; border: 0.5px solid var(--tj-border); }
   .tj-progress-fill { height: 100%; border-radius: 999px; width: 0%; background: linear-gradient(90deg, #5c7f99, var(--tj-accent), #8fc4e8); background-size: 200% 100%; animation: tj-progress-shimmer 1.6s linear infinite; transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
   @keyframes tj-progress-shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
@@ -185,6 +198,8 @@
   let calendarViewMonth = null; // 'YYYY-MM' string, set on first stats render
   let filters = { instrument:[], direction:[], outcome:[], magnet:[], signalQuality:[], tradeType:[], dateFrom:'', dateTo:'' };
   let openFilterKey = null;
+  let lastUsedDate = new Date().toISOString().slice(0,10);
+  let lastUsedInstrument = KEYS.instruments[0];
 
   const filterDefs = [
     { key:'instrument', label:'ინსტრუმენტი', options: () => KEYS.instruments.map(v=>({value:v,label:v})) },
@@ -306,6 +321,14 @@
   lightboxClose.addEventListener('click', closeChartModal);
   lightbox.addEventListener('click', (e)=>{ if (e.target === lightbox) closeChartModal(); });
   window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeChartModal(); });
+  document.addEventListener('click', (e)=>{
+    document.querySelectorAll('details.tj-mfilter[open]').forEach(d=>{
+      if (!d.contains(e.target)){
+        d.removeAttribute('open');
+        if (openFilterKey && !document.querySelector(`details.tj-mfilter[data-key="${openFilterKey}"][open]`)) openFilterKey = null;
+      }
+    });
+  });
 
   // ===================== AUTH =====================
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -625,8 +648,8 @@
           <button type="button" id="tj-cancel-edit" style="font-size:12px; color:var(--tj-text2); background:none; border:none; cursor:pointer; text-decoration:underline;">გაუქმება</button>
         </div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:14px; margin-bottom:16px;">
-          <div>${fieldLabel('თარიღი')}<input type="date" name="date" required style="${inputStyle()}" value="${prefill ? prefill.date : new Date().toISOString().slice(0,10)}"/></div>
-          <div>${fieldLabel('ინსტრუმენტი')}<select name="instrument" style="${inputStyle()}">${KEYS.instruments.map(i=>`<option ${prefill && prefill.instrument===i ? 'selected':''}>${i}</option>`).join('')}</select></div>
+          <div>${fieldLabel('თარიღი')}<input type="date" name="date" required style="${inputStyle()}" value="${prefill ? prefill.date : lastUsedDate}"/></div>
+          <div>${fieldLabel('ინსტრუმენტი')}<select name="instrument" style="${inputStyle()}">${KEYS.instruments.map(i=>`<option ${(prefill ? prefill.instrument===i : lastUsedInstrument===i) ? 'selected':''}>${i}</option>`).join('')}</select></div>
           <div>${fieldLabel('თრეიდის ტიპი')}<select name="tradeType" id="tj-tradeType" style="${inputStyle()}">${KEYS.tradeTypes.map(t=>`<option value="${t.value}" ${prefill && prefill.tradeType===t.value?'selected':''}>${t.label}</option>`).join('')}</select></div>
           <div>${fieldLabel('მიმართულება')}<select name="direction" style="${inputStyle()}"><option value="long" ${prefill && prefill.direction==='long'?'selected':''}>Long</option><option value="short" ${prefill && prefill.direction==='short'?'selected':''}>Short</option></select></div>
         </div>
@@ -839,6 +862,8 @@
       trade.id = 'trade_' + Date.now();
       const ok = await addTradeRemote(trade);
       if (ok){
+        lastUsedDate = trade.date;
+        lastUsedInstrument = trade.instrument;
         form.reset();
         syncVeto();
         syncReasonCount();
@@ -846,7 +871,8 @@
         entryZone.innerHTML = renderEntryCriteriaZone('opening_reversal');
         msg.style.color = 'var(--tj-green)';
         msg.textContent = 'შენახულია (' + trades.length + ' ტრეიდი სულ).';
-        form.querySelector('[name=date]').value = new Date().toISOString().slice(0,10);
+        form.querySelector('[name=date]').value = lastUsedDate;
+        form.querySelector('[name=instrument]').value = lastUsedInstrument;
       } else {
         msg.style.color = 'var(--tj-red)';
         msg.textContent = 'ვერ შეინახა — იხილეთ შეტყობინება ზემოთ. მონაცემი ფორმაში დარჩა, სცადეთ ისევ.';
@@ -1800,7 +1826,18 @@
       ` : ''}
       ${aiError ? `<div style="margin-top:14px; font-size:12.5px; color:var(--tj-red);">${aiError}</div>` : ''}
       <div id="tj-ai-output" style="margin-top:24px;">
-        ${aiResult ? `<div class="tj-ai-content">${marked.parse(aiResult)}</div>` : ''}
+        ${aiResult ? `
+          <div class="tj-ai-card">
+            <div class="tj-ai-card-header">
+              <div class="tj-ai-icon">✦</div>
+              <div>
+                <div class="tj-ai-title">Al Brooks Price Action — ანალიზი</div>
+                <div class="tj-ai-sub">${list.length} ტრეიდის საფუძველზე · ${new Date().toLocaleDateString('ka-GE', {year:'numeric', month:'long', day:'numeric'})}</div>
+              </div>
+            </div>
+            <div class="tj-ai-content">${marked.parse(aiResult)}</div>
+          </div>
+        ` : ''}
       </div>
     `;
     const btn = bodyEl.querySelector('#tj-ai-run');
