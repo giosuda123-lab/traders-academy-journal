@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade Journal — Traders Academy</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/IBM-Plex/1.0.0/IBM-Plex-Mono/css/ibm-plex-mono.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0F1114; min-height: 100vh; }
+  body { display:flex; flex-direction:column; align-items:center; padding: 24px 16px; }
+  .tj { font-family: 'Inter', -apple-system, sans-serif; color: var(--tj-text); background: transparent; max-width: 1100px; width: 100%; }
+  .tj :where(input, select, textarea, button) { font-family: inherit; }
+  .tj-mono { font-family: 'IBM Plex Mono', monospace; }
+  .tj-serif { font-family: 'Source Serif 4', Georgia, serif; }
+  .tj :where(input, select, textarea) { min-height: 38px; font-size: 16px; }
+  .tj button { min-height: 38px; }
+  @media (max-width: 640px) {
+    body { padding: 0; }
+    .tj { border-radius: 0; border-left: none; border-right: none; }
+    .tj-serif { font-size: 17px !important; }
+  }
+  .tj-ai-content { font-size: 13.5px; line-height: 1.75; color: var(--tj-text2); }
+  .tj-ai-content h1, .tj-ai-content h2, .tj-ai-content h3 { color: var(--tj-text); font-family: 'Source Serif 4', Georgia, serif; margin: 20px 0 10px; }
+  .tj-ai-content h1 { font-size: 17px; }
+  .tj-ai-content h2 { font-size: 15px; }
+  .tj-ai-content h3 { font-size: 13.5px; }
+  .tj-ai-content p { margin: 0 0 12px; }
+  .tj-ai-content strong { color: var(--tj-text); font-weight: 600; }
+  .tj-ai-content ul, .tj-ai-content ol { margin: 0 0 12px; padding-left: 20px; }
+  .tj-ai-content li { margin-bottom: 4px; }
+  .tj-ai-content hr { border: none; border-top: 1px solid var(--tj-border); margin: 18px 0; }
+  .tj-ai-content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12.5px; }
+  .tj-ai-content th { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--tj-border); color: var(--tj-text); font-weight: 600; }
+  .tj-ai-content td { padding: 7px 10px; border-bottom: 1px solid var(--tj-border); }
+  .tj-ai-content code { font-family: 'IBM Plex Mono', monospace; background: var(--tj-panel2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .tj-progress-track { position: relative; height: 10px; border-radius: 999px; background: var(--tj-panel2); overflow: hidden; border: 0.5px solid var(--tj-border); }
+  .tj-progress-fill { height: 100%; border-radius: 999px; width: 0%; background: linear-gradient(90deg, #5c7f99, var(--tj-accent), #8fc4e8); background-size: 200% 100%; animation: tj-progress-shimmer 1.6s linear infinite; transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes tj-progress-shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
+  .tj-progress-label { font-size: 12.5px; color: var(--tj-text2); transition: opacity 0.25s ease; }
+  .tj-progress-pct { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--tj-accent); font-variant-numeric: tabular-nums; }
+  .tj-progress-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--tj-accent); margin-right: 8px; animation: tj-progress-pulse 1.1s ease-in-out infinite; }
+  @keyframes tj-progress-pulse { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+</style>
+</head>
+<body>
+
+<!-- =====================================================
+  SUPABASE CONFIG — fill these in after creating your Supabase project.
+  Project Settings → API → Project URL / anon public key.
+===================================================== -->
+<script>
+  const SUPABASE_URL = 'https://wodwjidgyztutjmopjga.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_rcMEGjuzhrugF4UiMmfr8g_5ciBAbu-';
+</script>
+
+<div class="tj" style="
+  --tj-bg: #14171B;
+  --tj-panel: #1B1F24;
+  --tj-panel2: #21262D;
+  --tj-border: #2E343B;
+  --tj-text: #E7E5DE;
+  --tj-text2: #9B9993;
+  --tj-text3: #6E6C67;
+  --tj-accent: #6E93B0;
+  --tj-green: #4F9E76;
+  --tj-red: #BD5A4C;
+  --tj-amber: #C99A50;
+  background: var(--tj-bg); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 0; overflow: hidden;
+">
+
+  <div style="padding: 20px 24px 16px; border-bottom: 0.5px solid var(--tj-border); display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+    <div>
+      <div class="tj-serif" style="font-size:20px; font-weight:600; letter-spacing:0.2px;">Trade journal</div>
+          </div>
+    <div id="tj-header-right" style="display:flex; align-items:center; gap:10px;">
+      <div id="tj-tabs" style="display:flex; gap:6px;"></div>
+      <div id="tj-user-box" style="display:none; align-items:center; gap:8px;">
+        <span id="tj-user-email" style="font-size:12px; color:var(--tj-text2);"></span>
+        <button id="tj-logout-btn" type="button" style="padding:6px 12px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:12px; cursor:pointer;">გასვლა</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tj-status" style="display:none; padding:10px 24px; font-size:12px; border-bottom:0.5px solid var(--tj-border);"></div>
+
+  <!-- AUTH SCREENS (login / register / verify) -->
+  <div id="tj-auth" style="padding:28px 24px; max-width:420px; margin:0 auto;">
+    <div id="tj-auth-tabs" style="display:flex; gap:6px; margin-bottom:20px; justify-content:center;"></div>
+    <div id="tj-auth-body"></div>
+  </div>
+
+  <!-- MAIN APP (shown after login) -->
+  <div id="tj-app" style="display:none;">
+    <div id="tj-body" style="padding: 20px 24px 24px;"></div>
+  </div>
+
+  <div id="tj-lightbox" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(10,11,13,0.85); align-items:center; justify-content:center; padding:24px;">
+    <div style="position:relative; max-width:min(1100px, 94vw); max-height:90vh; width:100%; background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
+        <a id="tj-lightbox-openTab" href="#" target="_blank" rel="noopener" style="font-size:12px; color:var(--tj-text2); text-decoration:none; padding:4px 8px;">ახალ ტაბში გახსნა ↗</a>
+        <button id="tj-lightbox-close" type="button" style="border:none; background:var(--tj-panel2); color:var(--tj-text); border-radius:6px; width:28px; height:28px; cursor:pointer; font-size:14px;">✕</button>
+      </div>
+      <div id="tj-lightbox-content" style="flex:1; min-height:200px; display:flex; align-items:center; justify-content:center; overflow:auto;">
+        <div id="tj-lightbox-loading" style="color:var(--tj-text2); font-size:13px;">იტვირთება…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEYS = {
+    magnets: ['გუშინდელი High/Low', 'Swing point', 'Trendline break', 'არხის ხაზი', 'EMA', 'TR საზღვარი', 'Measured move', 'სხვა'],
+    signalQ: ['ძლიერი trend bar', 'სუსტი trend bar', 'საპირისპირო ტრენდული ბარი', 'Doji'],
+    reasons: [
+      'Reversal bar',
+      'კარგი Signal bar პატერნი',
+      'EMA pullback (სასურველია ორფეხა)',
+      'Breakout Pullback',
+      'Breakout Test',
+      'High/Low 2 ან 4 (ძლიერ ტრენდში — საჭიროა წინა TL break)',
+      'Failure (წინა High/Low, Flag breakout, Trendline/Trend Channel Line overshoot & reversal, 5-tick failure)'
+    ],
+    vetoOptions: [
+      'Barb Wire-ში შესვლა', 'Doji signal bar', 'TL break არ იყო (countertrend)',
+      'Magnet/დონე არ იყო', 'დღის/რეინჯის შუაში', 'რეპორტის დროს ვივაჭრე',
+      'Trend from the Open-ის წინააღმდეგ', '2+ წაგების მერე გავაგრძელე',
+      'დაგვიანებული FOMO შესვლა', 'Stop წესი დავარღვიე',
+      'Reversal bar overlap-შია (nothing to reverse)', '1-წუთიანი chart-ის signal-ზე შევედი',
+      'ნაადრევად შევედი (Excess არ იყო)', 'წინა თვე Reversal-ებზე წავაგე', 'სხვა'
+    ],
+    instruments: ['YM','ES','NQ'],
+    tradeTypes: [
+      {value:'opening_reversal', label:'Opening Reversal'},
+      {value:'with_trend', label:'With Trend'},
+      {value:'tr_fade', label:'TR Fade'},
+      {value:'reversal', label:'Reversal'}
+    ],
+    trendDayTypes: [
+      'Trend From the Open', 'Spike and Channel', 'Trending Trading Range Day',
+      'Trend Resumption Day', 'Reversal Day', 'Stairs', 'Shrinking Stairs', 'არ გამითვალისწინებია'
+    ],
+    reversalTypes: [
+      'Major Trend Reversal', 'Climactic Reversal', 'Shrinking Stairs', '3 Push', 'Expanding Triangle',
+      'Final Flag Reversal', 'Double Top / Double Bottom Pullback', 'Failure (Failed Breakout) Reversal',
+      'Trend Channel Line Overshoot Reversal', 'მცირე Countertrend Swing', 'არ ვვაჭრობ Reversal-ზე'
+    ],
+    majorReversalConditions: [
+      'ეკრანზეა ნათელი წინა ტრენდი',
+      'Countertrend-მა გაარღვია Trendline (და EMA)',
+      'მოხდა Extreme-ის ტესტი + მეორე Reversal',
+      'მეორე Reversal საკმარისად შორს წავიდა'
+    ]
+  };
+
+  let trades = [];
+  let aiLoading = false;
+  let aiError = '';
+  let aiResult = '';
+  let aiProgressPct = 0;
+  let aiProgressTimer = null;
+  const aiProgressSteps = [
+    'ტრეიდების მონაცემების ჩატვირთვა…',
+    'Trade Type-ების მიხედვით დაჯგუფება…',
+    'Veto-პირობების სიხშირის დათვლა…',
+    'Win rate და R-მულტიპლების გამოთვლა…',
+    'შედარება Al Brooks-ის მეთოდოლოგიასთან…',
+    'პატერნების ჩამოყალიბება…',
+    'დასკვნისა და რეკომენდაციების წერა…'
+  ];
+  let editingTradeId = null;
+  let statsVisible = (function(){
+    try { return JSON.parse(window.localStorage.getItem('tj_stats_visible_v1')) || {}; }
+    catch(e){ return {}; }
+  })();
+  function persistStatsVisible(){
+    try { window.localStorage.setItem('tj_stats_visible_v1', JSON.stringify(statsVisible)); }
+    catch(e){ /* ignore */ }
+  }
+  let tab = 'new';
+  let calendarViewMonth = null; // 'YYYY-MM' string, set on first stats render
+  let filters = { instrument:[], direction:[], outcome:[], magnet:[], signalQuality:[], tradeType:[], dateFrom:'', dateTo:'' };
+  let openFilterKey = null;
+
+  const filterDefs = [
+    { key:'instrument', label:'ინსტრუმენტი', options: () => KEYS.instruments.map(v=>({value:v,label:v})) },
+    { key:'tradeType', label:'თრეიდის ტიპი', options: () => KEYS.tradeTypes.map(t=>({value:t.value,label:t.label})) },
+    { key:'direction', label:'მიმართულება', options: () => [{value:'long',label:'Long'},{value:'short',label:'Short'}] },
+    { key:'outcome', label:'შედეგი', options: () => [{value:'win',label:'Win'},{value:'loss',label:'Loss'},{value:'be',label:'Breakeven'}] },
+    { key:'magnet', label:'Magnet', options: () => KEYS.magnets.map(v=>({value:v,label:v})) },
+    { key:'signalQuality', label:'Signal', options: () => KEYS.signalQ.map(v=>({value:v,label:v})) },
+  ];
+
+  function getFilteredTrades(){
+    return trades.filter(t=>{
+      if (filters.instrument.length && !filters.instrument.includes(t.instrument)) return false;
+      if (filters.tradeType.length && !filters.tradeType.includes(t.tradeType||'opening_reversal')) return false;
+      if (filters.direction.length && !filters.direction.includes(t.direction)) return false;
+      if (filters.outcome.length && !filters.outcome.includes(t.outcome)) return false;
+      if (filters.magnet.length && !filters.magnet.includes(t.magnet)) return false;
+      if (filters.signalQuality.length && !filters.signalQuality.includes(t.signalQuality)) return false;
+      if (filters.dateFrom && t.date < filters.dateFrom) return false;
+      if (filters.dateTo && t.date > filters.dateTo) return false;
+      return true;
+    });
+  }
+
+  function filtersActive(){
+    return filterDefs.some(d => filters[d.key].length > 0) || filters.dateFrom || filters.dateTo;
+  }
+
+  function selectStyle(){
+    return `padding:6px 9px; border-radius:7px; border:0.5px solid var(--tj-border); background:var(--tj-panel2); color:var(--tj-text); font-size:12px;`;
+  }
+
+  function multiFilterControl(def){
+    const opts = def.options();
+    const selected = filters[def.key];
+    const summaryLabel = selected.length ? `${def.label} (${selected.length})` : def.label;
+    return `
+      <details class="tj-mfilter" data-key="${def.key}" style="position:relative;" ${openFilterKey===def.key?'open':''}>
+        <summary data-summary="${def.key}" style="list-style:none; cursor:pointer; padding:6px 10px; border-radius:7px; border:0.5px solid ${selected.length?'var(--tj-accent)':'var(--tj-border)'}; background:var(--tj-panel2); color:${selected.length?'var(--tj-text)':'var(--tj-text2)'}; font-size:12px; user-select:none;">${summaryLabel} ▾</summary>
+        <div style="position:absolute; z-index:20; top:calc(100% + 4px); left:0; background:var(--tj-panel2); border:0.5px solid var(--tj-border); border-radius:8px; padding:8px; min-width:190px; max-height:220px; overflow-y:auto; box-shadow:0 6px 20px rgba(0,0,0,0.45);">
+          ${opts.map(o=>`
+            <label style="display:flex; align-items:center; gap:7px; font-size:12px; padding:4px 3px; cursor:pointer; color:var(--tj-text); white-space:nowrap;">
+              <input type="checkbox" class="tj-mf-box" data-key="${def.key}" value="${o.value}" ${selected.includes(o.value)?'checked':''} style="accent-color:var(--tj-accent);"/> ${o.label}
+            </label>`).join('')}
+        </div>
+      </details>`;
+  }
+
+  function renderFilterBar(){
+    return `
+      <div id="tj-filterbar" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; padding:12px; background:var(--tj-panel); border-radius:10px;">
+        <span style="font-size:11px; color:var(--tj-text3); margin-right:2px;">ფილტრი (რამდენიმეც შეიძლება):</span>
+        ${filterDefs.map(multiFilterControl).join('')}
+        <input type="date" data-f="dateFrom" style="${selectStyle()}" value="${filters.dateFrom}" title="თარიღიდან"/>
+        <input type="date" data-f="dateTo" style="${selectStyle()}" value="${filters.dateTo}" title="თარიღამდე"/>
+        ${filtersActive() ? `<button id="tj-clear-filters" type="button" style="padding:6px 10px; border-radius:7px; border:0.5px solid var(--tj-amber); background:rgba(201,154,80,0.12); color:var(--tj-text); font-size:12px; cursor:pointer;">გასუფთავება</button>` : ''}
+        <span id="tj-filter-count" style="font-size:11px; color:var(--tj-text3); margin-left:auto;">${getFilteredTrades().length} / ${trades.length} ტრეიდი</span>
+      </div>
+      <div style="font-size:10px; color:var(--tj-text3); margin:-10px 0 14px 2px;">ეს ფილტრი ავტომატურად მოქმედებს ჟურნალშიც და ანალიტიკაშიც.</div>
+    `;
+  }
+
+  function wireFilterBar(onChange){
+    const bar = bodyEl.querySelector('#tj-filterbar');
+    if (!bar) return;
+    bar.querySelectorAll('.tj-mf-box').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        const key = cb.dataset.key;
+        const arr = filters[key];
+        const idx = arr.indexOf(cb.value);
+        if (cb.checked && idx===-1) arr.push(cb.value);
+        if (!cb.checked && idx!==-1) arr.splice(idx,1);
+        openFilterKey = key;
+        onChange();
+      });
+    });
+    bar.querySelectorAll('[data-f]').forEach(el=>{
+      el.addEventListener('change', ()=>{
+        filters[el.dataset.f] = el.value;
+        onChange();
+      });
+    });
+    const clearBtn = bodyEl.querySelector('#tj-clear-filters');
+    if (clearBtn) clearBtn.onclick = () => {
+      filters = { instrument:[], direction:[], outcome:[], magnet:[], signalQuality:[], tradeType:[], dateFrom:'', dateTo:'' };
+      openFilterKey = null;
+      onChange();
+    };
+  }
+
+  const root = document.currentScript.previousElementSibling;
+  const tabsEl = root.querySelector('#tj-tabs');
+  const bodyEl = root.querySelector('#tj-body');
+
+  const lightbox = root.querySelector('#tj-lightbox');
+  const lightboxContent = root.querySelector('#tj-lightbox-content');
+  const lightboxOpenTab = root.querySelector('#tj-lightbox-openTab');
+  const lightboxClose = root.querySelector('#tj-lightbox-close');
+
+  function openChartModal(url){
+    lightboxOpenTab.href = url;
+    lightboxContent.innerHTML = `<div style="color:var(--tj-text2); font-size:13px;">იტვირთება…</div>`;
+    lightbox.style.display = 'flex';
+    const img = new Image();
+    img.onload = () => {
+      lightboxContent.innerHTML = '';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '78vh';
+      img.style.borderRadius = '8px';
+      img.style.display = 'block';
+      lightboxContent.appendChild(img);
+    };
+    img.onerror = () => {
+      lightboxContent.innerHTML = `<iframe src="${url}" style="width:100%; height:75vh; border:none; border-radius:8px; background:#fff;"></iframe>`;
+    };
+    img.src = url;
+  }
+  function closeChartModal(){ lightbox.style.display = 'none'; lightboxContent.innerHTML = ''; }
+  lightboxClose.addEventListener('click', closeChartModal);
+  lightbox.addEventListener('click', (e)=>{ if (e.target === lightbox) closeChartModal(); });
+  window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeChartModal(); });
+
+  // ===================== AUTH =====================
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentUser = null;
+  let authTab = 'login';
+
+  const authWrap = root.querySelector('#tj-auth');
+  const authTabsEl = root.querySelector('#tj-auth-tabs');
+  const authBodyEl = root.querySelector('#tj-auth-body');
+  const appWrap = root.querySelector('#tj-app');
+  const userBox = root.querySelector('#tj-user-box');
+  const userEmailEl = root.querySelector('#tj-user-email');
+  const logoutBtn = root.querySelector('#tj-logout-btn');
+
+  function authBtnStyle(active){
+    return `padding:6px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(110,147,176,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
+  }
+  function authMsgBox(){
+    return `<div id="tj-auth-msg" style="font-size:12px; margin-top:10px; min-height:16px; text-align:center;"></div>`;
+  }
+
+  function renderAuthTabs(){
+    authTabsEl.innerHTML = `
+      <button data-t="login" style="${authBtnStyle(authTab==='login')}">შესვლა</button>
+      <button data-t="register" style="${authBtnStyle(authTab==='register')}">რეგისტრაცია</button>
+    `;
+    authTabsEl.querySelectorAll('button').forEach(b=>{
+      b.onclick = () => { authTab = b.dataset.t; renderAuthTabs(); renderAuthBody(); };
+    });
+  }
+
+  function renderAuthBody(){
+    if (authTab === 'login') renderLoginForm(); else renderRegisterForm();
+  }
+
+  function describeError(err){
+    if (!err) return 'უცნობი შეცდომა';
+    if (typeof err === 'string') return err;
+    if (err.message) return err.message;
+    try {
+      const s = JSON.stringify(err);
+      return (s && s !== '{}') ? s : 'უცნობი შეცდომა — დეტალები Console-ში (F12).';
+    } catch(e){ return 'უცნობი შეცდომა — დეტალები Console-ში (F12).'; }
+  }
+
+  function renderLoginForm(){
+    authBodyEl.innerHTML = `
+      <form id="tj-login-form">
+        <div style="margin-bottom:12px;">${fieldLabel('ელფოსტა')}<input type="email" name="email" required style="${inputStyle()}"/></div>
+        <div style="margin-bottom:6px;">${fieldLabel('პაროლი')}<input type="password" name="password" required style="${inputStyle()}"/></div>
+        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">შესვლა</button>
+        ${authMsgBox()}
+      </form>
+    `;
+    const form = authBodyEl.querySelector('#tj-login-form');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const msg = form.querySelector('#tj-auth-msg');
+      msg.style.color = 'var(--tj-text2)'; msg.textContent = 'შესვლა მიმდინარეობს…';
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: fd.get('email'), password: fd.get('password') });
+        if (error){
+          msg.style.color = 'var(--tj-red)';
+          msg.textContent = error.message === 'Invalid login credentials' ? 'ელფოსტა ან პაროლი არასწორია.' : describeError(error);
+          console.error('signIn error:', error);
+          return;
+        }
+        await onAuthSuccess(data.user);
+      } catch(ex){
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'კავშირის შეცდომა — შეამოწმეთ SUPABASE_URL და ინტერნეტ კავშირი. დეტალები: Console (F12).';
+        console.error('signIn exception:', ex);
+      }
+    });
+  }
+
+  function renderRegisterForm(){
+    authBodyEl.innerHTML = `
+      <form id="tj-register-form">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin-bottom:12px;">
+          <div>${fieldLabel('სახელი')}<input type="text" name="firstName" required style="${inputStyle()}"/></div>
+          <div>${fieldLabel('გვარი')}<input type="text" name="lastName" required style="${inputStyle()}"/></div>
+        </div>
+        <div style="margin-bottom:12px;">
+          ${fieldLabel('თრეიდინგის გამოცდილება')}
+          <select name="experience" style="${inputStyle()}">
+            <option value="< 1 წელი">&lt; 1 წელი</option>
+            <option value="1-3 წელი">1–3 წელი</option>
+            <option value="3-5 წელი">3–5 წელი</option>
+            <option value="5+ წელი">5+ წელი</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px;">${fieldLabel('ელფოსტა')}<input type="email" name="email" required style="${inputStyle()}"/></div>
+        <div style="margin-bottom:6px;">${fieldLabel('პაროლი (მინ. 6 სიმბოლო)')}<input type="password" name="password" minlength="6" required style="${inputStyle()}"/></div>
+        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">რეგისტრაცია</button>
+        ${authMsgBox()}
+      </form>
+    `;
+    const form = authBodyEl.querySelector('#tj-register-form');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const msg = form.querySelector('#tj-auth-msg');
+      msg.style.color = 'var(--tj-text2)'; msg.textContent = 'იგზავნება…';
+      const email = fd.get('email');
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: fd.get('password'),
+          options: { data: {
+            first_name: fd.get('firstName'),
+            last_name: fd.get('lastName'),
+            experience: fd.get('experience')
+          }}
+        });
+        if (error){
+          msg.style.color = 'var(--tj-red)';
+          msg.textContent = describeError(error);
+          console.error('signUp error:', error);
+          return;
+        }
+        renderVerifyForm(email);
+      } catch(ex){
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'კავშირის შეცდომა — შეამოწმეთ SUPABASE_URL და ინტერნეტ კავშირი. დეტალები: Console (F12).';
+        console.error('signUp exception:', ex);
+      }
+    });
+  }
+
+  function renderVerifyForm(email){
+    authBodyEl.innerHTML = `
+      <div style="text-align:center; font-size:13px; color:var(--tj-text2); margin-bottom:16px;">
+        კოდი გამოგზავნილია მისამართზე<br/><span style="color:var(--tj-text); font-weight:500;">${email}</span>
+      </div>
+      <form id="tj-verify-form">
+        <div style="margin-bottom:12px;">
+          ${fieldLabel('დაადასტურეთ კოდი')}
+          <input type="text" name="token" inputmode="numeric" maxlength="8" required style="${inputStyle()}; text-align:center; letter-spacing:4px; font-size:18px;" placeholder="00000000"/>
+        </div>
+        <button type="submit" style="width:100%; margin-top:6px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">დადასტურება</button>
+        ${authMsgBox()}
+      </form>
+      <button id="tj-resend-btn" type="button" style="margin-top:10px; width:100%; padding:8px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:12px; cursor:pointer;">კოდის ხელახლა გაგზავნა</button>
+    `;
+    const form = authBodyEl.querySelector('#tj-verify-form');
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const msg = form.querySelector('#tj-auth-msg');
+      msg.style.color = 'var(--tj-text2)'; msg.textContent = 'მოწმდება…';
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({ email, token: fd.get('token'), type: 'signup' });
+        if (error){
+          msg.style.color = 'var(--tj-red)';
+          msg.textContent = 'კოდი არასწორია ან ვადა გაუვიდა. (' + describeError(error) + ')';
+          console.error('verifyOtp error:', error);
+          return;
+        }
+        await onAuthSuccess(data.user);
+      } catch(ex){
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'კავშირის შეცდომა — შეამოწმეთ SUPABASE_URL და ინტერნეტ კავშირი. დეტალები: Console (F12).';
+        console.error('verifyOtp exception:', ex);
+      }
+    });
+    authBodyEl.querySelector('#tj-resend-btn').onclick = async () => {
+      const btn = authBodyEl.querySelector('#tj-resend-btn');
+      btn.disabled = true; btn.textContent = 'იგზავნება…';
+      try {
+        await supabase.auth.resend({ type: 'signup', email });
+        btn.textContent = 'კოდი ხელახლა გაიგზავნა ✓';
+      } catch(ex){
+        btn.textContent = 'ვერ გაიგზავნა — სცადეთ თავიდან';
+        console.error('resend exception:', ex);
+      }
+      setTimeout(()=>{ btn.disabled=false; btn.textContent='კოდის ხელახლა გაგზავნა'; }, 5000);
+    };
+  }
+
+  async function onAuthSuccess(user){
+    currentUser = user;
+    authWrap.style.display = 'none';
+    appWrap.style.display = 'block';
+    userBox.style.display = 'flex';
+    userEmailEl.textContent = user.email;
+    await startApp();
+  }
+
+  logoutBtn.addEventListener('click', async ()=>{
+    await supabase.auth.signOut();
+    currentUser = null;
+    trades = [];
+    appWrap.style.display = 'none';
+    userBox.style.display = 'none';
+    authWrap.style.display = 'block';
+    authTab = 'login';
+    renderAuthTabs();
+    renderAuthBody();
+  });
+  // ===================== /AUTH =====================
+
+  function btnStyle(active){
+    return `padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(110,147,176,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
+  }
+
+  function renderTabs(){
+    const tabs = [['new','ახალი ტრეიდი'],['log','ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['guide','ინსტრუქცია']];
+    tabsEl.innerHTML = tabs.map(([id,label]) =>
+      `<button data-tab="${id}" style="${btnStyle(tab===id)}">${label}</button>`
+    ).join('');
+    tabsEl.querySelectorAll('button').forEach(b=>{
+      b.onclick = () => { tab = b.dataset.tab; renderTabs(); renderBody(); };
+    });
+  }
+
+  function fieldLabel(txt){
+    return `<div style="font-size:11px; color:var(--tj-text2); margin-bottom:5px; letter-spacing:0.2px;">${txt}</div>`;
+  }
+  function inputStyle(){
+    return `width:100%; padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel2); color:var(--tj-text); font-size:13px;`;
+  }
+
+  function checklistGroup(name, options, cols, checkedValues){
+    const checked = checkedValues || [];
+    return `<div style="display:grid; grid-template-columns:repeat(${cols||1}, minmax(200px,1fr)); gap:6px 14px;">` +
+      options.map((o,i)=>`
+        <label style="display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer;">
+          <input type="checkbox" name="${name}" value="${o}" ${checked.includes(o)?'checked':''} style="accent-color:var(--tj-accent);"/> ${o}
+        </label>`).join('') + `</div>`;
+  }
+
+  function renderEntryCriteriaZone(type, prefill){
+    if (type === 'with_trend' || type === 'tr_fade'){
+      const dayTypes = type === 'tr_fade' ? ['TR Day'] : KEYS.trendDayTypes;
+      return `
+        <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">Entry-კრიტერიუმები</div>
+        <div style="margin-bottom:14px;">
+          ${fieldLabel(type==='tr_fade' ? 'დღის ტიპი' : 'ტრენდის დღის ტიპი (შეიძლება რამდენიმეც)')}
+          ${checklistGroup('trendDayTypes', dayTypes, 2, prefill ? prefill.trendDayTypes : [])}
+        </div>
+        ${type==='tr_fade' ? `
+        <div style="max-width:280px; margin-bottom:14px;">
+          ${fieldLabel('არის ეს ორფეხიანი მოძრაობის დასასრული?')}
+          <select name="twoLegEnd" style="${inputStyle()}">
+            <option value="" ${prefill && !prefill.twoLegEnd ? 'selected':''}>არ ვამოწმებ</option>
+            <option value="yes" ${prefill && prefill.twoLegEnd==='yes' ? 'selected':''}>დიახ</option>
+            <option value="no" ${prefill && prefill.twoLegEnd==='no' ? 'selected':''}>არა</option>
+          </select>
+        </div>` : ''}
+        <div style="max-width:280px;">
+          ${fieldLabel('Signal bar ხარისხი')}
+          <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
+        </div>
+      `;
+    }
+    if (type === 'reversal'){
+      return `
+        <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">Reversal-ის კრიტერიუმები <span style="color:var(--tj-text3); font-weight:400;">(Trend Reversals — Al Brooks)</span></div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px; margin-bottom:14px;">
+          <div>
+            ${fieldLabel('Reversal ტიპი')}
+            <select name="reversalType" id="tj-reversalType" style="${inputStyle()}">
+              ${KEYS.reversalTypes.map(rt=>`<option ${prefill && prefill.reversalType===rt?'selected':''}>${rt}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            ${fieldLabel('იყო თუ არა ტრენდის ხაზის გარღვევა?')}
+            <select name="trendlineBreak" style="${inputStyle()}">
+              <option value="" ${prefill && !prefill.trendlineBreak ? 'selected':''}>არ ვამოწმებ</option>
+              <option value="yes" ${prefill && prefill.trendlineBreak==='yes' ? 'selected':''}>დიახ</option>
+              <option value="no" ${prefill && prefill.trendlineBreak==='no' ? 'selected':''}>არა</option>
+            </select>
+          </div>
+        </div>
+        <div style="max-width:280px; margin-bottom:14px;">
+          ${fieldLabel('Signal bar ხარისხი')}
+          <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
+        </div>
+        <div id="tj-major-reversal-zone">
+          ${renderMajorReversalZone(prefill)}
+        </div>
+      `;
+    }
+    return `
+      <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">Entry-კრიტერიუმები</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:12px;">
+        <div>${fieldLabel('Magnet / დონე')}<select name="magnet" style="${inputStyle()}">${KEYS.magnets.map(m=>`<option ${prefill && prefill.magnet===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div>${fieldLabel('Signal bar ხარისხი')}<select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      </div>
+      ${checklistGroup('criteria', [
+        'TL break countertrend-ის წინ', 'Double Top/Bottom ჩამოყალიბდა',
+        'Second entry გამოვიყენე', 'Trapped მხარე ამოვიცანი'
+      ], 2, prefill ? prefill.criteria : [])}
+    `;
+  }
+
+  function renderMajorReversalZone(prefill){
+    const isMajor = prefill && prefill.reversalType === 'Major Trend Reversal';
+    if (!isMajor) return '';
+    return `
+      <div style="margin-top:6px;">
+        ${fieldLabel('Major Trend Reversal — 4 პირობა')}
+        ${checklistGroup('majorReversalConditions', KEYS.majorReversalConditions, 2, prefill ? prefill.majorReversalConditions : [])}
+      </div>
+    `;
+  }
+
+  function renderNewTrade(prefill){
+    const isEdit = !!prefill;
+    bodyEl.innerHTML = `
+      <form id="tj-form">
+        ${isEdit ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:10px 14px; background:rgba(201,154,80,0.12); border:0.5px solid var(--tj-amber); border-radius:8px;">
+          <span style="font-size:13px; color:var(--tj-text);">✎ თრეიდის რედაქტირება</span>
+          <button type="button" id="tj-cancel-edit" style="font-size:12px; color:var(--tj-text2); background:none; border:none; cursor:pointer; text-decoration:underline;">გაუქმება</button>
+        </div>` : ''}
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:14px; margin-bottom:16px;">
+          <div>${fieldLabel('თარიღი')}<input type="date" name="date" required style="${inputStyle()}" value="${prefill ? prefill.date : new Date().toISOString().slice(0,10)}"/></div>
+          <div>${fieldLabel('ინსტრუმენტი')}<select name="instrument" style="${inputStyle()}">${KEYS.instruments.map(i=>`<option ${prefill && prefill.instrument===i ? 'selected':''}>${i}</option>`).join('')}</select></div>
+          <div>${fieldLabel('თრეიდის ტიპი')}<select name="tradeType" id="tj-tradeType" style="${inputStyle()}">${KEYS.tradeTypes.map(t=>`<option value="${t.value}" ${prefill && prefill.tradeType===t.value?'selected':''}>${t.label}</option>`).join('')}</select></div>
+          <div>${fieldLabel('მიმართულება')}<select name="direction" style="${inputStyle()}"><option value="long" ${prefill && prefill.direction==='long'?'selected':''}>Long</option><option value="short" ${prefill && prefill.direction==='short'?'selected':''}>Short</option></select></div>
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;" id="tj-entry-criteria-zone">
+          ${renderEntryCriteriaZone(prefill ? (prefill.tradeType || 'opening_reversal') : 'opening_reversal', prefill)}
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-size:13px; font-weight:500; color:var(--tj-text);">შესვლის მიზეზები <span style="color:var(--tj-text3); font-weight:400;">(Al Brooks — Have at Least Two Reasons to Enter a Trade)</span></div>
+            <div id="tj-reason-count" style="font-size:12px; font-weight:500;"></div>
+          </div>
+          ${checklistGroup('reasons', KEYS.reasons, 2, prefill ? prefill.reasons : [])}
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">რისკი და კონტრაქტები</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:14px; margin-bottom:12px;">
+            <div>${fieldLabel('დოლარის რისკი (ჯამურ თრეიდზე) = 1R')}<input type="number" step="any" name="totalRiskUsd" placeholder="მაგ. 200" value="${prefill && prefill.totalRiskUsd ? prefill.totalRiskUsd : ''}" style="${inputStyle()}"/></div>
+            <div>${fieldLabel('სტანდარტული კონტრაქტები')}<input type="number" step="any" name="standardContracts" placeholder="0" value="${prefill && prefill.standardContracts ? prefill.standardContracts : ''}" style="${inputStyle()}"/></div>
+            <div>${fieldLabel('მიკრო კონტრაქტები')}<input type="number" step="any" name="microContracts" placeholder="0" value="${prefill && prefill.microContracts ? prefill.microContracts : ''}" style="${inputStyle()}"/></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:14px;">
+            <div>${fieldLabel('50% @ 1R აღებული?')}<select name="partial" style="${inputStyle()}"><option value="yes" ${prefill && prefill.partial==='yes'?'selected':''}>დიახ</option><option value="no" ${prefill && prefill.partial==='no'?'selected':''}>არა</option></select></div>
+            <div>${fieldLabel('შედეგი')}<select name="outcome" style="${inputStyle()}"><option value="win" ${prefill && prefill.outcome==='win'?'selected':''}>Win</option><option value="loss" ${prefill && prefill.outcome==='loss'?'selected':''}>Loss</option><option value="be" ${prefill && prefill.outcome==='be'?'selected':''}>Breakeven</option></select></div>
+          </div>
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">მოგება ($) და ავტომატური R/R</div>
+          <div style="max-width:220px; margin-bottom:14px;">
+            ${fieldLabel('სკალპ მოგება ($) — 1-ლი დახურვა')}<input type="number" step="any" name="scalpUsd" placeholder="0" value="${prefill && prefill.scalpUsd ? prefill.scalpUsd : ''}" style="${inputStyle()}"/>
+          </div>
+          <div style="margin-bottom:6px; font-size:12px; color:var(--tj-text2);">სვინგის დახურვები <span style="color:var(--tj-text3);">(შეგიძლიათ დახუროთ 1, 2 ან 3 ნაწილად)</span></div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:14px; margin-bottom:12px;">
+            <div>${fieldLabel('დახურვა 1 ($)')}<input type="number" step="any" name="swingUsd1" placeholder="0" value="${prefill && prefill.swingUsd1 ? prefill.swingUsd1 : ''}" style="${inputStyle()}"/></div>
+            <div>${fieldLabel('დახურვა 2 ($) — არასავალდებულო')}<input type="number" step="any" name="swingUsd2" placeholder="0" value="${prefill && prefill.swingUsd2 ? prefill.swingUsd2 : ''}" style="${inputStyle()}"/></div>
+            <div>${fieldLabel('დახურვა 3 ($) — არასავალდებულო')}<input type="number" step="any" name="swingUsd3" placeholder="0" value="${prefill && prefill.swingUsd3 ? prefill.swingUsd3 : ''}" style="${inputStyle()}"/></div>
+            <div>${fieldLabel('ჯამური $ (ავტო)')}<div id="tj-total-usd" class="tj-mono" style="padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel); font-size:13px; color:var(--tj-text2);">$0.00</div></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:14px;">
+            <div>${fieldLabel('სკალპის R/R (ავტო)')}<div id="tj-scalp-r" class="tj-mono" style="padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel); font-size:13px; color:var(--tj-text2);">0.00R</div></div>
+            <div>${fieldLabel('სვინგის R/R (ავტო)')}<div id="tj-swing-r" class="tj-mono" style="padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel); font-size:13px; color:var(--tj-text2);">0.00R</div></div>
+            <div>${fieldLabel('ჯამური R/R (ავტო)')}<div id="tj-total-r" class="tj-mono" style="padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel); font-size:14px; font-weight:600; color:var(--tj-text);">0.00R</div></div>
+          </div>
+        </div>
+
+        <div id="tj-veto-wrap" style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px; display:none;">
+          <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-red);">Veto — რომელი წესი დაირღვა?</div>
+          ${checklistGroup('veto', KEYS.vetoOptions, 2, prefill ? prefill.veto : [])}
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          ${fieldLabel('TradingView ჩარტის ლინკი (არასავალდებულო)')}
+          <input type="url" name="chartLink" style="${inputStyle()}" placeholder="https://www.tradingview.com/x/..." value="${prefill && prefill.chartLink ? prefill.chartLink : ''}" />
+        </div>
+
+        <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          ${fieldLabel('შენიშვნა (მოკლედ)')}
+          <textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;" placeholder="ერთი წინადადება საკმარისია">${prefill && prefill.notes ? prefill.notes : ''}</textarea>
+        </div>
+
+        <button type="submit" style="margin-top:6px; padding:9px 20px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${isEdit ? 'ცვლილებების შენახვა' : 'ტრეიდის შენახვა'}</button>
+        <span id="tj-save-msg" style="margin-left:10px; font-size:12px; color:var(--tj-green);"></span>
+      </form>
+    `;
+
+    if (isEdit){
+      bodyEl.querySelector('#tj-cancel-edit').onclick = () => {
+        editingTradeId = null;
+        renderNewTrade();
+      };
+    }
+
+    const form = bodyEl.querySelector('#tj-form');
+    const outcomeSel = form.querySelector('[name=outcome]');
+    const vetoWrap = form.querySelector('#tj-veto-wrap');
+    function syncVeto(){ vetoWrap.style.display = outcomeSel.value === 'loss' ? 'block' : 'none'; }
+    outcomeSel.addEventListener('change', syncVeto);
+    syncVeto();
+
+    const tradeTypeSel = form.querySelector('#tj-tradeType');
+    const entryZone = form.querySelector('#tj-entry-criteria-zone');
+
+    function wireEntryCriteriaZone(zonePrefill){
+      const reversalTypeSel = entryZone.querySelector('#tj-reversalType');
+      if (!reversalTypeSel) return;
+      const majorReversalZone = entryZone.querySelector('#tj-major-reversal-zone');
+      function syncMajorReversalZone(){
+        if (reversalTypeSel.value === 'Major Trend Reversal'){
+          majorReversalZone.innerHTML = `
+            <div style="margin-top:6px;">
+              ${fieldLabel('Major Trend Reversal — 4 პირობა')}
+              ${checklistGroup('majorReversalConditions', KEYS.majorReversalConditions, 2, zonePrefill ? zonePrefill.majorReversalConditions : [])}
+            </div>
+          `;
+        } else {
+          majorReversalZone.innerHTML = '';
+        }
+      }
+      reversalTypeSel.addEventListener('change', syncMajorReversalZone);
+    }
+    wireEntryCriteriaZone(prefill);
+
+    tradeTypeSel.addEventListener('change', ()=>{
+      entryZone.innerHTML = renderEntryCriteriaZone(tradeTypeSel.value);
+      wireEntryCriteriaZone(null);
+    });
+
+    const reasonCountEl = form.querySelector('#tj-reason-count');
+    const reasonBoxes = form.querySelectorAll('input[name=reasons]');
+    function syncReasonCount(){
+      const n = form.querySelectorAll('input[name=reasons]:checked').length;
+      reasonCountEl.style.color = n >= 2 ? 'var(--tj-green)' : n === 1 ? 'var(--tj-amber)' : 'var(--tj-text3)';
+      reasonCountEl.textContent = n === 0 ? 'აირჩიეთ მინიმუმ 2' : n + ' მიზეზი მონიშნული' + (n < 2 ? ' — საჭიროა კიდევ მინიმუმ 1' : '');
+    }
+    reasonBoxes.forEach(b => b.addEventListener('change', syncReasonCount));
+    syncReasonCount();
+
+    const totalUsdEl = form.querySelector('#tj-total-usd');
+    const scalpREl = form.querySelector('#tj-scalp-r');
+    const swingREl = form.querySelector('#tj-swing-r');
+    const totalREl = form.querySelector('#tj-total-r');
+    const scalpInput = form.querySelector('[name=scalpUsd]');
+    const swing1Input = form.querySelector('[name=swingUsd1]');
+    const swing2Input = form.querySelector('[name=swingUsd2]');
+    const swing3Input = form.querySelector('[name=swingUsd3]');
+    const riskInput = form.querySelector('[name=totalRiskUsd]');
+
+    function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+    function syncTotalUsd(){
+      const s = num(scalpInput.value);
+      const w = num(swing1Input.value) + num(swing2Input.value) + num(swing3Input.value);
+      const total = s + w;
+      totalUsdEl.textContent = (total >= 0 ? '$' : '-$') + Math.abs(total).toFixed(2);
+      totalUsdEl.style.color = total > 0 ? 'var(--tj-green)' : total < 0 ? 'var(--tj-red)' : 'var(--tj-text2)';
+
+      const totalRisk = num(riskInput.value);
+
+      const scalpR = totalRisk > 0 ? s / totalRisk : 0;
+      const swingR = totalRisk > 0 ? w / totalRisk : 0;
+      const totalR = scalpR + swingR;
+
+      scalpREl.textContent = (scalpR>=0?'':'-') + Math.abs(scalpR).toFixed(2) + 'R';
+      scalpREl.style.color = scalpR > 0 ? 'var(--tj-green)' : scalpR < 0 ? 'var(--tj-red)' : 'var(--tj-text2)';
+      swingREl.textContent = (swingR>=0?'':'-') + Math.abs(swingR).toFixed(2) + 'R';
+      swingREl.style.color = swingR > 0 ? 'var(--tj-green)' : swingR < 0 ? 'var(--tj-red)' : 'var(--tj-text2)';
+      totalREl.textContent = (totalR>=0?'':'-') + Math.abs(totalR).toFixed(2) + 'R';
+      totalREl.style.color = totalR > 0 ? 'var(--tj-green)' : totalR < 0 ? 'var(--tj-red)' : 'var(--tj-text)';
+    }
+    [scalpInput, swing1Input, swing2Input, swing3Input, riskInput].forEach(el=>{
+      el.addEventListener('input', syncTotalUsd);
+    });
+    syncTotalUsd();
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const scalpUsd = num(fd.get('scalpUsd'));
+      const swingUsd1 = num(fd.get('swingUsd1'));
+      const swingUsd2 = num(fd.get('swingUsd2'));
+      const swingUsd3 = num(fd.get('swingUsd3'));
+      const swingUsd = swingUsd1 + swingUsd2 + swingUsd3;
+      const standardContracts = num(fd.get('standardContracts'));
+      const microContracts = num(fd.get('microContracts'));
+      const totalRiskUsd = num(fd.get('totalRiskUsd'));
+      const scalpR = totalRiskUsd > 0 ? scalpUsd / totalRiskUsd : 0;
+      const swingR = totalRiskUsd > 0 ? swingUsd / totalRiskUsd : 0;
+      const trade = {
+        date: fd.get('date'),
+        instrument: fd.get('instrument'),
+        direction: fd.get('direction'),
+        tradeType: fd.get('tradeType') || 'opening_reversal',
+        magnet: fd.get('magnet') || '',
+        trendDayTypes: fd.getAll('trendDayTypes'),
+        twoLegEnd: fd.get('twoLegEnd') || '',
+        signalQuality: fd.get('signalQuality'),
+        reversalType: fd.get('reversalType') || '',
+        trendlineBreak: fd.get('trendlineBreak') || '',
+        majorReversalConditions: fd.getAll('majorReversalConditions'),
+        reasons: fd.getAll('reasons'),
+        criteria: fd.getAll('criteria'),
+        standardContracts, microContracts, totalRiskUsd,
+        partial: fd.get('partial'),
+        outcome: fd.get('outcome'),
+        scalpR, swingR, totalR: scalpR + swingR,
+        scalpUsd, swingUsd1, swingUsd2, swingUsd3, swingUsd, totalUsd: scalpUsd + swingUsd,
+        veto: fd.getAll('veto'),
+        chartLink: fd.get('chartLink') || '',
+        notes: fd.get('notes') || ''
+      };
+      const msg = form.querySelector('#tj-save-msg');
+
+      if (isEdit){
+        const ok = await updateTradeRemote(prefill.id, trade);
+        if (ok){
+          msg.style.color = 'var(--tj-green)';
+          msg.textContent = 'ცვლილებები შენახულია.';
+          editingTradeId = null;
+          setTimeout(()=>{ tab = 'log'; renderTabs(); renderLog(); }, 600);
+        } else {
+          msg.style.color = 'var(--tj-red)';
+          msg.textContent = 'ვერ შეინახა — სცადეთ ისევ.';
+        }
+        return;
+      }
+
+      trade.id = 'trade_' + Date.now();
+      const ok = await addTradeRemote(trade);
+      if (ok){
+        form.reset();
+        syncVeto();
+        syncReasonCount();
+        syncTotalUsd();
+        entryZone.innerHTML = renderEntryCriteriaZone('opening_reversal');
+        msg.style.color = 'var(--tj-green)';
+        msg.textContent = 'შენახულია (' + trades.length + ' ტრეიდი სულ).';
+        form.querySelector('[name=date]').value = new Date().toISOString().slice(0,10);
+      } else {
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'ვერ შეინახა — იხილეთ შეტყობინება ზემოთ. მონაცემი ფორმაში დარჩა, სცადეთ ისევ.';
+      }
+      setTimeout(()=> msg.textContent = '', 4000);
+    });
+  }
+
+  function num(v){
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function outcomeColor(o){
+    return o==='win' ? 'var(--tj-green)' : o==='loss' ? 'var(--tj-red)' : 'var(--tj-amber)';
+  }
+  function outcomeLabel(o){
+    return o==='win' ? 'Win' : o==='loss' ? 'Loss' : 'BE';
+  }
+
+  function backupPanel(){
+    return `
+      <div style="margin-top:22px; padding-top:16px; border-top:0.5px solid var(--tj-border);">
+        <div style="font-size:13px; font-weight:500; margin-bottom:6px;">ბექაფი (ხელით)</div>
+        <div style="font-size:12px; color:var(--tj-text2); margin-bottom:10px;">
+          თუ storage არასანდოა ამ გარემოში, გამოიყენეთ ეს — ტექსტი დააკოპირეთ და შეინახეთ ცალკე (მაგ. ტექსტურ ფაილში). აღდგენისას ჩასვით ველში და დააჭირეთ „აღდგენა".
+        </div>
+        <textarea id="tj-backup-area" rows="4" style="${inputStyle()}; font-family:'IBM Plex Mono',monospace; font-size:11px; resize:vertical;" placeholder="JSON აქ გამოჩნდება Export-ის მერე, ან ჩასვით მონაცემი Import-ისთვის"></textarea>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button id="tj-export-btn" type="button" style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text); font-size:12px; cursor:pointer;">Export</button>
+          <button id="tj-import-btn" type="button" style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-amber); background:rgba(201,154,80,0.12); color:var(--tj-text); font-size:12px; cursor:pointer;">აღდგენა (Import)</button>
+          <span id="tj-backup-msg" style="font-size:12px; align-self:center;"></span>
+        </div>
+      </div>
+    `;
+  }
+
+  function wireBackupPanel(){
+    const area = bodyEl.querySelector('#tj-backup-area');
+    const msg = bodyEl.querySelector('#tj-backup-msg');
+    bodyEl.querySelector('#tj-export-btn').onclick = () => {
+      area.value = exportJson();
+      area.select();
+      msg.style.color = 'var(--tj-text2)';
+      msg.textContent = 'მონიშნულია — Ctrl/Cmd+C დააკოპირეთ.';
+    };
+    bodyEl.querySelector('#tj-import-btn').onclick = async () => {
+      if (!area.value.trim()){ msg.style.color='var(--tj-red)'; msg.textContent='ჯერ ჩასვით JSON.'; return; }
+      let parsed;
+      try {
+        parsed = JSON.parse(area.value);
+        if (!Array.isArray(parsed)) throw new Error('არასწორი ფორმატი');
+      } catch(e){ msg.style.color='var(--tj-red)'; msg.textContent='ფორმატი არასწორია.'; return; }
+      msg.style.color = 'var(--tj-text2)';
+      msg.textContent = 'შენახვა მიმდინარეობს…';
+      const addedCount = await bulkInsertRemote(parsed);
+      if (addedCount > 0){
+        msg.style.color = 'var(--tj-green)';
+        msg.textContent = 'დაემატა ' + addedCount + ' ტრეიდი (სულ ' + trades.length + ').';
+      } else {
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'ვერ დაემატა — იხილეთ შეტყობინება ზემოთ.';
+      }
+      renderLog();
+    };
+  }
+
+  function td(content, extra){
+    return `<td style="padding:8px 10px; font-size:12px; color:var(--tj-text); white-space:nowrap; ${extra||''}">${content}</td>`;
+  }
+
+  function tradeTypeLabel(v){
+    const found = KEYS.tradeTypes.find(t=>t.value===v);
+    return found ? found.label : 'Opening Reversal';
+  }
+
+  function setupDetailText(t){
+    if (!t.tradeType || t.tradeType === 'opening_reversal') return t.magnet || '—';
+    if (t.tradeType === 'reversal') return t.reversalType || '—';
+    return (t.trendDayTypes && t.trendDayTypes.length) ? t.trendDayTypes.join('; ') : '—';
+  }
+
+  function twoLegText(t){
+    if (t.tradeType !== 'tr_fade') return '—';
+    return t.twoLegEnd === 'yes' ? 'დიახ' : t.twoLegEnd === 'no' ? 'არა' : 'არ შემოწმდა';
+  }
+
+  function renderLog(){
+    const filtered = getFilteredTrades();
+    if (trades.length === 0){
+      bodyEl.innerHTML = `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ჯერ არცერთი ტრეიდი არ არის შენახული.</div>` + backupPanel();
+      wireBackupPanel();
+      return;
+    }
+    const rows = [...filtered].reverse().map(t => `
+      <tr style="border-top:0.5px solid var(--tj-border);">
+        ${td(t.date, 'color:var(--tj-text2);')}
+        ${td(t.instrument, 'font-weight:500;')}
+        ${td(tradeTypeLabel(t.tradeType), 'color:var(--tj-accent);')}
+        ${td(t.direction==='long'?'Long':'Short', 'color:var(--tj-text2);')}
+        ${td(setupDetailText(t), 'color:var(--tj-text2); white-space:normal; min-width:180px;')}
+        ${td(twoLegText(t), 'color:var(--tj-text2);')}
+        ${td(t.signalQuality, 'color:var(--tj-text2); white-space:normal; min-width:120px;')}
+        ${td((t.reasons&&t.reasons.length? t.reasons.join('; ') : '—'), 'color:var(--tj-text2); white-space:normal; min-width:220px;')}
+        ${td((t.criteria&&t.criteria.length? t.criteria.join('; ') : '—'), 'color:var(--tj-text2); white-space:normal; min-width:180px;')}
+        ${td(t.reversalType || '—', 'color:var(--tj-accent); white-space:normal; min-width:160px;')}
+        ${td(t.trendlineBreak==='yes'?'დიახ':t.trendlineBreak==='no'?'არა':'—', 'color:var(--tj-text2);')}
+        ${td((t.majorReversalConditions&&t.majorReversalConditions.length? t.majorReversalConditions.join('; ') : '—'), 'color:var(--tj-text2); white-space:normal; min-width:200px;')}
+        ${td(num(t.standardContracts)+' / '+num(t.microContracts), 'color:var(--tj-text2); text-align:right;')}
+        ${td('$'+num(t.totalRiskUsd).toFixed(2), 'color:var(--tj-text2); text-align:right; font-weight:500;')}
+        ${td(t.partial==='yes'?'დიახ':'არა', 'color:var(--tj-text2);')}
+        ${td(`<span style="color:${outcomeColor(t.outcome)}; font-weight:600;">${outcomeLabel(t.outcome)}</span>`)}
+        ${td((num(t.scalpR)>0?'+':'')+num(t.scalpR).toFixed(2)+'R', `text-align:right; color:${num(t.scalpR)>=0?'var(--tj-green)':'var(--tj-red)'};`)}
+        ${td((num(t.swingR)>0?'+':'')+num(t.swingR).toFixed(2)+'R', `text-align:right; color:${num(t.swingR)>=0?'var(--tj-green)':'var(--tj-red)'};`)}
+        ${td((num(t.totalR)>0?'+':'')+num(t.totalR).toFixed(2)+'R', `text-align:right; font-weight:600; color:${num(t.totalR)>=0?'var(--tj-green)':'var(--tj-red)'};`)}
+        ${td('$'+num(t.scalpUsd).toFixed(2), 'color:var(--tj-text2); text-align:right;')}
+        ${td('$'+num(t.swingUsd).toFixed(2), 'color:var(--tj-text2); text-align:right;')}
+        ${td((num(t.totalUsd)>=0?'+$':'-$')+Math.abs(num(t.totalUsd)).toFixed(2), `text-align:right; font-weight:500; color:${num(t.totalUsd)>=0?'var(--tj-green)':'var(--tj-red)'};`)}
+        ${td((t.veto&&t.veto.length? t.veto.join('; ') : '—'), 'color:var(--tj-amber); white-space:normal; min-width:180px;')}
+        ${td(t.chartLink ? `<button type="button" class="tj-chart-btn" data-url="${t.chartLink}" style="border:none; background:none; color:var(--tj-accent); text-decoration:none; cursor:pointer; font-size:12px; padding:0; font-family:inherit;">ჩარტი ⤢</button>` : '—')}
+        ${td(t.notes || '—', 'color:var(--tj-text2); white-space:normal; min-width:160px;')}
+        <td style="padding:8px 10px; text-align:right; white-space:nowrap;">
+          <button data-id="${t.id}" class="tj-edit" style="border:none; background:none; color:var(--tj-accent); cursor:pointer; font-size:12px; margin-right:10px;">რედაქტირება</button>
+          <button data-id="${t.id}" class="tj-del" style="border:none; background:none; color:var(--tj-text3); cursor:pointer; font-size:12px;">წაშლა</button>
+        </td>
+      </tr>
+    `).join('');
+
+    const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $','Veto','Chart','შენიშვნა',''];
+
+    bodyEl.innerHTML = renderFilterBar() + `
+      <div style="overflow-x:auto; border:0.5px solid var(--tj-border); border-radius:10px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="text-align:left; font-size:10px; color:var(--tj-text3); text-transform:uppercase; letter-spacing:0.3px; background:var(--tj-panel);">
+              ${headers.map(h=>`<th style="padding:8px 10px; white-space:nowrap;">${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>${rows || `<tr><td colspan="${headers.length}" style="padding:24px; text-align:center; color:var(--tj-text2); font-size:13px;">ფილტრით ვერაფერი მოიძებნა.</td></tr>`}</tbody>
+        </table>
+      </div>
+      ${backupPanel()}
+    `;
+    wireFilterBar(renderLog);
+    bodyEl.querySelectorAll('.tj-del').forEach(b=>{
+      b.onclick = async (e) => {
+        await deleteTradeRemote(b.dataset.id);
+        renderLog();
+      };
+    });
+    bodyEl.querySelectorAll('.tj-edit').forEach(b=>{
+      b.onclick = () => {
+        const t = trades.find(x => x.id === b.dataset.id);
+        if (!t) return;
+        editingTradeId = t.id;
+        tab = 'new';
+        renderTabs();
+        renderNewTrade(t);
+      };
+    });
+    bodyEl.querySelectorAll('.tj-chart-btn').forEach(b=>{
+      b.onclick = () => openChartModal(b.dataset.url);
+    });
+    wireBackupPanel();
+  }
+
+  function metricCard(label, value, color){
+    return `<div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+      <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">${label}</div>
+      <div class="tj-mono" style="font-size:22px; font-weight:500; color:${color||'var(--tj-text)'};">${value}</div>
+    </div>`;
+  }
+
+  function statChip(label, value, color){
+    return `<div style="background:var(--tj-panel2); border-radius:8px; padding:8px 12px; min-width:110px;">
+      <div style="font-size:10px; color:var(--tj-text3); margin-bottom:3px;">${label}</div>
+      <div class="tj-mono" style="font-size:14px; font-weight:500; color:${color||'var(--tj-text)'};">${value}</div>
+    </div>`;
+  }
+
+  function renderCalendarSection(dayGroups){
+    if (!calendarViewMonth){
+      const dates = Object.keys(dayGroups).sort();
+      calendarViewMonth = dates.length ? dates[dates.length-1].slice(0,7) : new Date().toISOString().slice(0,7);
+    }
+    const [yearStr, monthStr] = calendarViewMonth.split('-');
+    const year = parseInt(yearStr,10), month = parseInt(monthStr,10);
+    const firstOfMonth = new Date(year, month-1, 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstWeekday = (firstOfMonth.getDay()+6)%7; // 0=Mon..6=Sun
+
+    const monthNames = ['იანვარი','თებერვალი','მარტი','აპრილი','მაისი','ივნისი','ივლისი','აგვისტო','სექტემბერი','ოქტომბერი','ნოემბერი','დეკემბერი'];
+
+    let monthTotal = 0, monthTrades = 0;
+    for (let d=1; d<=daysInMonth; d++){
+      const key = calendarViewMonth + '-' + String(d).padStart(2,'0');
+      if (dayGroups[key]) { monthTotal += dayGroups[key].usd; monthTrades += dayGroups[key].count; }
+    }
+
+    let cells = '';
+    for (let i=0;i<firstWeekday;i++) cells += `<div style="background:transparent; border-radius:6px; min-height:60px;"></div>`;
+    for (let d=1; d<=daysInMonth; d++){
+      const key = calendarViewMonth + '-' + String(d).padStart(2,'0');
+      const info = dayGroups[key];
+      let bg = 'var(--tj-panel2)', content = '';
+      if (info){
+        bg = info.usd > 0 ? 'rgba(79,158,118,0.20)' : info.usd < 0 ? 'rgba(189,90,76,0.20)' : 'var(--tj-panel2)';
+        const color = info.usd > 0 ? 'var(--tj-green)' : info.usd < 0 ? 'var(--tj-red)' : 'var(--tj-text2)';
+        content = `<div class="tj-mono" style="font-size:11px; font-weight:600; color:${color}; margin-top:6px;">${info.usd>=0?'+':'-'}$${Math.abs(info.usd).toFixed(0)}</div><div style="font-size:9px; color:var(--tj-text3);">${info.count} ტრ.</div>`;
+      }
+      cells += `<div style="background:${bg}; border-radius:6px; min-height:60px; padding:6px;">
+        <div style="font-size:10px; color:var(--tj-text3);">${d}</div>
+        ${content}
+      </div>`;
+    }
+
+    return `
+      <div style="margin-bottom:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:13px; font-weight:500;">PnL კალენდარი — <span class="tj-mono" style="color:${monthTotal>=0?'var(--tj-green)':'var(--tj-red)'};">${monthTotal>=0?'+':'-'}$${Math.abs(monthTotal).toFixed(2)}</span> <span style="color:var(--tj-text3); font-size:11px;">(${monthTrades} ტრეიდი)</span></div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="tj-cal-prev" style="border:0.5px solid var(--tj-border); background:var(--tj-panel2); color:var(--tj-text); border-radius:6px; width:26px; height:26px; cursor:pointer;">‹</button>
+            <span class="tj-mono" style="font-size:12px; min-width:120px; text-align:center;">${monthNames[month-1]} ${year}</span>
+            <button type="button" class="tj-cal-next" style="border:0.5px solid var(--tj-border); background:var(--tj-panel2); color:var(--tj-text); border-radius:6px; width:26px; height:26px; cursor:pointer;">›</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:10px; color:var(--tj-text3); margin-bottom:4px; text-align:center;">
+          <div>ორშ</div><div>სამ</div><div>ოთხ</div><div>ხუთ</div><div>პარ</div><div>შაბ</div><div>კვირა</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">
+          ${cells}
+        </div>
+      </div>
+    `;
+  }
+
+  function weekdayName(dateStr){
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d)) return null;
+    return ['კვირა','ორშ','სამ','ოთხ','ხუთ','პარ','შაბ'][d.getDay()];
+  }
+
+  function renderStats(){
+    const filtered = getFilteredTrades();
+    if (trades.length === 0){
+      bodyEl.innerHTML = `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ანალიტიკისთვის საჭიროა მინიმუმ ერთი ჩანაწერი.</div>`;
+      return;
+    }
+    if (filtered.length === 0){
+      bodyEl.innerHTML = renderFilterBar() + `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ფილტრით ვერაფერი მოიძებნა.</div>`;
+      wireFilterBar(renderStats);
+      return;
+    }
+    const n = filtered.length;
+    const winTrades = filtered.filter(t=>t.outcome==='win');
+    const lossTrades = filtered.filter(t=>t.outcome==='loss');
+    const wins = winTrades.length, losses = lossTrades.length;
+    const winRate = ((wins/n)*100).toFixed(0);
+    const totalR = filtered.reduce((s,t)=>s+num(t.totalR),0);
+    const avgR = totalR/n;
+    const totalUsd = filtered.reduce((s,t)=>s+num(t.totalUsd),0);
+    const avgUsd = totalUsd/n;
+    const totalScalpUsd = filtered.reduce((s,t)=>s+num(t.scalpUsd),0);
+    const totalSwingUsd = filtered.reduce((s,t)=>s+num(t.swingUsd),0);
+
+    const sumPosR = filtered.filter(t=>num(t.totalR)>0).reduce((s,t)=>s+num(t.totalR),0);
+    const sumNegR = filtered.filter(t=>num(t.totalR)<0).reduce((s,t)=>s+num(t.totalR),0);
+    const profitFactor = sumNegR !== 0 ? (sumPosR/Math.abs(sumNegR)) : (sumPosR>0?Infinity:0);
+    const avgWinR = winTrades.length ? winTrades.reduce((s,t)=>s+num(t.totalR),0)/winTrades.length : 0;
+    const avgLossR = lossTrades.length ? lossTrades.reduce((s,t)=>s+num(t.totalR),0)/lossTrades.length : 0;
+    const bestR = Math.max(...filtered.map(t=>num(t.totalR)));
+    const worstR = Math.min(...filtered.map(t=>num(t.totalR)));
+
+    let maxWinStreak=0, maxLossStreak=0, curWin=0, curLoss=0;
+    filtered.forEach(t=>{
+      if (t.outcome==='win'){ curWin++; curLoss=0; maxWinStreak=Math.max(maxWinStreak,curWin); }
+      else if (t.outcome==='loss'){ curLoss++; curWin=0; maxLossStreak=Math.max(maxLossStreak,curLoss); }
+      else { curWin=0; curLoss=0; }
+    });
+
+    const vetoCounts = {};
+    lossTrades.forEach(t=>{
+      (t.veto&&t.veto.length? t.veto : ['არცერთი მითითებული']).forEach(v=>{
+        vetoCounts[v] = (vetoCounts[v]||0)+1;
+      });
+    });
+    const vetoLabels = Object.keys(vetoCounts);
+    const vetoData = vetoLabels.map(k=>vetoCounts[k]);
+
+    const magnetGroups = {};
+    filtered.forEach(t=>{
+      magnetGroups[t.magnet] = magnetGroups[t.magnet] || {win:0,total:0};
+      magnetGroups[t.magnet].total++;
+      if (t.outcome==='win') magnetGroups[t.magnet].win++;
+    });
+    const magnetLabels = Object.keys(magnetGroups);
+    const magnetRates = magnetLabels.map(k=> Math.round(100*magnetGroups[k].win/magnetGroups[k].total));
+
+    const reasonGroups = {};
+    filtered.forEach(t=>{
+      (t.reasons||[]).forEach(r=>{
+        reasonGroups[r] = reasonGroups[r] || {win:0,total:0};
+        reasonGroups[r].total++;
+        if (t.outcome==='win') reasonGroups[r].win++;
+      });
+    });
+    const reasonLabels = Object.keys(reasonGroups);
+    const reasonRates = reasonLabels.map(k=> Math.round(100*reasonGroups[k].win/reasonGroups[k].total));
+    const lowReasonCount = filtered.filter(t=>(t.reasons||[]).length < 2).length;
+
+    const typeGroups = {};
+    filtered.forEach(t=>{
+      const k = tradeTypeLabel(t.tradeType);
+      typeGroups[k] = typeGroups[k] || {win:0,total:0};
+      typeGroups[k].total++;
+      if (t.outcome==='win') typeGroups[k].win++;
+    });
+    const typeLabels = Object.keys(typeGroups);
+    const typeRates = typeLabels.map(k=>Math.round(100*typeGroups[k].win/typeGroups[k].total));
+
+    const reversalTypeGroups = {};
+    filtered.forEach(t=>{
+      if (!t.reversalType || t.reversalType === 'არ ვვაჭრობ Reversal-ზე') return;
+      reversalTypeGroups[t.reversalType] = reversalTypeGroups[t.reversalType] || {win:0,total:0};
+      reversalTypeGroups[t.reversalType].total++;
+      if (t.outcome==='win') reversalTypeGroups[t.reversalType].win++;
+    });
+    const reversalTypeLabels = Object.keys(reversalTypeGroups);
+    const reversalTypeRates = reversalTypeLabels.map(k=>Math.round(100*reversalTypeGroups[k].win/reversalTypeGroups[k].total));
+
+    const trendDayGroups = {};
+    filtered.forEach(t=>{
+      (t.trendDayTypes||[]).forEach(d=>{
+        trendDayGroups[d] = trendDayGroups[d] || {win:0,total:0};
+        trendDayGroups[d].total++;
+        if (t.outcome==='win') trendDayGroups[d].win++;
+      });
+    });
+    const trendDayLabels = Object.keys(trendDayGroups);
+    const trendDayRates = trendDayLabels.map(k=>Math.round(100*trendDayGroups[k].win/trendDayGroups[k].total));
+
+    const trFadeTrades = filtered.filter(t=>t.tradeType==='tr_fade' && t.twoLegEnd);
+    const twoLegGroups = { 'დიახ':{win:0,total:0}, 'არა':{win:0,total:0} };
+    trFadeTrades.forEach(t=>{
+      const k = t.twoLegEnd==='yes' ? 'დიახ' : 'არა';
+      twoLegGroups[k].total++;
+      if (t.outcome==='win') twoLegGroups[k].win++;
+    });
+    const twoLegLabels = Object.keys(twoLegGroups).filter(k=>twoLegGroups[k].total>0);
+    const twoLegRates = twoLegLabels.map(k=>Math.round(100*twoLegGroups[k].win/twoLegGroups[k].total));
+
+    const dirGroups = { Long:{win:0,total:0}, Short:{win:0,total:0} };
+    filtered.forEach(t=>{
+      const k = t.direction==='long' ? 'Long' : 'Short';
+      dirGroups[k].total++;
+      if (t.outcome==='win') dirGroups[k].win++;
+    });
+    const dirLabels = Object.keys(dirGroups).filter(k=>dirGroups[k].total>0);
+    const dirRates = dirLabels.map(k=>Math.round(100*dirGroups[k].win/dirGroups[k].total));
+
+    const sqGroups = {};
+    filtered.forEach(t=>{
+      sqGroups[t.signalQuality] = sqGroups[t.signalQuality] || {win:0,total:0};
+      sqGroups[t.signalQuality].total++;
+      if (t.outcome==='win') sqGroups[t.signalQuality].win++;
+    });
+    const sqLabels = Object.keys(sqGroups);
+    const sqRates = sqLabels.map(k=>Math.round(100*sqGroups[k].win/sqGroups[k].total));
+
+    const wdOrder = ['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვირა'];
+    const wdGroups = {};
+    filtered.forEach(t=>{
+      const wd = weekdayName(t.date);
+      if (!wd) return;
+      wdGroups[wd] = wdGroups[wd] || {win:0,total:0,usd:0};
+      wdGroups[wd].total++;
+      wdGroups[wd].usd += num(t.totalUsd);
+      if (t.outcome==='win') wdGroups[wd].win++;
+    });
+    const wdLabels = wdOrder.filter(w=>wdGroups[w]);
+    const wdRates = wdLabels.map(k=>Math.round(100*wdGroups[k].win/wdGroups[k].total));
+
+    const bins = [
+      {label:'< -2R', test:r=>r<-2}, {label:'-2..-1R', test:r=>r>=-2&&r<-1}, {label:'-1..0R', test:r=>r>=-1&&r<0},
+      {label:'0..1R', test:r=>r>=0&&r<1}, {label:'1..2R', test:r=>r>=1&&r<2}, {label:'2..3R', test:r=>r>=2&&r<3}, {label:'> 3R', test:r=>r>=3}
+    ];
+    const histLabels = bins.map(b=>b.label);
+    const histData = bins.map(b=>filtered.filter(t=>b.test(num(t.totalR))).length);
+
+    let cum = 0;
+    const equitySeries = filtered.map(t => (cum += num(t.totalR)));
+    let cumUsd = 0;
+    const equityUsdSeries = filtered.map(t => (cumUsd += num(t.totalUsd)));
+
+    // --- additional analytics ---
+    const monthGroups = {};
+    filtered.forEach(t=>{
+      const m = (t.date || '').slice(0,7);
+      if (!m) return;
+      monthGroups[m] = monthGroups[m] || { r:0, usd:0, count:0 };
+      monthGroups[m].r += num(t.totalR);
+      monthGroups[m].usd += num(t.totalUsd);
+      monthGroups[m].count++;
+    });
+    const monthLabels = Object.keys(monthGroups).sort();
+    const monthRData = monthLabels.map(k=>Number(monthGroups[k].r.toFixed(2)));
+    const monthUsdData = monthLabels.map(k=>Number(monthGroups[k].usd.toFixed(2)));
+
+    const riskedTrades = filtered.filter(t=>num(t.totalRiskUsd) > 0);
+    const avgRiskUsd = riskedTrades.length ? riskedTrades.reduce((s,t)=>s+num(t.totalRiskUsd),0)/riskedTrades.length : 0;
+    const totalStdContracts = filtered.reduce((s,t)=>s+num(t.standardContracts),0);
+    const totalMicroContracts = filtered.reduce((s,t)=>s+num(t.microContracts),0);
+
+    const rValues = filtered.map(t=>num(t.totalR));
+    const meanR = rValues.reduce((a,b)=>a+b,0) / (rValues.length || 1);
+    const varianceR = rValues.reduce((a,b)=>a+Math.pow(b-meanR,2),0) / (rValues.length || 1);
+    const stdDevR = Math.sqrt(varianceR);
+
+    // --- day-level aggregation (for calendar, daily P&L charts, Day Win %, Consistency) ---
+    const dayGroups = {};
+    filtered.forEach(t=>{
+      if (!t.date) return;
+      dayGroups[t.date] = dayGroups[t.date] || { usd:0, r:0, count:0 };
+      dayGroups[t.date].usd += num(t.totalUsd);
+      dayGroups[t.date].r += num(t.totalR);
+      dayGroups[t.date].count++;
+    });
+    const dayDatesSorted = Object.keys(dayGroups).sort();
+    const activeDaysCount = dayDatesSorted.length;
+    const profitableDaysCount = dayDatesSorted.filter(d=>dayGroups[d].usd > 0).length;
+    const dayWinRate = activeDaysCount ? Math.round(100 * profitableDaysCount / activeDaysCount) : 0;
+    const dailyCumLabels = dayDatesSorted;
+    let dayCum = 0;
+    const dailyCumData = dayDatesSorted.map(d => Number((dayCum += dayGroups[d].usd).toFixed(2)));
+    const dailyNetData = dayDatesSorted.map(d => Number(dayGroups[d].usd.toFixed(2)));
+
+    const bestDayUsd = dayDatesSorted.length ? Math.max(...dayDatesSorted.map(d=>dayGroups[d].usd)) : 0;
+    const worstDayUsd = dayDatesSorted.length ? Math.min(...dayDatesSorted.map(d=>dayGroups[d].usd)) : 0;
+    const bestDayDate = dayDatesSorted.find(d=>dayGroups[d].usd === bestDayUsd) || null;
+    const consistencyPct = (totalUsd > 0 && bestDayUsd > 0) ? Math.round(100 * bestDayUsd / totalUsd) : 0;
+
+    // --- weekday extremes (most active / most profitable / least profitable) ---
+    let mostActiveWd = null, mostProfitableWd = null, leastProfitableWd = null;
+    wdLabels.forEach(wd=>{
+      if (!mostActiveWd || wdGroups[wd].total > wdGroups[mostActiveWd].total) mostActiveWd = wd;
+      if (!mostProfitableWd || wdGroups[wd].usd > wdGroups[mostProfitableWd].usd) mostProfitableWd = wd;
+      if (!leastProfitableWd || wdGroups[wd].usd < wdGroups[leastProfitableWd].usd) leastProfitableWd = wd;
+    });
+
+    // --- dollar-based win/loss averages, best/worst trade with detail ---
+    const avgWinUsd = winTrades.length ? winTrades.reduce((s,t)=>s+num(t.totalUsd),0)/winTrades.length : 0;
+    const avgLossUsd = lossTrades.length ? lossTrades.reduce((s,t)=>s+num(t.totalUsd),0)/lossTrades.length : 0;
+    let bestTrade = null, worstTrade = null;
+    filtered.forEach(t=>{
+      const u = num(t.totalUsd);
+      if (!bestTrade || u > num(bestTrade.totalUsd)) bestTrade = t;
+      if (!worstTrade || u < num(worstTrade.totalUsd)) worstTrade = t;
+    });
+
+    // --- long vs short trade count split ---
+    const longCount = filtered.filter(t=>t.direction==='long').length;
+    const shortCount = filtered.filter(t=>t.direction==='short').length;
+
+    // --- section visibility (persisted locally per browser) ---
+    const sectionDefs = [
+      {key:'metrics', label:'ძირითადი მაჩვენებლები'},
+      {key:'chips', label:'დამატებითი სტატისტიკა'},
+      {key:'calendar', label:'PnL კალენდარი'},
+      {key:'dailypnl', label:'დღიური P&L გრაფიკები'},
+      {key:'weekdayextremes', label:'კვირის დღის ექსტრემუმები'},
+      {key:'besttrade', label:'საუკეთესო/ცუდი ტრეიდი'},
+      {key:'equity', label:'Equity Curves (ტრეიდების მიხედვით)'},
+      {key:'monthly', label:'თვიური სტატისტიკა'},
+      {key:'histogram', label:'R განაწილება'},
+      {key:'veto', label:'Veto სიხშირე'},
+      {key:'magnet', label:'Magnet Win rate'},
+      {key:'reasons', label:'მიზეზების Win rate'},
+      {key:'tradetype', label:'თრეიდის ტიპის Win rate'},
+      {key:'reversaltype', label:'Reversal ტიპის Win rate'},
+      {key:'trendday', label:'ტრენდის დღის Win rate'},
+      {key:'twoleg', label:'TR Fade 2-ფეხა Win rate'},
+      {key:'direction', label:'Long vs Short'},
+      {key:'signalq', label:'Signal bar Win rate'},
+      {key:'weekday', label:'კვირის დღის Win rate'}
+    ];
+    function isVisible(key){ return statsVisible[key] !== false; }
+
+    bodyEl.innerHTML = renderFilterBar() + `
+      <details style="margin-bottom:20px; background:var(--tj-panel); border-radius:10px; padding:4px 14px;">
+        <summary style="cursor:pointer; padding:10px 0; font-size:12px; color:var(--tj-text2);">ხელსაწყოების ჩვენება/დამალვა ▾</summary>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:6px 14px; padding:6px 0 14px;">
+          ${sectionDefs.map(sd => `
+            <label style="display:flex; align-items:center; gap:7px; font-size:12px; color:var(--tj-text2); cursor:pointer;">
+              <input type="checkbox" class="tj-stat-toggle" data-section="${sd.key}" ${isVisible(sd.key)?'checked':''} style="accent-color:var(--tj-accent);"/> ${sd.label}
+            </label>
+          `).join('')}
+        </div>
+      </details>
+
+      ${isVisible('metrics') ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:12px;">
+        ${metricCard('სულ ტრეიდი', n)}
+        ${metricCard('Win rate', winRate + '%', 'var(--tj-green)')}
+        ${metricCard('Profit factor', isFinite(profitFactor) ? profitFactor.toFixed(2) : '∞', profitFactor>=1.5?'var(--tj-green)':profitFactor>=1?'var(--tj-amber)':'var(--tj-red)')}
+        ${metricCard('საშ. R / ტრეიდი', (avgR>0?'+':'')+avgR.toFixed(2)+'R', avgR>=0?'var(--tj-green)':'var(--tj-red)')}
+        ${metricCard('ჯამური R', (totalR>0?'+':'')+totalR.toFixed(2)+'R', totalR>=0?'var(--tj-green)':'var(--tj-red)')}
+        ${metricCard('ჯამური $', (totalUsd>=0?'+$':'-$')+Math.abs(totalUsd).toFixed(2), totalUsd>=0?'var(--tj-green)':'var(--tj-red)')}
+      </div>` : ''}
+
+      ${isVisible('chips') ? `
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;">
+        ${statChip('Day Win %', dayWinRate + '%', dayWinRate>=50?'var(--tj-green)':'var(--tj-amber)')}
+        ${statChip('Consistency (საუკეთ. დღის %)', consistencyPct + '%', consistencyPct<=40?'var(--tj-green)':'var(--tj-amber)')}
+        ${statChip('საშ. Win $', '+$'+avgWinUsd.toFixed(2), 'var(--tj-green)')}
+        ${statChip('საშ. Loss $', '-$'+Math.abs(avgLossUsd).toFixed(2), 'var(--tj-red)')}
+        ${statChip('საშ. Win R', '+'+avgWinR.toFixed(2)+'R', 'var(--tj-green)')}
+        ${statChip('საშ. Loss R', avgLossR.toFixed(2)+'R', 'var(--tj-red)')}
+        ${statChip('მაქს. Win streak', maxWinStreak, 'var(--tj-green)')}
+        ${statChip('მაქს. Loss streak', maxLossStreak, 'var(--tj-red)')}
+        ${statChip('სკალპ $ სულ', (totalScalpUsd>=0?'+$':'-$')+Math.abs(totalScalpUsd).toFixed(2))}
+        ${statChip('სვინგ $ სულ', (totalSwingUsd>=0?'+$':'-$')+Math.abs(totalSwingUsd).toFixed(2))}
+        ${statChip('საშ. $ / ტრეიდი', (avgUsd>=0?'+$':'-$')+Math.abs(avgUsd).toFixed(2))}
+        ${statChip('საშ. რისკი / ტრეიდი', '$'+avgRiskUsd.toFixed(2))}
+        ${statChip('R-ის სტანდ. გადახრა', stdDevR.toFixed(2), stdDevR<=1?'var(--tj-green)':'var(--tj-amber)')}
+        ${statChip('სტანდარტული კონტრაქტები', totalStdContracts)}
+        ${statChip('მიკრო კონტრაქტები', totalMicroContracts)}
+      </div>` : ''}
+
+      ${isVisible('calendar') ? renderCalendarSection(dayGroups, filtered) : ''}
+
+      ${isVisible('dailypnl') ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">დღიური კუმულაციური P&L ($)</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-daily-cum"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">დღიური წმინდა P&L ($)</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-daily-net"></canvas></div>
+        </div>
+      </div>` : ''}
+
+      ${isVisible('weekdayextremes') && mostActiveWd ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px; margin-bottom:24px;">
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">ყველაზე აქტიური დღე</div>
+          <div class="tj-serif" style="font-size:18px; font-weight:600;">${mostActiveWd}</div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-top:4px;">${wdGroups[mostActiveWd].total} ტრეიდი</div>
+        </div>
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">ყველაზე მომგებიანი დღე</div>
+          <div class="tj-serif" style="font-size:18px; font-weight:600;">${mostProfitableWd}</div>
+          <div class="tj-mono" style="font-size:12px; color:var(--tj-green); margin-top:4px;">+$${wdGroups[mostProfitableWd].usd.toFixed(2)}</div>
+        </div>
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">ყველაზე სუსტი დღე</div>
+          <div class="tj-serif" style="font-size:18px; font-weight:600;">${leastProfitableWd}</div>
+          <div class="tj-mono" style="font-size:12px; color:${wdGroups[leastProfitableWd].usd>=0?'var(--tj-green)':'var(--tj-red)'}; margin-top:4px;">${wdGroups[leastProfitableWd].usd>=0?'+':'-'}$${Math.abs(wdGroups[leastProfitableWd].usd).toFixed(2)}</div>
+        </div>
+      </div>` : ''}
+
+      ${isVisible('besttrade') && bestTrade ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px; margin-bottom:24px;">
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">საუკეთესო ტრეიდი</div>
+          <div class="tj-mono" style="font-size:18px; font-weight:600; color:var(--tj-green);">+$${num(bestTrade.totalUsd).toFixed(2)}</div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-top:4px;">${bestTrade.instrument} · ${bestTrade.direction==='long'?'Long':'Short'} · ${bestTrade.date}</div>
+        </div>
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">ყველაზე ცუდი ტრეიდი</div>
+          <div class="tj-mono" style="font-size:18px; font-weight:600; color:var(--tj-red);">${num(worstTrade.totalUsd)>=0?'+':'-'}$${Math.abs(num(worstTrade.totalUsd)).toFixed(2)}</div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-top:4px;">${worstTrade.instrument} · ${worstTrade.direction==='long'?'Long':'Short'} · ${worstTrade.date}</div>
+        </div>
+        <div style="background:var(--tj-panel2); border-radius:10px; padding:14px 16px;">
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">Long vs Short</div>
+          <div class="tj-mono" style="font-size:18px; font-weight:600;">${longCount} / ${shortCount}</div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-top:4px;">${n? Math.round(100*longCount/n):0}% Long</div>
+        </div>
+      </div>` : ''}
+
+      ${isVisible('equity') ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Equity curve (R)</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-equity"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Equity curve ($)</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-equity-usd"></canvas></div>
+        </div>
+      </div>` : ''}
+
+      ${isVisible('monthly') ? `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">თვიური R</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-month-r"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">თვიური $</div>
+          <div style="position:relative; height:170px;"><canvas id="tj-month-usd"></canvas></div>
+        </div>
+      </div>` : ''}
+
+      ${isVisible('histogram') ? `
+      <div style="font-size:13px; font-weight:500; margin-bottom:8px;">R განაწილება (რამდენჯერ რომელ დიაპაზონში)</div>
+      <div style="position:relative; height:160px; margin-bottom:26px;"><canvas id="tj-hist"></canvas></div>` : ''}
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        ${isVisible('veto') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">წაგებული ტრეიდები — Veto მიზეზები</div>
+          <div style="position:relative; height:${Math.max(120, vetoLabels.length*32+40)}px;"><canvas id="tj-veto"></canvas></div>
+        </div>` : ''}
+        ${isVisible('magnet') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — Magnet ტიპის მიხედვით</div>
+          <div style="position:relative; height:${Math.max(120, magnetLabels.length*32+40)}px;"><canvas id="tj-magnet"></canvas></div>
+        </div>` : ''}
+      </div>
+
+      ${isVisible('reasons') ? `
+      <div style="font-size:13px; font-weight:500; margin-bottom:4px;">Win rate — შესვლის მიზეზების მიხედვით</div>
+      <div style="font-size:11px; color:var(--tj-text2); margin-bottom:8px;">${lowReasonCount > 0 ? lowReasonCount + ' ტრეიდს ჰქონდა 2-ზე ნაკლები მიზეზი Al Brooks-ის წესის საწინააღმდეგოდ' : 'ყველა ტრეიდს ჰქონდა 2+ მიზეზი'}</div>
+      <div style="position:relative; height:${Math.max(140, reasonLabels.length*28+40)}px; margin-bottom:26px;"><canvas id="tj-reasons"></canvas></div>` : ''}
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        ${isVisible('tradetype') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — თრეიდის ტიპის მიხედვით</div>
+          <div style="position:relative; height:${Math.max(100, typeLabels.length*32+30)}px;"><canvas id="tj-tradetype"></canvas></div>
+        </div>` : ''}
+        ${isVisible('reversaltype') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — Reversal ტიპის მიხედვით</div>
+          ${reversalTypeLabels.length
+            ? `<div style="position:relative; height:${Math.max(100, reversalTypeLabels.length*28+30)}px;"><canvas id="tj-reversaltype"></canvas></div>`
+            : `<div style="font-size:12px; color:var(--tj-text3); padding:20px 0;">Reversal ტიპის მონაცემი ჯერ არ გაქვთ.</div>`}
+        </div>` : ''}
+        ${isVisible('trendday') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — ტრენდის დღის ტიპის მიხედვით</div>
+          ${trendDayLabels.length
+            ? `<div style="position:relative; height:${Math.max(100, trendDayLabels.length*28+30)}px;"><canvas id="tj-trendday"></canvas></div>`
+            : `<div style="font-size:12px; color:var(--tj-text3); padding:20px 0;">With Trend / TR Fade ტრეიდები ჯერ არ გაქვთ.</div>`}
+        </div>` : ''}
+      </div>
+
+      ${isVisible('twoleg') && twoLegLabels.length ? `
+      <div style="margin-bottom:24px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:8px;">TR Fade — Win rate ორფეხიანი მოძრაობის დასასრულის მიხედვით</div>
+        <div style="position:relative; height:100px;"><canvas id="tj-twoleg"></canvas></div>
+      </div>` : ''}
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
+        ${isVisible('direction') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — Long vs Short</div>
+          <div style="position:relative; height:120px;"><canvas id="tj-direction"></canvas></div>
+        </div>` : ''}
+        ${isVisible('signalq') ? `
+        <div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — Signal bar ხარისხის მიხედვით</div>
+          <div style="position:relative; height:${Math.max(100, sqLabels.length*32+30)}px;"><canvas id="tj-signalq"></canvas></div>
+        </div>` : ''}
+      </div>
+
+      ${isVisible('weekday') ? `
+      <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Win rate — კვირის დღის მიხედვით</div>
+      <div style="position:relative; height:170px;"><canvas id="tj-weekday"></canvas></div>` : ''}
+    `;
+    wireFilterBar(renderStats);
+    bodyEl.querySelectorAll('.tj-stat-toggle').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        statsVisible[cb.dataset.section] = cb.checked;
+        persistStatsVisible();
+        renderStats();
+      });
+    });
+    const calPrevBtn = bodyEl.querySelector('.tj-cal-prev');
+    const calNextBtn = bodyEl.querySelector('.tj-cal-next');
+    function shiftCalendarMonth(delta){
+      const [y,m] = calendarViewMonth.split('-').map(Number);
+      const d = new Date(y, m-1+delta, 1);
+      calendarViewMonth = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      renderStats();
+    }
+    if (calPrevBtn) calPrevBtn.onclick = () => shiftCalendarMonth(-1);
+    if (calNextBtn) calNextBtn.onclick = () => shiftCalendarMonth(1);
+
+    if (!window.Chart){
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+      s.onload = drawCharts;
+      document.body.appendChild(s);
+    } else {
+      drawCharts();
+    }
+
+    function drawCharts(){
+      const gridColor = '#2E343B';
+      const textColor = '#9B9993';
+      const baseBar = { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} };
+
+      function mkChart(id, config){
+        const el = document.getElementById(id);
+        if (!el) return;
+        new Chart(el, config);
+      }
+
+      mkChart('tj-equity', {
+        type: 'line',
+        data: { labels: filtered.map((_,i)=>i+1), datasets: [{
+          data: equitySeries, borderColor: '#6E93B0', backgroundColor: 'rgba(110,147,176,0.12)',
+          fill: true, tension: 0.15, pointRadius: 2, pointBackgroundColor: '#6E93B0', borderWidth: 2
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}} } }
+      });
+
+      mkChart('tj-equity-usd', {
+        type: 'line',
+        data: { labels: filtered.map((_,i)=>i+1), datasets: [{
+          data: equityUsdSeries, borderColor: '#4F9E76', backgroundColor: 'rgba(79,158,118,0.12)',
+          fill: true, tension: 0.15, pointRadius: 2, pointBackgroundColor: '#4F9E76', borderWidth: 2
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>'$'+v}} } }
+      });
+
+      mkChart('tj-daily-cum', {
+        type: 'line',
+        data: { labels: dailyCumLabels, datasets: [{
+          data: dailyCumData, borderColor: '#4F9E76', backgroundColor: 'rgba(79,158,118,0.15)',
+          fill: true, tension: 0.15, pointRadius: 1, pointBackgroundColor: '#4F9E76', borderWidth: 2
+        }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>'$'+v}} } }
+      });
+
+      mkChart('tj-daily-net', {
+        type: 'bar',
+        data: { labels: dailyCumLabels, datasets:[{ data: dailyNetData, backgroundColor: dailyNetData.map(v=>v>=0?'#4F9E76':'#BD5A4C'), borderRadius:3 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>'$'+v}} } }
+      });
+
+      mkChart('tj-month-r', {
+        type: 'bar',
+        data: { labels: monthLabels, datasets:[{ data: monthRData, backgroundColor: monthRData.map(v=>v>=0?'#4F9E76':'#BD5A4C'), borderRadius:4 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'R'}} } }
+      });
+
+      mkChart('tj-month-usd', {
+        type: 'bar',
+        data: { labels: monthLabels, datasets:[{ data: monthUsdData, backgroundColor: monthUsdData.map(v=>v>=0?'#4F9E76':'#BD5A4C'), borderRadius:4 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>'$'+v}} } }
+      });
+
+      mkChart('tj-hist', {
+        type: 'bar',
+        data: { labels: histLabels, datasets:[{ data: histData, backgroundColor:'#6E93B0', borderRadius:4 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},precision:0}} } }
+      });
+
+      mkChart('tj-veto', {
+        type: 'bar',
+        data: { labels: vetoLabels, datasets:[{ data: vetoData, backgroundColor:'#BD5A4C', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},precision:0}}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+      });
+
+      mkChart('tj-magnet', {
+        type: 'bar',
+        data: { labels: magnetLabels, datasets:[{ data: magnetRates, backgroundColor:'#4F9E76', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+      });
+
+      mkChart('tj-reasons', {
+        type: 'bar',
+        data: { labels: reasonLabels, datasets:[{ data: reasonRates, backgroundColor:'#6E93B0', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:10}}} } }
+      });
+
+      mkChart('tj-tradetype', {
+        type: 'bar',
+        data: { labels: typeLabels, datasets:[{ data: typeRates, backgroundColor:'#6E93B0', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+      });
+
+      if (reversalTypeLabels.length){
+        mkChart('tj-reversaltype', {
+          type: 'bar',
+          data: { labels: reversalTypeLabels, datasets:[{ data: reversalTypeRates, backgroundColor:'#C99A50', borderRadius:4 }]},
+          options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:10}}} } }
+        });
+      }
+
+      if (trendDayLabels.length){
+        mkChart('tj-trendday', {
+          type: 'bar',
+          data: { labels: trendDayLabels, datasets:[{ data: trendDayRates, backgroundColor:'#4F9E76', borderRadius:4 }]},
+          options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:10}}} } }
+        });
+      }
+
+      if (twoLegLabels.length){
+        mkChart('tj-twoleg', {
+          type: 'bar',
+          data: { labels: twoLegLabels, datasets:[{ data: twoLegRates, backgroundColor:'#C99A50', borderRadius:4 }]},
+          options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+        });
+      }
+
+      mkChart('tj-direction', {
+        type: 'bar',
+        data: { labels: dirLabels, datasets:[{ data: dirRates, backgroundColor:'#C99A50', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+      });
+
+      mkChart('tj-signalq', {
+        type: 'bar',
+        data: { labels: sqLabels, datasets:[{ data: sqRates, backgroundColor:'#C99A50', borderRadius:4 }]},
+        options: { ...baseBar, scales: { x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100}, y:{grid:{display:false},ticks:{color:textColor,font:{size:11}}} } }
+      });
+
+      mkChart('tj-weekday', {
+        type: 'bar',
+        data: { labels: wdLabels, datasets:[{ data: wdRates, backgroundColor:'#6E93B0', borderRadius:4 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+          scales: { x:{grid:{display:false},ticks:{color:textColor,font:{size:11}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10},callback:v=>v+'%'},max:100} } }
+      });
+    }
+  }
+
+  function guideSection(title, body){
+    return `<div style="margin-bottom:22px;">
+      <div style="font-size:14px; font-weight:600; color:var(--tj-accent); margin-bottom:6px;">${title}</div>
+      <div style="font-size:13px; color:var(--tj-text2); line-height:1.75;">${body}</div>
+    </div>`;
+  }
+
+  function renderGuide(){
+    bodyEl.innerHTML = `
+      <div class="tj-serif" style="font-size:18px; font-weight:600; margin-bottom:18px;">ინსტრუქცია</div>
+
+      ${guideSection('1. ახალი ტრეიდი', `
+        აირჩიეთ <b style="color:var(--tj-text);">თრეიდის ტიპი</b> (Opening Reversal / With Trend / TR Fade) — ამის მიხედვით იცვლება ქვემოთ მოთხოვნილი ველები.
+        <br>ყოველთვის მონიშნეთ მინიმუმ ორი <b style="color:var(--tj-text);">შესვლის მიზეზი</b> — მთვლელი გაწვანდება, როცა საკმარისი მიზეზი გექნებათ.
+        <br>თუ შედეგი „Loss"-ია, გამოჩნდება დამატებითი Veto ბლოკი — მონიშნეთ, რომელი წესი დაირღვა, რომ მოგვიანებით ანალიტიკაში დაინახოთ განმეორებადი შეცდომები.
+      `)}
+
+      ${guideSection('2. ჟურნალი', `
+        ყველა შენახული ტრეიდი ცხრილშია, ყველა ველით ერთდროულად ხილვადი (გვერდით სქროლით).
+        <br>ზედა ფილტრის ზოლით შეგიძლიათ ერთდროულად რამდენიმე ინსტრუმენტის/ტიპის/შედეგის მიხედვით გაფილტვრა — ეს ფილტრი ავტომატურად აისახება ანალიტიკის ტაბშიც.
+        <br>„ჩარტი" ღილაკი ტრეიდინგვიუს ჩარტს პირდაპირ საიტზევე გახსნის, ახალი ტაბის გარეშე.
+      `)}
+
+      ${guideSection('3. ანალიტიკა', `
+        Win rate, Profit factor, Equity curve, R-ის განაწილება, Veto-მიზეზების სიხშირე, თითოეული მიზეზისა და Magnet-ის Win rate — ყველაფერი ავტომატურად ითვლება შენახული ტრეიდებიდან, აქტიური ფილტრის გათვალისწინებით.
+      `)}
+
+      ${guideSection('4. ბექაფი', `
+        ჟურნალის ტაბის ბოლოში არის Export/Import — რეკომენდებულია დროდადრო JSON-ის სახით შენახვა ცალკე, დამატებითი დაზღვევისთვის.
+      `)}
+    `;
+  }
+
+  function updateProgressDOM(){
+    const fill = bodyEl.querySelector('#tj-progress-fill');
+    const pctEl = bodyEl.querySelector('#tj-progress-pct');
+    const labelEl = bodyEl.querySelector('#tj-progress-label');
+    if (fill) fill.style.width = aiProgressPct.toFixed(0) + '%';
+    if (pctEl) pctEl.textContent = aiProgressPct.toFixed(0) + '%';
+    if (labelEl) labelEl.textContent = aiProgressSteps[Math.min(Math.floor(aiProgressPct / (100 / aiProgressSteps.length)), aiProgressSteps.length - 1)];
+  }
+
+  function startAiProgress(){
+    aiProgressPct = 0;
+    if (aiProgressTimer) clearInterval(aiProgressTimer);
+    aiProgressTimer = setInterval(() => {
+      // ასიმპტოტური მატება — სწრაფად იწყება, 90%-თან ანელებს, არასდროს ეშვება 92-ს ზემოთ
+      // სანამ რეალური პასუხი არ მოვა
+      const remaining = 92 - aiProgressPct;
+      aiProgressPct = Math.min(92, aiProgressPct + Math.max(0.4, remaining * 0.055));
+      updateProgressDOM();
+    }, 180);
+  }
+
+  function stopAiProgress(){
+    if (aiProgressTimer) { clearInterval(aiProgressTimer); aiProgressTimer = null; }
+  }
+
+  async function runAiAnalysis(){
+    const list = getFilteredTrades();
+    if (list.length === 0){
+      aiError = 'ანალიზისთვის საჭიროა მინიმუმ ერთი ტრეიდი — ამჟამინდელი ფილტრით არცერთი ტრეიდი არ მოიძებნა.';
+      aiResult = '';
+      renderAI();
+      return;
+    }
+    aiLoading = true;
+    aiError = '';
+    aiResult = '';
+    renderAI();
+    startAiProgress();
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-trades', {
+        body: { trades: list }
+      });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      aiResult = (data && data.analysis) ? data.analysis : 'პასუხი ვერ მოვიდა.';
+      // პასუხი მოვიდა — ზოლს ვასრულებთ 100%-მდე სწრაფად, სანამ შედეგს ვაჩვენებთ
+      stopAiProgress();
+      aiProgressPct = 100;
+      updateProgressDOM();
+      await new Promise(r => setTimeout(r, 350));
+    } catch (err) {
+      stopAiProgress();
+      aiError = 'ანალიზის მიღება ვერ მოხერხდა — სცადეთ ისევ. (' + (err.message || 'უცნობი შეცდომა') + ')';
+    } finally {
+      aiLoading = false;
+      renderAI();
+    }
+  }
+
+  function renderAI(){
+    const list = getFilteredTrades();
+    bodyEl.innerHTML = `
+      <div class="tj-serif" style="font-size:18px; font-weight:600; margin-bottom:6px;">AI ანალიზი</div>
+      <div style="font-size:13px; color:var(--tj-text2); margin-bottom:18px; line-height:1.6;">
+        AI გაანალიზებს ${filtersActive() ? 'გაფილტრულ' : 'ყველა'} ტრეიდს (${list.length} ტრეიდი) და მოძებნის განმეორებად პატერნებს — რომელ setup-ში ან veto-პირობაში იკარგება ყველაზე მეტი, სად არის ყველაზე მაღალი Win rate და ა.შ.
+      </div>
+      <button id="tj-ai-run" style="padding:10px 20px; border-radius:10px; font-size:13px; cursor:pointer; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text); ${aiLoading ? 'opacity:0.5; cursor:default;' : ''}" ${aiLoading ? 'disabled' : ''}>
+        ${aiLoading ? 'მიმდინარეობს ანალიზი…' : 'გაანალიზე ჩემი ტრეიდები'}
+      </button>
+      ${aiLoading ? `
+        <div style="margin-top:20px; max-width:480px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span class="tj-progress-label" id="tj-progress-label"><span class="tj-progress-dot"></span>${aiProgressSteps[0]}</span>
+            <span class="tj-progress-pct" id="tj-progress-pct">${aiProgressPct.toFixed(0)}%</span>
+          </div>
+          <div class="tj-progress-track">
+            <div class="tj-progress-fill" id="tj-progress-fill" style="width:${aiProgressPct}%;"></div>
+          </div>
+        </div>
+      ` : ''}
+      ${aiError ? `<div style="margin-top:14px; font-size:12.5px; color:var(--tj-red);">${aiError}</div>` : ''}
+      <div id="tj-ai-output" style="margin-top:24px;">
+        ${aiResult ? `<div class="tj-ai-content">${marked.parse(aiResult)}</div>` : ''}
+      </div>
+    `;
+    const btn = bodyEl.querySelector('#tj-ai-run');
+    if (btn) btn.addEventListener('click', runAiAnalysis);
+  }
+
+  function renderBody(){
+    if (tab === 'new') renderNewTrade();
+    else if (tab === 'log') renderLog();
+    else if (tab === 'stats') renderStats();
+    else if (tab === 'ai') renderAI();
+    else renderGuide();
+  }
+
+  const statusEl = root.querySelector('#tj-status');
+  function showStatus(text, kind){
+    statusEl.style.display = 'block';
+    statusEl.style.color = kind==='error' ? 'var(--tj-red)' : kind==='ok' ? 'var(--tj-green)' : 'var(--tj-text2)';
+    statusEl.textContent = text;
+  }
+
+  async function loadTrades(){
+    if (!currentUser){ trades = []; return; }
+    try {
+      const { data, error } = await supabase
+        .from('trades')
+        .select('id, data')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      trades = (data || []).map(row => ({ ...row.data, id: row.id }));
+      statusEl.style.display = 'none';
+    } catch(e){
+      trades = [];
+      showStatus('ტრეიდების ჩატვირთვა ვერ მოხერხდა: ' + (e && e.message ? e.message : 'უცნობი შეცდომა'), 'error');
+    }
+  }
+
+  async function addTradeRemote(trade){
+    if (!currentUser){ showStatus('გთხოვთ, ჯერ შეხვიდეთ ანგარიშში.', 'error'); return false; }
+    try {
+      const { id, ...rest } = trade;
+      const { data, error } = await supabase
+        .from('trades')
+        .insert({ user_id: currentUser.id, data: rest })
+        .select('id, data')
+        .single();
+      if (error) throw error;
+      trades.push({ ...data.data, id: data.id });
+      statusEl.style.display = 'none';
+      return true;
+    } catch(e){
+      showStatus('შენახვის შეცდომა: ' + (e && e.message ? e.message : 'უცნობი') + ' — გამოიყენეთ Export ბექაფისთვის.', 'error');
+      return false;
+    }
+  }
+
+  async function updateTradeRemote(id, tradeData){
+    if (!currentUser) { showStatus('გთხოვთ, ჯერ შეხვიდეთ ანგარიშში.', 'error'); return false; }
+    try {
+      const { error } = await supabase
+        .from('trades')
+        .update({ data: tradeData })
+        .eq('id', id)
+        .eq('user_id', currentUser.id);
+      if (error) throw error;
+      const idx = trades.findIndex(t => t.id === id);
+      if (idx !== -1) trades[idx] = { ...tradeData, id };
+      statusEl.style.display = 'none';
+      return true;
+    } catch(e){
+      showStatus('განახლების შეცდომა: ' + (e && e.message ? e.message : 'უცნობი'), 'error');
+      return false;
+    }
+  }
+
+  async function deleteTradeRemote(id){
+    if (!currentUser) return false;
+    try {
+      const { error } = await supabase.from('trades').delete().eq('id', id).eq('user_id', currentUser.id);
+      if (error) throw error;
+      trades = trades.filter(t => t.id !== id);
+      return true;
+    } catch(e){
+      showStatus('წაშლის შეცდომა: ' + (e && e.message ? e.message : 'უცნობი'), 'error');
+      return false;
+    }
+  }
+
+  async function bulkInsertRemote(arr){
+    if (!currentUser || !arr || !arr.length) return 0;
+    try {
+      const rows = arr.map(t => { const { id, ...rest } = t; return { user_id: currentUser.id, data: rest }; });
+      const { data, error } = await supabase.from('trades').insert(rows).select('id, data');
+      if (error) throw error;
+      (data || []).forEach(row => trades.push({ ...row.data, id: row.id }));
+      return (data || []).length;
+    } catch(e){
+      showStatus('იმპორტის შეცდომა: ' + (e && e.message ? e.message : 'უცნობი'), 'error');
+      return 0;
+    }
+  }
+
+  function exportJson(){
+    return JSON.stringify(trades, null, 2);
+  }
+
+  async function startApp(){
+    await loadTrades();
+    renderTabs();
+    renderBody();
+  }
+
+  (async function bootstrap(){
+    renderAuthTabs();
+    renderAuthBody();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user){
+        await onAuthSuccess(session.user);
+      }
+    } catch(e){
+      showStatus('Supabase-თან დაკავშირება ვერ მოხერხდა — შეამოწმეთ SUPABASE_URL/ANON_KEY კონფიგურაცია.', 'error');
+    }
+  })();
+})();
+</script>
+<footer style="width:100%; max-width:1100px; text-align:center; padding:18px 12px 30px; font-size:11px; color:#6E6C67; font-family:'Inter',-apple-system,sans-serif;">
+  © 2026 Traders Academy · ყველა უფლება დაცულია
+</footer>
+</body>
+</html>
