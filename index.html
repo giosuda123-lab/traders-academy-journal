@@ -698,8 +698,9 @@
           </div>
         </div>
 
-        <div id="tj-veto-wrap" style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px; display:none;">
-          <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-red);">Veto — რომელი წესი დაირღვა?</div>
+        <div id="tj-veto-wrap" style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
+          <div style="font-size:13px; font-weight:500; margin-bottom:4px; color:var(--tj-red);">Veto-შემოწმება — ხომ არ ირღვევა რომელიმე წესი?</div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-bottom:10px;">შეამოწმეთ შესვლამდე — არა მხოლოდ წაგების შემდეგ. ყოველი მონიშნული პირობა აისახება ქვემოთ, შეფასებაში.</div>
           ${checklistGroup('veto', KEYS.vetoOptions, 2, prefill ? prefill.veto : [])}
         </div>
 
@@ -730,9 +731,7 @@
     const form = bodyEl.querySelector('#tj-form');
     const outcomeSel = form.querySelector('[name=outcome]');
     const vetoWrap = form.querySelector('#tj-veto-wrap');
-    function syncVeto(){ vetoWrap.style.display = outcomeSel.value === 'loss' ? 'block' : 'none'; }
-    outcomeSel.addEventListener('change', syncVeto);
-    syncVeto();
+    function syncVeto(){ /* veto ყოველთვის ხილულია — ეს ფუნქცია დარჩა თავსებადობისთვის (გამოძახებულია სხვაგანაც) */ }
 
     const tradeTypeSel = form.querySelector('#tj-tradeType');
     const entryZone = form.querySelector('#tj-entry-criteria-zone');
@@ -810,6 +809,23 @@
     syncTotalUsd();
 
     const assessmentEl = form.querySelector('#tj-assessment');
+    const vetoExplanations = {
+      'Barb Wire-ში შესვლა': 'Barb Wire — ვიწრო, doji-ებით სავსე რეინჯი; საიმედოა მხოლოდ ბაზრის fade რეინჯის კიდესთან, არა ეს setup.',
+      'Doji signal bar': 'Doji Signal Bar — წონასწორობას გამოხატავს კონტროლის ნაცვლად, არასდროს არის კარგი სიგნალი.',
+      'TL break არ იყო (countertrend)': 'Countertrend ტრენდლაინის რღვევის გარეშე — სანდო Countertrend პატერნი ამის გარეშე არ არსებობს.',
+      'Magnet/დონე არ იყო': 'შესვლა მიზნის/მიზეზის გარეშე — Magnet არ იყო განსაზღვრული.',
+      'დღის/რეინჯის შუაში': 'დღის/რეინჯის შუაში ვაჭრობა — დაბალი ალბათობის ზონაა.',
+      'რეპორტის დროს ვივაჭრე': 'მაკროეკონომიკური რეპორტის დროს ვაჭრობა — გაზრდილი, არაპროგნოზირებადი ვოლატილობა.',
+      'Trend from the Open-ის წინააღმდეგ': 'Trend from the Open-ის საწინააღმდეგოდ — სტატისტიკურად ცუდი გამოსავალია Trendline Break-მდე.',
+      '2+ წაგების მერე გავაგრძელე': 'ზედიზედ 2+ წაგების მერე გაგრძელება ცვლილების გარეშე — ჩვეულებრივ ნიშნავს overtrading-ს.',
+      'დაგვიანებული FOMO შესვლა': 'დაგვიანებული, FOMO-ზე დაფუძნებული შესვლა — ემოცია განსაზღვრავს setup-ის ხარისხის ნაცვლად.',
+      'Stop წესი დავარღვიე': 'Stop-ის წესის დარღვევა — რისკის მართვის უგულებელყოფაა.',
+      'Reversal bar overlap-შია (nothing to reverse)': 'Reversal Bar დიდწილად ფარავს წინა ბარებს — რეალურად „არაფერი აქვს რევერსირებისთვის".',
+      '1-წუთიანი chart-ის signal-ზე შევედი': '1-წუთიან ჩარტზე Signal-ის აღება — ხშირი, უსარგებლო სტოპ-გააქტიურებები.',
+      'ნაადრევად შევედი (Excess არ იყო)': 'ნაადრევი შესვლა Excess-ის გარეშე — მოძრაობა ჯერ არ არის ამოწურული.',
+      'წინა თვე Reversal-ებზე წავაგე': 'წინა თვის Reversal-ტიპის ტრეიდებში სუსტი შედეგი — ღირს ამ setup-ის ხელახლა გადახედვა.'
+    };
+
     function computeAssessment(){
       const flags = []; // {level:'red'|'yellow'|'green', text}
       const currentTradeType = tradeTypeSel.value;
@@ -819,24 +835,71 @@
       const majorBoxes = form.querySelectorAll('input[name=majorReversalConditions]');
       const majorChecked = form.querySelectorAll('input[name=majorReversalConditions]:checked').length;
       const reversalTypeSel = form.querySelector('#tj-reversalType');
+      const trendlineBreakSel = form.querySelector('[name=trendlineBreak]');
+      const twoLegEndSel = form.querySelector('[name=twoLegEnd]');
+      const trendDayBoxes = form.querySelectorAll('input[name=trendDayTypes]:checked');
+      const trendDayValues = Array.from(trendDayBoxes).map(b=>b.value);
+      const criteriaChecked = form.querySelectorAll('input[name=criteria]:checked').length;
 
+      // --- Veto — ყველაზე მძიმე კატეგორია, ყოველი მონიშნული პირობა წითელი დროშაა
+      form.querySelectorAll('input[name=veto]:checked').forEach(box=>{
+        flags.push({level:'red', text: vetoExplanations[box.value] || ('Veto: ' + box.value + ' — თქვენ თვითონ მონიშნეთ ეს პირობა.')});
+      });
+
+      // --- მიზეზების რაოდენობა
       if (reasonsN === 0) flags.push({level:'red', text:'შესვლის მიზეზი საერთოდ არ გაქვთ მონიშნული.'});
       else if (reasonsN === 1) flags.push({level:'yellow', text:'მხოლოდ 1 მიზეზი გაქვთ მონიშნული — Al Brooks: „Have at Least Two Reasons to Enter a Trade".'});
       else flags.push({level:'green', text: reasonsN + ' მიზეზი მონიშნული — საკმარისია.'});
 
+      // --- Signal Bar ხარისხი
       if (signalQuality === 'Doji') flags.push({level:'red', text:'Doji არასდროს არის კარგი Signal Bar — წონასწორობას გამოხატავს, არა კონტროლს.'});
       else if (signalQuality === 'საპირისპირო ტრენდული ბარი') flags.push({level:'red', text:'Signal Bar საწინააღმდეგო მიმართულების ტრენდულია — სუსტი სიგნალია.'});
       else if (signalQuality === 'სუსტი trend bar') flags.push({level:'yellow', text:'Signal Bar სუსტი trend bar-ია — არაიდეალურია, მაგრამ არა კრიტიკული.'});
       else if (signalQuality === 'ძლიერი trend bar') flags.push({level:'green', text:'Signal Bar ძლიერი trend bar-ია სავაჭრო მიმართულებით.'});
 
-      if (!magnet) flags.push({level:'yellow', text:'Magnet/დონე არ არის მითითებული — შესვლას სჭირდება მიზეზი მიზნისკენ.'});
-
-      if (currentTradeType === 'reversal' && reversalTypeSel && reversalTypeSel.value === 'Major Trend Reversal' && majorBoxes.length){
-        if (majorChecked < 4) flags.push({level: majorChecked <= 1 ? 'red' : 'yellow', text: `Major Reversal-ის 4 პირობიდან მხოლოდ ${majorChecked} დაკმაყოფილებულია.`});
-        else flags.push({level:'green', text:'Major Reversal-ის ყველა 4 პირობა დაკმაყოფილებულია.'});
+      // --- Opening Reversal (default branch) — Magnet და დამატებითი კრიტერიუმები
+      if (currentTradeType !== 'with_trend' && currentTradeType !== 'tr_fade' && currentTradeType !== 'reversal'){
+        if (!magnet) flags.push({level:'yellow', text:'Magnet/დონე არ არის მითითებული — შესვლას სჭირდება მიზეზი მიზნისკენ.'});
+        if (criteriaChecked === 0) flags.push({level:'yellow', text:'დამატებითი დამადასტურებელი კრიტერიუმი (TL break, Double Top/Bottom, Second entry, Trapped მხარე) არცერთი არ არის მონიშნული.'});
+        else flags.push({level:'green', text: criteriaChecked + ' დამადასტურებელი კრიტერიუმი მონიშნულია.'});
       }
 
-      // ისტორიული სტატისტიკა ამ tradeType-ზე
+      // --- With Trend / TR Fade — დღის ტიპი
+      if (currentTradeType === 'with_trend'){
+        if (trendDayValues.length === 0) flags.push({level:'yellow', text:'ტრენდის დღის ტიპი არ არის მონიშნული — With Trend საიმედოა მხოლოდ ცნობილი ტრენდული დღის კონტექსტში.'});
+        if (trendDayValues.includes('Shrinking Stairs')) flags.push({level:'yellow', text:'Shrinking Stairs — ეს ხშირად მილევადი მომენტუმის ნიშანია, შესაძლოა ტრენდი რევერსალს უახლოვდება.'});
+      }
+      if (currentTradeType === 'tr_fade'){
+        if (trendDayValues.length === 0) flags.push({level:'red', text:'დღის ტიპი არ დაგიდასტურებიათ — TR Fade მხოლოდ ცნობილ Trading Range დღეებში მუშაობს საიმედოდ.'});
+        if (twoLegEndSel && twoLegEndSel.value === 'no') flags.push({level:'yellow', text:'ეს არ არის ორფეხიანი მოძრაობის დასასრული — Al Brooks: „ორ ფეხს ელოდე თითქმის ყოველთვის".'});
+        else if (twoLegEndSel && twoLegEndSel.value === 'yes') flags.push({level:'green', text:'ორფეხიანი მოძრაობის დასასრულია — უფრო საიმედო fade წერტილია.'});
+      }
+
+      // --- Reversal — Trendline Break და Reversal ტიპი
+      if (currentTradeType === 'reversal'){
+        if (!trendlineBreakSel || trendlineBreakSel.value === ''){
+          flags.push({level:'yellow', text:'ტრენდლაინის რღვევა არ არის შემოწმებული.'});
+        } else if (trendlineBreakSel.value === 'no'){
+          flags.push({level:'red', text:'Trendline Break არ დაფიქსირდა — Al Brooks: „სანდო Countertrend პატერნი არ არსებობს ტრენდლაინის რღვევის გარეშე".'});
+        } else {
+          flags.push({level:'green', text:'ტრენდლაინის რღვევა დაფიქსირებულია.'});
+        }
+
+        if (reversalTypeSel){
+          if (reversalTypeSel.value === 'Major Trend Reversal' && majorBoxes.length){
+            if (majorChecked < 4) flags.push({level: majorChecked <= 1 ? 'red' : 'yellow', text: `Major Reversal-ის 4 პირობიდან მხოლოდ ${majorChecked} დაკმაყოფილებულია.`});
+            else flags.push({level:'green', text:'Major Reversal-ის ყველა 4 პირობა დაკმაყოფილებულია.'});
+          } else if (['Climactic Reversal','3 Push','Expanding Triangle','Shrinking Stairs'].includes(reversalTypeSel.value)){
+            flags.push({level:'yellow', text:'ეს ერთი ოჯახის პატერნია (Climactic/3 Push/Wedge/Expanding Triangle) — მთავარი დამადასტურებელი სიგნალია Trend Channel Line-ის overshoot და მისი მოცილება.'});
+          } else if (reversalTypeSel.value === 'Final Flag Reversal'){
+            flags.push({level:'yellow', text:'Final Flag Reversal — თუ ეს ასევე Failed Final Flag-ია (breakout ვერ ამართლებს), სიგნალი მნიშვნელოვნად უფრო საიმედოა.'});
+          } else if (reversalTypeSel.value === 'არ ვვაჭრობ Reversal-ზე'){
+            flags.push({level:'red', text:'თრეიდის ტიპად „Reversal" გაქვთ არჩეული, მაგრამ Reversal-ის ტიპში მითითებული გაქვთ „არ ვვაჭრობ Reversal-ზე" — გადაამოწმეთ შეუსაბამობა.'});
+          }
+        }
+      }
+
+      // --- ისტორიული სტატისტიკა ამ tradeType-ზე
       const historyMatches = trades.filter(t => (t.tradeType || 'opening_reversal') === currentTradeType && t.outcome);
       let statLine = '';
       if (historyMatches.length >= 5){
