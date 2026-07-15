@@ -1769,6 +1769,29 @@
     if (aiProgressTimer) { clearInterval(aiProgressTimer); aiProgressTimer = null; }
   }
 
+  async function callAnalyzeTrades(list, attempt){
+    const { data, error } = await supabase.functions.invoke('analyze-trades', {
+      body: { trades: list }
+    });
+    if (error) {
+      // FunctionsHttpError-ს აქვს .context (Response ობიექტი) — იქიდან ვცდილობთ
+      // რეალური, კონკრეტული შეცდომის ტექსტის ამოღებას
+      let detail = error.message || '';
+      try {
+        if (error.context && typeof error.context.json === 'function'){
+          const body = await error.context.clone().json();
+          if (body && body.error) detail = body.error;
+        }
+      } catch(e) { /* JSON ვერ წაიკითხა — ვჯერდებით ძირითად message-ს */ }
+      const status = error.context && error.context.status ? error.context.status : null;
+      const err = new Error(detail);
+      err.status = status;
+      throw err;
+    }
+    if (data && data.error) throw new Error(data.error);
+    return (data && data.analysis) ? data.analysis : 'პასუხი ვერ მოვიდა.';
+  }
+
   async function runAiAnalysis(){
     const list = getFilteredTrades();
     if (list.length === 0){
@@ -1782,25 +1805,36 @@
     aiResult = '';
     renderAI();
     startAiProgress();
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-trades', {
-        body: { trades: list }
-      });
-      if (error) throw error;
-      if (data && data.error) throw new Error(data.error);
-      aiResult = (data && data.analysis) ? data.analysis : 'პასუხი ვერ მოვიდა.';
-      // პასუხი მოვიდა — ზოლს ვასრულებთ 100%-მდე სწრაფად, სანამ შედეგს ვაჩვენებთ
-      stopAiProgress();
-      aiProgressPct = 100;
-      updateProgressDOM();
-      await new Promise(r => setTimeout(r, 350));
-    } catch (err) {
-      stopAiProgress();
-      aiError = 'ანალიზის მიღება ვერ მოხერხდა — სცადეთ ისევ. (' + (err.message || 'უცნობი შეცდომა') + ')';
-    } finally {
-      aiLoading = false;
-      renderAI();
+    const maxAttempts = 3;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++){
+      try {
+        aiResult = await callAnalyzeTrades(list, attempt);
+        stopAiProgress();
+        aiProgressPct = 100;
+        updateProgressDOM();
+        await new Promise(r => setTimeout(r, 350));
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        // 546 (რესურსის ლიმიტი) და ქსელური ხარვეზები ხშირად დროებითია — ავტომატურად ვცდით ხელახლა
+        const isRetryable = err.status === 546 || err.status === 504 || err.status === 502 || !err.status;
+        if (attempt < maxAttempts && isRetryable){
+          const labelEl = bodyEl.querySelector('#tj-progress-label');
+          if (labelEl) labelEl.textContent = `დროებითი ხარვეზი — ვცდით ხელახლა (${attempt}/${maxAttempts - 1})…`;
+          await new Promise(r => setTimeout(r, 1200));
+          continue;
+        }
+      }
     }
+    if (lastErr){
+      stopAiProgress();
+      const statusPart = lastErr.status ? ` [კოდი: ${lastErr.status}]` : '';
+      aiError = 'ანალიზის მიღება ვერ მოხერხდა რამდენიმე ცდის შემდეგაც — სცადეთ ცოტა ხანში ისევ. (' + (lastErr.message || 'უცნობი შეცდომა') + statusPart + ')';
+    }
+    aiLoading = false;
+    renderAI();
   }
 
   function renderAI(){
