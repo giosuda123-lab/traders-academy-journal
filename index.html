@@ -638,9 +638,70 @@
     `;
   }
 
+  function computeTraderProfile(){
+    const closed = trades.filter(t=>t.outcome);
+    if (closed.length < 10) return null;
+
+    function statsBy(keyFn){
+      const map = {};
+      closed.forEach(t=>{
+        const k = keyFn(t);
+        if (!k) return;
+        if (!map[k]) map[k] = {wins:0,total:0};
+        map[k].total++;
+        if (t.outcome==='win') map[k].wins++;
+      });
+      return Object.entries(map)
+        .filter(([k,v])=>v.total>=3)
+        .map(([k,v])=>({key:k, winRate: Math.round(v.wins/v.total*100), n:v.total}))
+        .sort((a,b)=>b.winRate-a.winRate);
+    }
+
+    const byType = statsBy(t=>{
+      const tt = KEYS.tradeTypes.find(x=>x.value===(t.tradeType||'opening_reversal'));
+      return tt ? tt.label : null;
+    });
+    const byMagnet = statsBy(t=>t.magnet || null);
+    const bySignal = statsBy(t=>t.signalQuality || null);
+
+    const lossVetoCounts = {};
+    closed.filter(t=>t.outcome==='loss').forEach(t=>{
+      (t.veto||[]).forEach(v=>{ lossVetoCounts[v] = (lossVetoCounts[v]||0)+1; });
+    });
+    const topVeto = Object.entries(lossVetoCounts).sort((a,b)=>b[1]-a[1])[0] || null;
+
+    return { byType, byMagnet, bySignal, topVeto, totalClosed: closed.length };
+  }
+
+  function renderTraderProfileCard(){
+    const p = computeTraderProfile();
+    if (!p) return '';
+    const bestType = p.byType[0];
+    const worstType = p.byType.length > 1 ? p.byType[p.byType.length-1] : null;
+    const bestMagnet = p.byMagnet[0];
+
+    const lines = [];
+    if (bestType) lines.push(`<span style="color:var(--tj-green);">✓ თქვენთვის მუშაობს:</span> „${bestType.key}" — ${bestType.winRate}% Win rate (${bestType.n} ტრეიდი)`);
+    if (worstType && (!bestType || worstType.key !== bestType.key)) lines.push(`<span style="color:var(--tj-red);">⚠ სუსტი მხარე:</span> „${worstType.key}" — ${worstType.winRate}% Win rate (${worstType.n} ტრეიდი)`);
+    if (bestMagnet) lines.push(`საუკეთესო Magnet თქვენთვის: „${bestMagnet.key}" — ${bestMagnet.winRate}% (${bestMagnet.n} ტრეიდი)`);
+    if (p.topVeto) lines.push(`ყველაზე ხშირად განმეორებადი Veto წაგებებში: „${p.topVeto[0]}" (${p.topVeto[1]}-ჯერ)`);
+
+    if (!lines.length) return '';
+
+    return `
+      <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; margin-bottom:20px;">
+        <div style="font-size:12.5px; font-weight:600; color:var(--tj-text); margin-bottom:8px;">📊 თქვენი პროფილი (${p.totalClosed} დახურული ტრეიდი)</div>
+        <div style="display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--tj-text2); line-height:1.6;">
+          ${lines.map(l=>`<div>${l}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderNewTrade(prefill){
     const isEdit = !!prefill;
     bodyEl.innerHTML = `
+      ${!isEdit ? renderTraderProfileCard() : ''}
       <form id="tj-form">
         ${isEdit ? `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:10px 14px; background:rgba(201,154,80,0.12); border:0.5px solid var(--tj-amber); border-radius:8px;">
@@ -901,14 +962,30 @@
 
       // --- ისტორიული სტატისტიკა ამ tradeType-ზე
       const historyMatches = trades.filter(t => (t.tradeType || 'opening_reversal') === currentTradeType && t.outcome);
-      let statLine = '';
+      const statLines = [];
       if (historyMatches.length >= 5){
         const wins = historyMatches.filter(t=>t.outcome==='win').length;
         const winRate = Math.round((wins / historyMatches.length) * 100);
         const typeLabel = (KEYS.tradeTypes.find(t=>t.value===currentTradeType) || {}).label || currentTradeType;
-        statLine = `თქვენი ისტორიული Win rate „${typeLabel}"-ზე: <strong>${winRate}%</strong> (${historyMatches.length} ტრეიდი).`;
+        statLines.push(`თქვენი ისტორიული Win rate „${typeLabel}"-ზე: <strong>${winRate}%</strong> (${historyMatches.length} ტრეიდი).`);
         if (winRate < 40) flags.push({level:'yellow', text:`ისტორიულად სუსტი შედეგი გაქვთ „${typeLabel}"-ში (${winRate}% Win rate, ${historyMatches.length} ტრეიდზე).`});
       }
+      if (magnet){
+        const magnetMatches = trades.filter(t => t.magnet === magnet && t.outcome);
+        if (magnetMatches.length >= 5){
+          const winRate = Math.round((magnetMatches.filter(t=>t.outcome==='win').length / magnetMatches.length) * 100);
+          statLines.push(`თქვენი Win rate „${magnet}" Magnet-ით: <strong>${winRate}%</strong> (${magnetMatches.length} ტრეიდი).`);
+          if (winRate < 40) flags.push({level:'yellow', text:`ისტორიულად სუსტი შედეგი „${magnet}" Magnet-ით (${winRate}%, ${magnetMatches.length} ტრეიდზე).`});
+        }
+      }
+      if (signalQuality){
+        const sqMatches = trades.filter(t => t.signalQuality === signalQuality && t.outcome);
+        if (sqMatches.length >= 5){
+          const winRate = Math.round((sqMatches.filter(t=>t.outcome==='win').length / sqMatches.length) * 100);
+          statLines.push(`თქვენი Win rate „${signalQuality}"-ით: <strong>${winRate}%</strong> (${sqMatches.length} ტრეიდი).`);
+        }
+      }
+      const statLine = statLines.join('<br/>');
 
       const redCount = flags.filter(f=>f.level==='red').length;
       const yellowCount = flags.filter(f=>f.level==='yellow').length;
