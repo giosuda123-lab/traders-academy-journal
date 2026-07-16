@@ -1447,6 +1447,26 @@
     const vetoLabels = Object.keys(vetoCounts);
     const vetoData = vetoLabels.map(k=>vetoCounts[k]);
 
+    // --- დისციპლინის ანალიტიკა: Veto მონიშნული vs არა, Win rate შედარება ---
+    const closedForDiscipline = filtered.filter(t=>t.outcome);
+    const disciplineWithVeto = closedForDiscipline.filter(t=>t.veto && t.veto.length>0);
+    const disciplineNoVeto = closedForDiscipline.filter(t=>!t.veto || t.veto.length===0);
+    const disciplineWithVetoWinRate = disciplineWithVeto.length ? Math.round(100*disciplineWithVeto.filter(t=>t.outcome==='win').length/disciplineWithVeto.length) : null;
+    const disciplineNoVetoWinRate = disciplineNoVeto.length ? Math.round(100*disciplineNoVeto.filter(t=>t.outcome==='win').length/disciplineNoVeto.length) : null;
+
+    const vetoItemGroups = {};
+    closedForDiscipline.forEach(t=>{
+      (t.veto||[]).forEach(v=>{
+        vetoItemGroups[v] = vetoItemGroups[v] || {win:0,total:0};
+        vetoItemGroups[v].total++;
+        if (t.outcome==='win') vetoItemGroups[v].win++;
+      });
+    });
+    const vetoItemStats = Object.entries(vetoItemGroups)
+      .filter(([k,v])=>v.total>=3)
+      .map(([k,v])=>({key:k, winRate: Math.round(100*v.win/v.total), n:v.total}))
+      .sort((a,b)=>a.winRate-b.winRate);
+
     const magnetGroups = {};
     filtered.forEach(t=>{
       magnetGroups[t.magnet] = magnetGroups[t.magnet] || {win:0,total:0};
@@ -1632,6 +1652,7 @@
       {key:'equity', label:'Equity Curves (ტრეიდების მიხედვით)'},
       {key:'monthly', label:'თვიური სტატისტიკა'},
       {key:'histogram', label:'R განაწილება'},
+      {key:'discipline', label:'დისციპლინის ანალიტიკა (Veto გავლენა)'},
       {key:'veto', label:'Veto სიხშირე'},
       {key:'magnet', label:'Magnet Win rate'},
       {key:'reasons', label:'მიზეზების Win rate'},
@@ -1765,6 +1786,34 @@
       ${isVisible('histogram') ? `
       <div style="font-size:13px; font-weight:500; margin-bottom:8px;">R განაწილება (რამდენჯერ რომელ დიაპაზონში)</div>
       <div style="position:relative; height:160px; margin-bottom:26px;"><canvas id="tj-hist"></canvas></div>` : ''}
+
+      ${isVisible('discipline') && (disciplineWithVetoWinRate!==null || disciplineNoVetoWinRate!==null) ? `
+      <div style="margin-bottom:26px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:4px;">დისციპლინის ანალიტიკა — Veto-პირობის გავლენა</div>
+        <div style="font-size:11px; color:var(--tj-text2); margin-bottom:12px;">შედარება: ტრეიდები, სადაც Veto პირობა მონიშნული იყო (მაინც შესულხართ), vs ტრეიდები — Veto-ს გარეშე.</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:16px;">
+          <div style="background:var(--tj-panel); border:0.5px solid var(--tj-red); border-radius:10px; padding:14px 16px;">
+            <div style="font-size:11px; color:var(--tj-text2); margin-bottom:4px;">Veto მონიშნული იყო</div>
+            <div style="font-size:22px; font-weight:600; color:var(--tj-red);">${disciplineWithVetoWinRate!==null ? disciplineWithVetoWinRate+'%' : '—'}</div>
+            <div style="font-size:11px; color:var(--tj-text3);">${disciplineWithVeto.length} ტრეიდი</div>
+          </div>
+          <div style="background:var(--tj-panel); border:0.5px solid var(--tj-green); border-radius:10px; padding:14px 16px;">
+            <div style="font-size:11px; color:var(--tj-text2); margin-bottom:4px;">Veto არ იყო მონიშნული</div>
+            <div style="font-size:22px; font-weight:600; color:var(--tj-green);">${disciplineNoVetoWinRate!==null ? disciplineNoVetoWinRate+'%' : '—'}</div>
+            <div style="font-size:11px; color:var(--tj-text3);">${disciplineNoVeto.length} ტრეიდი</div>
+          </div>
+        </div>
+        ${vetoItemStats.length ? `
+        <div style="font-size:11.5px; color:var(--tj-text2); margin-bottom:6px;">კონკრეტული Veto პირობების Win rate (მინ. 3 ტრეიდი, დალაგებული სუსტიდან):</div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          ${vetoItemStats.map(v=>`
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--tj-text2); padding:6px 10px; background:var(--tj-panel2); border-radius:6px;">
+              <span>${v.key}</span>
+              <span style="color:${v.winRate<40?'var(--tj-red)':v.winRate<55?'var(--tj-amber)':'var(--tj-green)'}; font-weight:600;">${v.winRate}% (${v.n})</span>
+            </div>
+          `).join('')}
+        </div>` : ''}
+      </div>` : ''}
 
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:24px; margin-bottom:24px;">
         ${isVisible('veto') ? `
@@ -2089,7 +2138,7 @@
     aiResult = '';
     renderAI();
     startAiProgress();
-    const maxAttempts = 3;
+    const maxAttempts = 2;
     let lastErr = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt++){
       try {
@@ -2103,7 +2152,7 @@
       } catch (err) {
         lastErr = err;
         // 546 (რესურსის ლიმიტი) და ქსელური ხარვეზები ხშირად დროებითია — ავტომატურად ვცდით ხელახლა
-        const isRetryable = err.status === 546 || err.status === 504 || err.status === 502 || !err.status;
+        const isRetryable = err.status === 546 || err.status === 504 || err.status === 502 || err.status === 500 || err.status === 429 || err.status === 529 || !err.status;
         if (attempt < maxAttempts && isRetryable){
           const labelEl = bodyEl.querySelector('#tj-progress-label');
           if (labelEl) labelEl.textContent = `დროებითი ხარვეზი — ვცდით ხელახლა (${attempt}/${maxAttempts - 1})…`;
