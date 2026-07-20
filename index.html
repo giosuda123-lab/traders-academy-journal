@@ -18,10 +18,23 @@
   .tj-serif { font-family: 'Source Serif 4', Georgia, serif; }
   .tj :where(input, select, textarea) { min-height: 38px; font-size: 16px; }
   .tj button { min-height: 38px; }
+  #tj-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  #tj-tabs::-webkit-scrollbar { display: none; }
+  #tj-tabs button { flex-shrink: 0; white-space: nowrap; }
   @media (max-width: 640px) {
     body { padding: 0; }
     .tj { border-radius: 0; border-left: none; border-right: none; }
     .tj-serif { font-size: 17px !important; }
+    #tj-header-row { flex-direction: column; align-items: stretch !important; gap: 12px !important; padding: 16px 14px 12px !important; }
+    #tj-header-right { flex-direction: column; align-items: stretch !important; gap: 10px !important; width: 100%; }
+    #tj-tabs { width: 100%; -webkit-mask-image: linear-gradient(90deg, transparent, black 14px, black calc(100% - 14px), transparent); mask-image: linear-gradient(90deg, transparent, black 14px, black calc(100% - 14px), transparent); }
+    #tj-tabs button { font-size: 12px !important; padding: 7px 11px !important; }
+    #tj-user-box { justify-content: space-between !important; width: 100%; }
+    #tj-body { padding: 14px 12px 18px !important; }
+    .tj-ai-card { padding: 18px 16px !important; }
+    .tj-ai-content table { font-size: 11px !important; }
+    .tj-ai-content th, .tj-ai-content td { padding: 6px 7px !important; }
+    div[style*="grid-template-columns:repeat(2"] { grid-template-columns: 1fr !important; }
   }
   .tj-ai-card { background: linear-gradient(180deg, var(--tj-panel), var(--tj-panel) 60px, var(--tj-panel2) 60px, var(--tj-panel2)); background: var(--tj-panel); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 28px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
   .tj-ai-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 0.5px solid var(--tj-border); }
@@ -85,7 +98,7 @@
   background: var(--tj-bg); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 0; overflow: hidden;
 ">
 
-  <div style="padding: 20px 24px 16px; border-bottom: 0.5px solid var(--tj-border); display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
+  <div id="tj-header-row" style="padding: 20px 24px 16px; border-bottom: 0.5px solid var(--tj-border); display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px;">
     <div>
       <div class="tj-serif" style="font-size:20px; font-weight:600; letter-spacing:0.2px;">Trade journal</div>
           </div>
@@ -194,6 +207,19 @@
     try { window.localStorage.setItem('tj_stats_visible_v1', JSON.stringify(statsVisible)); }
     catch(e){ /* ignore */ }
   }
+  let accounts = (function(){
+    try { return JSON.parse(window.localStorage.getItem('tj_accounts_v1')) || []; }
+    catch(e){ return []; }
+  })();
+  function persistAccounts(){
+    try { window.localStorage.setItem('tj_accounts_v1', JSON.stringify(accounts)); }
+    catch(e){ /* ignore */ }
+  }
+  const ACCOUNT_SIZE_DEFAULTS = {
+    '50K':  { target: 3000, mll: 2000 },
+    '100K': { target: 6000, mll: 3000 },
+    '150K': { target: 9000, mll: 4500 },
+  };
   let tab = 'new';
   let calendarViewMonth = null; // 'YYYY-MM' string, set on first stats render
   let filters = { instrument:[], direction:[], outcome:[], magnet:[], signalQuality:[], tradeType:[], dateFrom:'', dateTo:'' };
@@ -537,7 +563,7 @@
   }
 
   function renderTabs(){
-    const tabs = [['new','ახალი ტრეიდი'],['log','ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['guide','ინსტრუქცია']];
+    const tabs = [['new','ახალი ტრეიდი'],['log','ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['accounts','ანგარიშები'],['guide','ინსტრუქცია']];
     tabsEl.innerHTML = tabs.map(([id,label]) =>
       `<button data-tab="${id}" style="${btnStyle(tab===id)}">${label}</button>`
     ).join('');
@@ -2102,9 +2128,83 @@
     if (aiProgressTimer) { clearInterval(aiProgressTimer); aiProgressTimer = null; }
   }
 
+  function statsByField(list, keyFn){
+    const map = {};
+    list.forEach(t=>{
+      const k = keyFn(t);
+      if (k===undefined || k===null || k==='' || !t.outcome) return;
+      if (!map[k]) map[k] = { wins:0, losses:0, total:0, sumR:0 };
+      map[k].total++;
+      if (t.outcome==='win') map[k].wins++; else if (t.outcome==='loss') map[k].losses++;
+      if (typeof t.totalR === 'number') map[k].sumR += t.totalR;
+    });
+    return Object.entries(map).map(([k,v])=>({
+      key:k, total:v.total, wins:v.wins, losses:v.losses,
+      winRate: v.total ? Math.round(v.wins/v.total*100) : null,
+      avgR: v.total ? +(v.sumR/v.total).toFixed(2) : null
+    })).sort((a,b)=>b.total-a.total);
+  }
+
+  function statsByArrayField(list, arrKey){
+    const map = {};
+    list.forEach(t=>{
+      if (!t.outcome) return;
+      (t[arrKey]||[]).forEach(v=>{
+        if (!map[v]) map[v] = { wins:0, losses:0, total:0 };
+        map[v].total++;
+        if (t.outcome==='win') map[v].wins++; else if (t.outcome==='loss') map[v].losses++;
+      });
+    });
+    return Object.entries(map).map(([k,v])=>({
+      key:k, total:v.total, wins:v.wins, losses:v.losses,
+      winRate: v.total ? Math.round(v.wins/v.total*100) : null
+    })).sort((a,b)=>b.total-a.total);
+  }
+
+  function buildTradeStatsSummary(list){
+    const closed = list.filter(t=>t.outcome);
+    const wins = closed.filter(t=>t.outcome==='win').length;
+    const losses = closed.filter(t=>t.outcome==='loss').length;
+    const winSumR = closed.filter(t=>t.outcome==='win').reduce((s,t)=>s+(typeof t.totalR==='number'?t.totalR:0),0);
+    const lossSumR = closed.filter(t=>t.outcome==='loss').reduce((s,t)=>s+(typeof t.totalR==='number'?t.totalR:0),0);
+    const totalR = winSumR + lossSumR;
+    const profitFactor = lossSumR !== 0 ? +(Math.abs(winSumR/lossSumR)).toFixed(2) : null;
+    const dates = list.map(t=>t.date).filter(Boolean).sort();
+    const instruments = [...new Set(list.map(t=>t.instrument).filter(Boolean))];
+
+    const withVeto = closed.filter(t=>t.veto && t.veto.length>0);
+    const noVeto = closed.filter(t=>!t.veto || t.veto.length===0);
+
+    return {
+      totalTrades: list.length,
+      closedTrades: closed.length,
+      wins, losses,
+      winRateOverall: closed.length ? Math.round(wins/closed.length*100) : null,
+      totalR: +totalR.toFixed(2),
+      profitFactor,
+      dateRange: dates.length ? { from: dates[0], to: dates[dates.length-1] } : null,
+      instruments,
+      byTradeType: statsByField(list, t=>{
+        const tt = KEYS.tradeTypes.find(x=>x.value===(t.tradeType||'opening_reversal'));
+        return tt ? tt.label : (t.tradeType||'opening_reversal');
+      }),
+      byMagnet: statsByField(list, t=>t.magnet),
+      bySignalQuality: statsByField(list, t=>t.signalQuality),
+      byReversalType: statsByField(list, t=>t.reversalType),
+      byTrendDayType: statsByArrayField(list, 'trendDayTypes'),
+      byVetoItem: statsByArrayField(list, 'veto'),
+      byReasonItem: statsByArrayField(list, 'reasons'),
+      vetoOverall: {
+        withVeto: { total: withVeto.length, winRate: withVeto.length ? Math.round(withVeto.filter(t=>t.outcome==='win').length/withVeto.length*100) : null },
+        noVeto: { total: noVeto.length, winRate: noVeto.length ? Math.round(noVeto.filter(t=>t.outcome==='win').length/noVeto.length*100) : null }
+      }
+    };
+  }
+
   async function callAnalyzeTrades(list, attempt){
+    const stats = buildTradeStatsSummary(list);
     const { data, error } = await supabase.functions.invoke('analyze-trades', {
-      body: { trades: list }
+      body: { stats }
     });
     if (error) {
       // FunctionsHttpError-ს აქვს .context (Response ობიექტი) — იქიდან ვცდილობთ
@@ -2211,11 +2311,119 @@
     if (btn) btn.addEventListener('click', runAiAnalysis);
   }
 
+  function renderAccounts(editId){
+    const editing = editId ? accounts.find(a=>a.id===editId) : null;
+    bodyEl.innerHTML = `
+      <div class="tj-serif" style="font-size:18px; font-weight:600; margin-bottom:6px;">ანგარიშები</div>
+      <div style="font-size:13px; color:var(--tj-text2); margin-bottom:20px; line-height:1.6;">
+        თქვენი prop firm ანგარიშების (Combine/Funded) მარტივი თვალის დევნება — ბალანსი, ფაზა, Drawdown ლიმიტი. ინახება მხოლოდ ამ ბრაუზერში (localStorage).
+      </div>
+
+      <form id="tj-account-form" style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:16px; margin-bottom:24px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:12px;">${editing ? 'ანგარიშის რედაქტირება' : 'ახალი ანგარიშის დამატება'}</div>
+        <div style="display:grid; grid-template-columns:repeat(2, minmax(160px,1fr)); gap:12px; margin-bottom:12px;">
+          <div>${fieldLabel('სახელი/ლეიბლი')}<input type="text" name="label" required placeholder="მაგ. Combine #1" style="${inputStyle()}" value="${editing ? editing.label : ''}"/></div>
+          <div>${fieldLabel('Firm')}<input type="text" name="firm" style="${inputStyle()}" value="${editing ? editing.firm : 'Topstep'}"/></div>
+          <div>${fieldLabel('ზომა')}<select name="size" style="${inputStyle()}">${Object.keys(ACCOUNT_SIZE_DEFAULTS).map(s=>`<option ${editing && editing.size===s ? 'selected':''}>${s}</option>`).join('')}</select></div>
+          <div>${fieldLabel('ფაზა')}<select name="phase" style="${inputStyle()}">${['Combine','Funded (XFA)'].map(p=>`<option ${editing && editing.phase===p ? 'selected':''}>${p}</option>`).join('')}</select></div>
+          <div>${fieldLabel('სტატუსი')}<select name="status" style="${inputStyle()}">${['აქტიური','ჩაბარებული','ჩავარდნილი','გაუქმებული'].map(s=>`<option ${editing && editing.status===s ? 'selected':''}>${s}</option>`).join('')}</select></div>
+          <div>${fieldLabel('მიმდინარე ბალანსი ($)')}<input type="number" step="0.01" name="balance" style="${inputStyle()}" value="${editing ? editing.balance : ''}"/></div>
+        </div>
+        <div style="margin-bottom:12px;">${fieldLabel('შენიშვნა')}<textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;">${editing ? (editing.notes||'') : ''}</textarea></div>
+        <button type="submit" style="padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text); font-size:13px; cursor:pointer;">${editing ? 'შენახვა' : 'დამატება'}</button>
+        ${editing ? `<button type="button" id="tj-account-cancel" style="margin-left:8px; padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:13px; cursor:pointer;">გაუქმება</button>` : ''}
+        <input type="hidden" name="id" value="${editing ? editing.id : ''}"/>
+      </form>
+
+      <div id="tj-accounts-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+    `;
+
+    const form = bodyEl.querySelector('#tj-account-form');
+    const cancelBtn = bodyEl.querySelector('#tj-account-cancel');
+    if (cancelBtn) cancelBtn.onclick = () => renderAccounts();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const data = {
+        id: fd.get('id') || ('acc_' + Date.now()),
+        label: fd.get('label'),
+        firm: fd.get('firm') || 'Topstep',
+        size: fd.get('size'),
+        phase: fd.get('phase'),
+        status: fd.get('status'),
+        balance: parseFloat(fd.get('balance')) || 0,
+        notes: fd.get('notes') || '',
+      };
+      const existingIdx = accounts.findIndex(a=>a.id===data.id);
+      if (existingIdx >= 0) accounts[existingIdx] = data;
+      else accounts.push(data);
+      persistAccounts();
+      renderAccounts();
+    });
+
+    const listEl = bodyEl.querySelector('#tj-accounts-list');
+    if (accounts.length === 0){
+      listEl.innerHTML = `<div style="font-size:12.5px; color:var(--tj-text3); padding:20px 0;">ჯერ არცერთი ანგარიში არ დამატებულა.</div>`;
+      return;
+    }
+
+    const statusColor = { 'აქტიური':'var(--tj-accent)', 'ჩაბარებული':'var(--tj-green)', 'ჩავარდნილი':'var(--tj-red)', 'გაუქმებული':'var(--tj-text3)' };
+
+    listEl.innerHTML = accounts.map(a => {
+      const def = ACCOUNT_SIZE_DEFAULTS[a.size] || ACCOUNT_SIZE_DEFAULTS['50K'];
+      const isCombine = a.phase === 'Combine';
+      const startBalance = isCombine ? parseInt(a.size) * 1000 : 0;
+      const profit = isCombine ? (a.balance - startBalance) : a.balance;
+      const targetForProgress = isCombine ? def.target : (def.mll * 2);
+      const pct = Math.max(0, Math.min(100, Math.round((profit / targetForProgress) * 100)));
+      const floor = isCombine ? (startBalance - def.mll) : (-def.mll);
+      return `
+        <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
+            <div>
+              <span style="font-size:14px; font-weight:600; color:var(--tj-text);">${a.label}</span>
+              <span style="font-size:11px; color:var(--tj-text3); margin-left:8px;">${a.firm} · ${a.size} · ${a.phase}</span>
+            </div>
+            <span style="font-size:11px; padding:3px 9px; border-radius:999px; border:0.5px solid ${statusColor[a.status]||'var(--tj-border)'}; color:${statusColor[a.status]||'var(--tj-text2)'};">${a.status}</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(100px,1fr)); gap:10px; font-size:12px; color:var(--tj-text2); margin-bottom:10px;">
+            <div>ბალანსი: <strong style="color:var(--tj-text);">$${a.balance.toLocaleString()}</strong></div>
+            <div>MLL: <strong style="color:var(--tj-text);">$${def.mll.toLocaleString()}</strong></div>
+            <div>Floor: <strong style="color:var(--tj-text);">$${floor.toLocaleString()}</strong></div>
+          </div>
+          <div style="height:6px; border-radius:4px; background:var(--tj-panel2); overflow:hidden; margin-bottom:6px;">
+            <div style="height:100%; width:${pct}%; background:${pct>=100?'var(--tj-green)':'var(--tj-accent)'};"></div>
+          </div>
+          <div style="font-size:11px; color:var(--tj-text3); margin-bottom:${a.notes ? '8px' : '0'};">${isCombine ? 'Target-მდე' : 'შემდეგ Payout-ჭერამდე (2×)'}: ${pct}%</div>
+          ${a.notes ? `<div style="font-size:12px; color:var(--tj-text2); margin-bottom:8px; white-space:pre-wrap;">${a.notes}</div>` : ''}
+          <div style="display:flex; gap:8px;">
+            <button data-edit="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:11.5px; cursor:pointer;">რედაქტირება</button>
+            <button data-del="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-red); background:transparent; color:var(--tj-red); font-size:11.5px; cursor:pointer;">წაშლა</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('[data-edit]').forEach(btn=>{
+      btn.onclick = () => renderAccounts(btn.dataset.edit);
+    });
+    listEl.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.onclick = () => {
+        if (!confirm('წავშალო ეს ანგარიში?')) return;
+        accounts = accounts.filter(a=>a.id !== btn.dataset.del);
+        persistAccounts();
+        renderAccounts();
+      };
+    });
+  }
+
   function renderBody(){
     if (tab === 'new') renderNewTrade();
     else if (tab === 'log') renderLog();
     else if (tab === 'stats') renderStats();
     else if (tab === 'ai') renderAI();
+    else if (tab === 'accounts') renderAccounts();
     else renderGuide();
   }
 
