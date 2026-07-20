@@ -1531,6 +1531,10 @@
     return ['კვირა','ორშ','სამ','ოთხ','ხუთ','პარ','შაბ'][d.getDay()];
   }
 
+  let statsMode = 'total'; // 'total' | 'scalp' | 'swing'
+  function sR(t){ return statsMode==='scalp' ? num(t.scalpR) : statsMode==='swing' ? num(t.swingR) : num(t.totalR); }
+  function sUsd(t){ return statsMode==='scalp' ? num(t.scalpUsd) : statsMode==='swing' ? num(t.swingUsd) : num(t.totalUsd); }
+
   function renderStats(){
     const filtered = getFilteredTrades();
     if (trades.length === 0){
@@ -1547,20 +1551,20 @@
     const lossTrades = filtered.filter(t=>t.outcome==='loss');
     const wins = winTrades.length, losses = lossTrades.length;
     const winRate = ((wins/n)*100).toFixed(0);
-    const totalR = filtered.reduce((s,t)=>s+num(t.totalR),0);
+    const totalR = filtered.reduce((s,t)=>s+sR(t),0);
     const avgR = totalR/n;
-    const totalUsd = filtered.reduce((s,t)=>s+num(t.totalUsd),0);
+    const totalUsd = filtered.reduce((s,t)=>s+sUsd(t),0);
     const avgUsd = totalUsd/n;
     const totalScalpUsd = filtered.reduce((s,t)=>s+num(t.scalpUsd),0);
     const totalSwingUsd = filtered.reduce((s,t)=>s+num(t.swingUsd),0);
 
-    const sumPosR = filtered.filter(t=>num(t.totalR)>0).reduce((s,t)=>s+num(t.totalR),0);
-    const sumNegR = filtered.filter(t=>num(t.totalR)<0).reduce((s,t)=>s+num(t.totalR),0);
+    const sumPosR = filtered.filter(t=>sR(t)>0).reduce((s,t)=>s+sR(t),0);
+    const sumNegR = filtered.filter(t=>sR(t)<0).reduce((s,t)=>s+sR(t),0);
     const profitFactor = sumNegR !== 0 ? (sumPosR/Math.abs(sumNegR)) : (sumPosR>0?Infinity:0);
-    const avgWinR = winTrades.length ? winTrades.reduce((s,t)=>s+num(t.totalR),0)/winTrades.length : 0;
-    const avgLossR = lossTrades.length ? lossTrades.reduce((s,t)=>s+num(t.totalR),0)/lossTrades.length : 0;
-    const bestR = Math.max(...filtered.map(t=>num(t.totalR)));
-    const worstR = Math.min(...filtered.map(t=>num(t.totalR)));
+    const avgWinR = winTrades.length ? winTrades.reduce((s,t)=>s+sR(t),0)/winTrades.length : 0;
+    const avgLossR = lossTrades.length ? lossTrades.reduce((s,t)=>s+sR(t),0)/lossTrades.length : 0;
+    const bestR = Math.max(...filtered.map(t=>sR(t)));
+    const worstR = Math.min(...filtered.map(t=>sR(t)));
 
     let maxWinStreak=0, maxLossStreak=0, curWin=0, curLoss=0;
     filtered.forEach(t=>{
@@ -1685,7 +1689,7 @@
       if (!wd) return;
       wdGroups[wd] = wdGroups[wd] || {win:0,total:0,usd:0};
       wdGroups[wd].total++;
-      wdGroups[wd].usd += num(t.totalUsd);
+      wdGroups[wd].usd += sUsd(t);
       if (t.outcome==='win') wdGroups[wd].win++;
     });
     const wdLabels = wdOrder.filter(w=>wdGroups[w]);
@@ -1696,12 +1700,12 @@
       {label:'0..1R', test:r=>r>=0&&r<1}, {label:'1..2R', test:r=>r>=1&&r<2}, {label:'2..3R', test:r=>r>=2&&r<3}, {label:'> 3R', test:r=>r>=3}
     ];
     const histLabels = bins.map(b=>b.label);
-    const histData = bins.map(b=>filtered.filter(t=>b.test(num(t.totalR))).length);
+    const histData = bins.map(b=>filtered.filter(t=>b.test(sR(t))).length);
 
     let cum = 0;
-    const equitySeries = filtered.map(t => (cum += num(t.totalR)));
+    const equitySeries = filtered.map(t => (cum += sR(t)));
     let cumUsd = getEquityBaselineBalance();
-    const equityUsdSeries = filtered.map(t => (cumUsd += num(t.totalUsd)));
+    const equityUsdSeries = filtered.map(t => (cumUsd += sUsd(t)));
 
     // --- additional analytics ---
     const monthGroups = {};
@@ -1709,8 +1713,8 @@
       const m = (t.date || '').slice(0,7);
       if (!m) return;
       monthGroups[m] = monthGroups[m] || { r:0, usd:0, count:0 };
-      monthGroups[m].r += num(t.totalR);
-      monthGroups[m].usd += num(t.totalUsd);
+      monthGroups[m].r += sR(t);
+      monthGroups[m].usd += sUsd(t);
       monthGroups[m].count++;
     });
     const monthLabels = Object.keys(monthGroups).sort();
@@ -1722,7 +1726,7 @@
     const totalStdContracts = filtered.reduce((s,t)=>s+num(t.standardContracts),0);
     const totalMicroContracts = filtered.reduce((s,t)=>s+num(t.microContracts),0);
 
-    const rValues = filtered.map(t=>num(t.totalR));
+    const rValues = filtered.map(t=>sR(t));
     const meanR = rValues.reduce((a,b)=>a+b,0) / (rValues.length || 1);
     const varianceR = rValues.reduce((a,b)=>a+Math.pow(b-meanR,2),0) / (rValues.length || 1);
     const stdDevR = Math.sqrt(varianceR);
@@ -1732,8 +1736,8 @@
     filtered.forEach(t=>{
       if (!t.date) return;
       dayGroups[t.date] = dayGroups[t.date] || { usd:0, r:0, count:0 };
-      dayGroups[t.date].usd += num(t.totalUsd);
-      dayGroups[t.date].r += num(t.totalR);
+      dayGroups[t.date].usd += sUsd(t);
+      dayGroups[t.date].r += sR(t);
       dayGroups[t.date].count++;
     });
     const dayDatesSorted = Object.keys(dayGroups).sort();
@@ -1759,11 +1763,11 @@
     });
 
     // --- dollar-based win/loss averages, best/worst trade with detail ---
-    const avgWinUsd = winTrades.length ? winTrades.reduce((s,t)=>s+num(t.totalUsd),0)/winTrades.length : 0;
-    const avgLossUsd = lossTrades.length ? lossTrades.reduce((s,t)=>s+num(t.totalUsd),0)/lossTrades.length : 0;
+    const avgWinUsd = winTrades.length ? winTrades.reduce((s,t)=>s+sUsd(t),0)/winTrades.length : 0;
+    const avgLossUsd = lossTrades.length ? lossTrades.reduce((s,t)=>s+sUsd(t),0)/lossTrades.length : 0;
     let bestTrade = null, worstTrade = null;
     filtered.forEach(t=>{
-      const u = num(t.totalUsd);
+      const u = sUsd(t);
       if (!bestTrade || u > num(bestTrade.totalUsd)) bestTrade = t;
       if (!worstTrade || u < num(worstTrade.totalUsd)) worstTrade = t;
     });
@@ -1798,6 +1802,14 @@
     function isVisible(key){ return statsVisible[key] !== false; }
 
     bodyEl.innerHTML = renderFilterBar() + `
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+        <span style="font-size:11px; color:var(--tj-text3);">ანალიზის საფუძველი:</span>
+        <div style="display:flex; gap:4px;">
+          ${[['total','სრული'],['scalp','სკალპი'],['swing','სვინგი']].map(([val,label])=>`
+            <button type="button" data-statsmode="${val}" style="padding:5px 12px; border-radius:7px; border:0.5px solid ${statsMode===val?'var(--tj-accent)':'var(--tj-border)'}; background:${statsMode===val?'rgba(110,147,176,0.15)':'transparent'}; color:${statsMode===val?'var(--tj-text)':'var(--tj-text2)'}; font-size:12px; cursor:pointer;">${label}</button>
+          `).join('')}
+        </div>
+      </div>
       <details style="margin-bottom:20px; background:var(--tj-panel); border-radius:10px; padding:4px 14px;">
         <summary style="cursor:pointer; padding:10px 0; font-size:12px; color:var(--tj-text2);">ხელსაწყოების ჩვენება/დამალვა ▾</summary>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:6px 14px; padding:6px 0 14px;">
@@ -2010,6 +2022,12 @@
       <div style="position:relative; height:170px;"><canvas id="tj-weekday"></canvas></div>` : ''}
     `;
     wireFilterBar(renderStats);
+    bodyEl.querySelectorAll('[data-statsmode]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        statsMode = btn.dataset.statsmode;
+        renderStats();
+      });
+    });
     bodyEl.querySelectorAll('.tj-stat-toggle').forEach(cb=>{
       cb.addEventListener('change', ()=>{
         statsVisible[cb.dataset.section] = cb.checked;
