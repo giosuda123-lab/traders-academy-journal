@@ -208,18 +208,19 @@
     catch(e){ /* ignore */ }
   }
   let accounts = (function(){
-    try { return JSON.parse(window.localStorage.getItem('tj_accounts_v1')) || []; }
+    try { return JSON.parse(window.localStorage.getItem('tj_accounts_v2')) || []; }
     catch(e){ return []; }
   })();
   function persistAccounts(){
-    try { window.localStorage.setItem('tj_accounts_v1', JSON.stringify(accounts)); }
+    try { window.localStorage.setItem('tj_accounts_v2', JSON.stringify(accounts)); }
     catch(e){ /* ignore */ }
   }
-  const ACCOUNT_SIZE_DEFAULTS = {
-    '50K':  { target: 3000, mll: 2000 },
-    '100K': { target: 6000, mll: 3000 },
-    '150K': { target: 9000, mll: 4500 },
-  };
+  function getActiveAccountBalance(){
+    const active = accounts.find(a=>a.active);
+    return active ? (parseFloat(active.startBalance) || 0) : 0;
+  }
+  const POINT_VALUES = { ES: 50, MES: 5, NQ: 20, MNQ: 2, YM: 5, MYM: 0.5 };
+  const POSCALC_POINT_ROWS = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30];
   let tab = 'new';
   let calendarViewMonth = null; // 'YYYY-MM' string, set on first stats render
   let filters = { instrument:[], direction:[], outcome:[], magnet:[], signalQuality:[], tradeType:[], dateFrom:'', dateTo:'' };
@@ -724,10 +725,67 @@
     `;
   }
 
+  function renderPositionCalcWidget(){
+    return `
+      <details style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; margin-bottom:20px;">
+        <summary style="cursor:pointer; font-size:13px; font-weight:500; color:var(--tj-text);">📐 პოზიციის ზომის კალკულატორი</summary>
+        <div style="margin-top:14px;">
+          <div style="display:grid; grid-template-columns:repeat(2, minmax(140px,1fr)); gap:12px; margin-bottom:14px;">
+            <div>${fieldLabel('რისკი ($)')}<input type="number" step="0.01" id="tj-poscalc-risk" placeholder="მაგ. 300" style="${inputStyle()}" value="250"/></div>
+            <div>${fieldLabel('ინსტრუმენტი')}<select id="tj-poscalc-instrument" style="${inputStyle()}">${Object.keys(POINT_VALUES).map(k=>`<option value="${k}">${k} ($${POINT_VALUES[k]}/პუნქტი)</option>`).join('')}</select></div>
+          </div>
+          <div id="tj-poscalc-table"></div>
+        </div>
+      </details>
+    `;
+  }
+
+  function wirePositionCalcWidget(container){
+    const riskInput = container.querySelector('#tj-poscalc-risk');
+    const instrumentSel = container.querySelector('#tj-poscalc-instrument');
+    const tableEl = container.querySelector('#tj-poscalc-table');
+    function update(){
+      const risk = parseFloat(riskInput.value) || 0;
+      const perPoint = POINT_VALUES[instrumentSel.value];
+      const rows = POSCALC_POINT_ROWS.map(pts => {
+        const rawContracts = risk / (pts * perPoint);
+        const contracts = Math.floor(rawContracts);
+        const actualRisk = contracts * pts * perPoint;
+        return { pts, contracts, actualRisk };
+      });
+      tableEl.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="border-bottom:0.5px solid var(--tj-border);">
+                <th style="text-align:left; padding:6px 8px; color:var(--tj-text2); font-weight:500;">Stop (პუნქტი)</th>
+                <th style="text-align:right; padding:6px 8px; color:var(--tj-text2); font-weight:500;">საჭირო კონტრაქტი</th>
+                <th style="text-align:right; padding:6px 8px; color:var(--tj-text2); font-weight:500;">რეალური რისკი</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr style="border-bottom:0.5px solid var(--tj-border);">
+                  <td style="padding:6px 8px; color:var(--tj-text);">${r.pts}</td>
+                  <td style="padding:6px 8px; text-align:right; color:${r.contracts===0?'var(--tj-red)':'var(--tj-text)'};">${r.contracts === 0 ? 'ვერ ჯდება' : r.contracts}</td>
+                  <td style="padding:6px 8px; text-align:right; color:var(--tj-text2);">$${r.actualRisk.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+    riskInput.addEventListener('input', update);
+    instrumentSel.addEventListener('change', update);
+    update();
+  }
+
   function renderNewTrade(prefill){
     const isEdit = !!prefill;
     bodyEl.innerHTML = `
       ${!isEdit ? renderTraderProfileCard() : ''}
+      ${!isEdit ? renderPositionCalcWidget() : ''}
       <form id="tj-form">
         ${isEdit ? `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:10px 14px; background:rgba(201,154,80,0.12); border:0.5px solid var(--tj-amber); border-radius:8px;">
@@ -816,6 +874,7 @@
     }
 
     const form = bodyEl.querySelector('#tj-form');
+    if (!isEdit) wirePositionCalcWidget(bodyEl);
     const outcomeSel = form.querySelector('[name=outcome]');
     const vetoWrap = form.querySelector('#tj-veto-wrap');
     function syncVeto(){ /* veto ყოველთვის ხილულია — ეს ფუნქცია დარჩა თავსებადობისთვის (გამოძახებულია სხვაგანაც) */ }
@@ -1595,7 +1654,7 @@
 
     let cum = 0;
     const equitySeries = filtered.map(t => (cum += num(t.totalR)));
-    let cumUsd = 0;
+    let cumUsd = getActiveAccountBalance();
     const equityUsdSeries = filtered.map(t => (cumUsd += num(t.totalUsd)));
 
     // --- additional analytics ---
@@ -1792,7 +1851,7 @@
           <div style="position:relative; height:170px;"><canvas id="tj-equity"></canvas></div>
         </div>
         <div>
-          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Equity curve ($)</div>
+          <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Equity curve ($)${getActiveAccountBalance() ? ` <span style="font-weight:400; color:var(--tj-text3); font-size:11px;">(საწყისი: $${getActiveAccountBalance().toLocaleString()})</span>` : ''}</div>
           <div style="position:relative; height:170px;"><canvas id="tj-equity-usd"></canvas></div>
         </div>
       </div>` : ''}
@@ -2316,26 +2375,24 @@
     bodyEl.innerHTML = `
       <div class="tj-serif" style="font-size:18px; font-weight:600; margin-bottom:6px;">ანგარიშები</div>
       <div style="font-size:13px; color:var(--tj-text2); margin-bottom:20px; line-height:1.6;">
-        თქვენი prop firm ანგარიშების (Combine/Funded) მარტივი თვალის დევნება — ბალანსი, ფაზა, Drawdown ლიმიტი. ინახება მხოლოდ ამ ბრაუზერში (localStorage).
+        დაამატეთ ანგარიშის სახელი და საწყისი ბალანსი. "აქტიური" ანგარიშის საწყისი ბალანსიდან იწყება ათვლა ანალიტიკის Equity Curve-ზე ($).
       </div>
 
       <form id="tj-account-form" style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:16px; margin-bottom:24px;">
         <div style="font-size:13px; font-weight:500; margin-bottom:12px;">${editing ? 'ანგარიშის რედაქტირება' : 'ახალი ანგარიშის დამატება'}</div>
-        <div style="display:grid; grid-template-columns:repeat(2, minmax(160px,1fr)); gap:12px; margin-bottom:12px;">
-          <div>${fieldLabel('სახელი/ლეიბლი')}<input type="text" name="label" required placeholder="მაგ. Combine #1" style="${inputStyle()}" value="${editing ? editing.label : ''}"/></div>
-          <div>${fieldLabel('Firm')}<input type="text" name="firm" style="${inputStyle()}" value="${editing ? editing.firm : 'Topstep'}"/></div>
-          <div>${fieldLabel('ზომა')}<select name="size" style="${inputStyle()}">${Object.keys(ACCOUNT_SIZE_DEFAULTS).map(s=>`<option ${editing && editing.size===s ? 'selected':''}>${s}</option>`).join('')}</select></div>
-          <div>${fieldLabel('ფაზა')}<select name="phase" style="${inputStyle()}">${['Combine','Funded (XFA)'].map(p=>`<option ${editing && editing.phase===p ? 'selected':''}>${p}</option>`).join('')}</select></div>
-          <div>${fieldLabel('სტატუსი')}<select name="status" style="${inputStyle()}">${['აქტიური','ჩაბარებული','ჩავარდნილი','გაუქმებული'].map(s=>`<option ${editing && editing.status===s ? 'selected':''}>${s}</option>`).join('')}</select></div>
-          <div>${fieldLabel('მიმდინარე ბალანსი ($)')}<input type="number" step="0.01" name="balance" style="${inputStyle()}" value="${editing ? editing.balance : ''}"/></div>
+        <div style="display:grid; grid-template-columns:repeat(2, minmax(160px,1fr)); gap:12px; margin-bottom:14px;">
+          <div>${fieldLabel('სახელი')}<input type="text" name="label" required placeholder="მაგ. Topstep 50K #1" style="${inputStyle()}" value="${editing ? editing.label : ''}"/></div>
+          <div>${fieldLabel('საწყისი ბალანსი ($)')}<input type="number" step="0.01" name="startBalance" required style="${inputStyle()}" value="${editing ? editing.startBalance : ''}"/></div>
         </div>
-        <div style="margin-bottom:12px;">${fieldLabel('შენიშვნა')}<textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;">${editing ? (editing.notes||'') : ''}</textarea></div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--tj-text2); margin-bottom:14px; cursor:pointer;">
+          <input type="checkbox" name="active" ${editing && editing.active ? 'checked' : ''}/> აქტიური — ამ ანგარიშის ბალანსიდან დაითვალოს Equity Curve ($) ანალიტიკაში
+        </label>
         <button type="submit" style="padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text); font-size:13px; cursor:pointer;">${editing ? 'შენახვა' : 'დამატება'}</button>
         ${editing ? `<button type="button" id="tj-account-cancel" style="margin-left:8px; padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:13px; cursor:pointer;">გაუქმება</button>` : ''}
         <input type="hidden" name="id" value="${editing ? editing.id : ''}"/>
       </form>
 
-      <div id="tj-accounts-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <div id="tj-accounts-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     `;
 
     const form = bodyEl.querySelector('#tj-account-form');
@@ -2345,17 +2402,16 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const fd = new FormData(form);
+      const id = fd.get('id') || ('acc_' + Date.now());
+      const wantsActive = fd.get('active') === 'on';
+      if (wantsActive) accounts.forEach(a => { a.active = false; });
       const data = {
-        id: fd.get('id') || ('acc_' + Date.now()),
+        id,
         label: fd.get('label'),
-        firm: fd.get('firm') || 'Topstep',
-        size: fd.get('size'),
-        phase: fd.get('phase'),
-        status: fd.get('status'),
-        balance: parseFloat(fd.get('balance')) || 0,
-        notes: fd.get('notes') || '',
+        startBalance: parseFloat(fd.get('startBalance')) || 0,
+        active: wantsActive,
       };
-      const existingIdx = accounts.findIndex(a=>a.id===data.id);
+      const existingIdx = accounts.findIndex(a=>a.id===id);
       if (existingIdx >= 0) accounts[existingIdx] = data;
       else accounts.push(data);
       persistAccounts();
@@ -2368,42 +2424,19 @@
       return;
     }
 
-    const statusColor = { 'აქტიური':'var(--tj-accent)', 'ჩაბარებული':'var(--tj-green)', 'ჩავარდნილი':'var(--tj-red)', 'გაუქმებული':'var(--tj-text3)' };
-
-    listEl.innerHTML = accounts.map(a => {
-      const def = ACCOUNT_SIZE_DEFAULTS[a.size] || ACCOUNT_SIZE_DEFAULTS['50K'];
-      const isCombine = a.phase === 'Combine';
-      const startBalance = isCombine ? parseInt(a.size) * 1000 : 0;
-      const profit = isCombine ? (a.balance - startBalance) : a.balance;
-      const targetForProgress = isCombine ? def.target : (def.mll * 2);
-      const pct = Math.max(0, Math.min(100, Math.round((profit / targetForProgress) * 100)));
-      const floor = isCombine ? (startBalance - def.mll) : (-def.mll);
-      return `
-        <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
-            <div>
-              <span style="font-size:14px; font-weight:600; color:var(--tj-text);">${a.label}</span>
-              <span style="font-size:11px; color:var(--tj-text3); margin-left:8px;">${a.firm} · ${a.size} · ${a.phase}</span>
-            </div>
-            <span style="font-size:11px; padding:3px 9px; border-radius:999px; border:0.5px solid ${statusColor[a.status]||'var(--tj-border)'}; color:${statusColor[a.status]||'var(--tj-text2)'};">${a.status}</span>
-          </div>
-          <div style="display:grid; grid-template-columns:repeat(3, minmax(100px,1fr)); gap:10px; font-size:12px; color:var(--tj-text2); margin-bottom:10px;">
-            <div>ბალანსი: <strong style="color:var(--tj-text);">$${a.balance.toLocaleString()}</strong></div>
-            <div>MLL: <strong style="color:var(--tj-text);">$${def.mll.toLocaleString()}</strong></div>
-            <div>Floor: <strong style="color:var(--tj-text);">$${floor.toLocaleString()}</strong></div>
-          </div>
-          <div style="height:6px; border-radius:4px; background:var(--tj-panel2); overflow:hidden; margin-bottom:6px;">
-            <div style="height:100%; width:${pct}%; background:${pct>=100?'var(--tj-green)':'var(--tj-accent)'};"></div>
-          </div>
-          <div style="font-size:11px; color:var(--tj-text3); margin-bottom:${a.notes ? '8px' : '0'};">${isCombine ? 'Target-მდე' : 'შემდეგ Payout-ჭერამდე (2×)'}: ${pct}%</div>
-          ${a.notes ? `<div style="font-size:12px; color:var(--tj-text2); margin-bottom:8px; white-space:pre-wrap;">${a.notes}</div>` : ''}
-          <div style="display:flex; gap:8px;">
-            <button data-edit="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:11.5px; cursor:pointer;">რედაქტირება</button>
-            <button data-del="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-red); background:transparent; color:var(--tj-red); font-size:11.5px; cursor:pointer;">წაშლა</button>
-          </div>
+    listEl.innerHTML = accounts.map(a => `
+      <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div>
+          <span style="font-size:14px; font-weight:600; color:var(--tj-text);">${a.label}</span>
+          <span style="font-size:12px; color:var(--tj-text2); margin-left:10px;">საწყისი ბალანსი: $${Number(a.startBalance).toLocaleString()}</span>
+          ${a.active ? `<span style="font-size:11px; margin-left:10px; padding:2px 8px; border-radius:999px; border:0.5px solid var(--tj-green); color:var(--tj-green);">აქტიური</span>` : ''}
         </div>
-      `;
-    }).join('');
+        <div style="display:flex; gap:8px;">
+          <button data-edit="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:11.5px; cursor:pointer;">რედაქტირება</button>
+          <button data-del="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-red); background:transparent; color:var(--tj-red); font-size:11.5px; cursor:pointer;">წაშლა</button>
+        </div>
+      </div>
+    `).join('');
 
     listEl.querySelectorAll('[data-edit]').forEach(btn=>{
       btn.onclick = () => renderAccounts(btn.dataset.edit);
