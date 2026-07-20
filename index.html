@@ -743,15 +743,25 @@
     `;
   }
 
+  const DEFAULT_COMMISSION_ROUNDTURN = {
+    // ES/MES: დადასტურებულია მომხმარებლის რეალური TopstepX statement-იდან (Commission + Fees, round turn).
+    // NQ/MNQ/YM/MYM: ჯერ დაუდასტურებელი შეფასებაა — საჭიროა იგივე გადამოწმება.
+    ES: 3.78, MES: 1.22,
+    NQ: 3.78, MNQ: 1.22,
+    YM: 3.78, MYM: 1.22,
+  };
+
   function renderPositionCalcWidget(){
     return `
       <details style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; margin-bottom:20px;">
         <summary style="cursor:pointer; font-size:13px; font-weight:500; color:var(--tj-text);">📐 პოზიციის ზომის კალკულატორი</summary>
         <div style="margin-top:14px;">
-          <div style="display:grid; grid-template-columns:repeat(2, minmax(140px,1fr)); gap:12px; margin-bottom:14px;">
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(120px,1fr)); gap:12px; margin-bottom:8px;">
             <div>${fieldLabel('რისკი ($)')}<input type="number" step="0.01" id="tj-poscalc-risk" placeholder="მაგ. 300" style="${inputStyle()}" value="250"/></div>
             <div>${fieldLabel('ინსტრუმენტი')}<select id="tj-poscalc-instrument" style="${inputStyle()}">${Object.keys(POINT_VALUES).map(k=>`<option value="${k}">${k} ($${POINT_VALUES[k]}/პუნქტი)</option>`).join('')}</select></div>
+            <div>${fieldLabel('საკომისიო/კონტრაქტი, Round Turn ($)')}<input type="number" step="0.01" id="tj-poscalc-commission" style="${inputStyle()}" value="${DEFAULT_COMMISSION_ROUNDTURN.ES}"/></div>
           </div>
+          <div style="font-size:10.5px; color:var(--tj-text3); margin-bottom:14px;">ES/MES-ის საკომისიო დადასტურებულია რეალური statement-იდან (Commission+Fees, round turn). NQ/MNQ/YM/MYM ჯერ იგივე ES/MES-ის რიცხვს იყენებს დროებით — გადაამოწმეთ საკუთარ ანგარიშზე და საჭიროებისამებრ ჩაასწორეთ.</div>
           <div id="tj-poscalc-table"></div>
         </div>
       </details>
@@ -761,16 +771,24 @@
   function wirePositionCalcWidget(container){
     const riskInput = container.querySelector('#tj-poscalc-risk');
     const instrumentSel = container.querySelector('#tj-poscalc-instrument');
+    const commissionInput = container.querySelector('#tj-poscalc-commission');
     const tableEl = container.querySelector('#tj-poscalc-table');
+    instrumentSel.addEventListener('change', () => {
+      commissionInput.value = DEFAULT_COMMISSION_ROUNDTURN[instrumentSel.value] ?? 1.02;
+      update();
+    });
     function update(){
       const risk = parseFloat(riskInput.value) || 0;
       const perPoint = POINT_VALUES[instrumentSel.value];
+      const commission = parseFloat(commissionInput.value) || 0;
       const pointRows = POSCALC_ROWS_BY_INSTRUMENT[instrumentSel.value] || POSCALC_ROWS_BY_INSTRUMENT.ES;
       const rows = pointRows.map(pts => {
         const rawContracts = risk / (pts * perPoint);
         const contracts = Math.floor(rawContracts);
         const actualRisk = contracts * pts * perPoint;
-        return { pts, contracts, actualRisk };
+        const totalCommission = contracts * commission;
+        const netRisk = actualRisk + totalCommission;
+        return { pts, contracts, actualRisk, totalCommission, netRisk };
       });
       tableEl.innerHTML = `
         <table style="width:auto; min-width:0; border-collapse:collapse; font-size:12.5px;">
@@ -778,7 +796,9 @@
             <tr style="border-bottom:0.5px solid var(--tj-border);">
               <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">Stop (pt)</th>
               <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">კონტრაქტი</th>
-              <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">რეალური რისკი</th>
+              <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">რისკი</th>
+              <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">საკომისიო</th>
+              <th style="text-align:right; padding:5px 10px; color:var(--tj-text2); font-weight:500;">წმინდა რისკი</th>
             </tr>
           </thead>
           <tbody>
@@ -787,6 +807,8 @@
                 <td style="padding:4px 10px; text-align:right; color:var(--tj-text);">${r.pts}</td>
                 <td style="padding:4px 10px; text-align:right; color:${r.contracts===0?'var(--tj-red)':'var(--tj-text)'};">${r.contracts === 0 ? '—' : r.contracts}</td>
                 <td style="padding:4px 10px; text-align:right; color:var(--tj-text2);">$${r.actualRisk.toFixed(0)}</td>
+                <td style="padding:4px 10px; text-align:right; color:var(--tj-text3);">$${r.totalCommission.toFixed(2)}</td>
+                <td style="padding:4px 10px; text-align:right; color:var(--tj-text);">$${r.netRisk.toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -794,7 +816,7 @@
       `;
     }
     riskInput.addEventListener('input', update);
-    instrumentSel.addEventListener('change', update);
+    commissionInput.addEventListener('input', update);
     update();
   }
 
