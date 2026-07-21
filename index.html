@@ -154,10 +154,10 @@
     vetoOptions: [
       'Barb Wire-ში შესვლა', 'Doji signal bar', 'TL break არ იყო (countertrend)',
       'Magnet/დონე არ იყო', 'დღის/რეინჯის შუაში', 'რეპორტის დროს ვივაჭრე',
-      'Trend from the Open-ის წინააღმდეგ', '2+ წაგების მერე გავაგრძელე',
-      'დაგვიანებული FOMO შესვლა', 'Stop წესი დავარღვიე',
+      'Trend from the Open-ის წინააღმდეგ',
+      'დაგვიანებული FOMO შესვლა',
       'Reversal bar overlap-შია (nothing to reverse)', '1-წუთიანი chart-ის signal-ზე შევედი',
-      'ნაადრევად შევედი (Excess არ იყო)', 'წინა თვე Reversal-ებზე წავაგე', 'სხვა'
+      'სხვა'
     ],
     instruments: ['YM','ES','NQ'],
     tradeTypes: [
@@ -890,6 +890,9 @@
           <div style="font-size:13px; font-weight:500; margin-bottom:4px; color:var(--tj-red);">Veto-შემოწმება — ხომ არ ირღვევა რომელიმე წესი?</div>
           <div style="font-size:11px; color:var(--tj-text3); margin-bottom:10px;">შეამოწმეთ შესვლამდე — არა მხოლოდ წაგების შემდეგ. ყოველი მონიშნული პირობა აისახება ქვემოთ, შეფასებაში.</div>
           ${checklistGroup('veto', KEYS.vetoOptions, 2, prefill ? prefill.veto : [])}
+          <div id="tj-veto-other-wrap" style="display:none; margin-top:10px;">
+            ${fieldLabel('დააკონკრეტეთ — "სხვა"')}<input type="text" name="vetoOther" style="${inputStyle()}" placeholder="აღწერეთ, რომელი წესი დაირღვა" value="${prefill && prefill.vetoOther ? prefill.vetoOther : ''}"/>
+          </div>
         </div>
 
         <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
@@ -921,6 +924,14 @@
     const outcomeSel = form.querySelector('[name=outcome]');
     const vetoWrap = form.querySelector('#tj-veto-wrap');
     function syncVeto(){ /* veto ყოველთვის ხილულია — ეს ფუნქცია დარჩა თავსებადობისთვის (გამოძახებულია სხვაგანაც) */ }
+    const vetoOtherWrap = form.querySelector('#tj-veto-other-wrap');
+    const vetoOtherInput = form.querySelector('[name=vetoOther]');
+    function syncVetoOther(){
+      const otherChecked = !!form.querySelector('input[name=veto][value="სხვა"]:checked');
+      vetoOtherWrap.style.display = otherChecked ? 'block' : 'none';
+    }
+    form.querySelectorAll('input[name=veto]').forEach(cb=>cb.addEventListener('change', syncVetoOther));
+    syncVetoOther();
 
     const tradeTypeSel = form.querySelector('#tj-tradeType');
     const entryZone = form.querySelector('#tj-entry-criteria-zone');
@@ -1220,6 +1231,12 @@
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const fd = new FormData(form);
+      if (fd.getAll('veto').includes('სხვა') && !String(fd.get('vetoOther')||'').trim()){
+        msg.style.color = 'var(--tj-red)';
+        msg.textContent = 'Veto-ში "სხვა" მონიშნეთ — გთხოვთ ჩაწეროთ დაკონკრეტება.';
+        vetoOtherInput.focus();
+        return;
+      }
       const scalpUsd = num(fd.get('scalpUsd'));
       const swingUsd1 = num(fd.get('swingUsd1'));
       const swingUsd2 = num(fd.get('swingUsd2'));
@@ -1251,6 +1268,7 @@
         scalpR, swingR, totalR: scalpR + swingR,
         scalpUsd, swingUsd1, swingUsd2, swingUsd3, swingUsd, totalUsd: scalpUsd + swingUsd,
         veto: fd.getAll('veto'),
+        vetoOther: fd.get('vetoOther') || '',
         chartLink: fd.get('chartLink') || '',
         notes: fd.get('notes') || ''
       };
@@ -1278,6 +1296,7 @@
         lastUsedAccountId = trade.accountId;
         form.reset();
         syncVeto();
+        syncVetoOther();
         syncReasonCount();
         syncTotalUsd();
         entryZone.innerHTML = renderEntryCriteriaZone('opening_reversal');
