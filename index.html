@@ -751,6 +751,62 @@
     YM: 3.78, MYM: 1.22,
   };
 
+  const vetoExplanationsGlobal = {
+    'Barb Wire-ში შესვლა': true, 'Doji signal bar': true, 'TL break არ იყო (countertrend)': true,
+    'Magnet/დონე არ იყო': true, 'დღის/რეინჯის შუაში': true, 'რეპორტის დროს ვივაჭრე': true,
+    'Trend from the Open-ის წინააღმდეგ': true, 'დაგვიანებული FOMO შესვლა': true,
+    'Reversal bar overlap-შია (nothing to reverse)': true, '1-წუთიანი chart-ის signal-ზე შევედი': true,
+  };
+
+  function evaluateHistoricalVerdict(t){
+    let redCount = 0, yellowCount = 0;
+    const tradeType = t.tradeType || 'opening_reversal';
+    const signalQuality = t.signalQuality || '';
+    const reasonsN = (t.reasons||[]).length;
+    const veto = t.veto || [];
+
+    veto.forEach(v=>{
+      if (v === 'Doji signal bar' && signalQuality === 'Doji') return; // დუბლირების თავიდან აცილება
+      redCount++;
+    });
+
+    if (reasonsN === 0) redCount++;
+    else if (reasonsN === 1) yellowCount++;
+
+    if (signalQuality === 'Doji') redCount++;
+    else if (signalQuality === 'საპირისპირო ტრენდული ბარი') redCount++;
+    else if (signalQuality === 'სუსტი trend bar') yellowCount++;
+
+    if (tradeType !== 'with_trend' && tradeType !== 'tr_fade' && tradeType !== 'reversal'){
+      if (!t.magnet) yellowCount++;
+      if (!(t.criteria||[]).length) yellowCount++;
+    }
+    if (tradeType === 'with_trend'){
+      if (!(t.trendDayTypes||[]).length) yellowCount++;
+      if ((t.trendDayTypes||[]).includes('Shrinking Stairs')) yellowCount++;
+    }
+    if (tradeType === 'tr_fade'){
+      if (!(t.trendDayTypes||[]).length) redCount++;
+      if (t.twoLegEnd === 'no') yellowCount++;
+    }
+    if (tradeType === 'reversal'){
+      if (!t.trendlineBreak) yellowCount++;
+      else if (t.trendlineBreak === 'no') redCount++;
+      if (t.reversalType === 'Major Trend Reversal'){
+        const majorN = (t.majorReversalConditions||[]).length;
+        if (majorN < 4) { if (majorN <= 1) redCount++; else yellowCount++; }
+      } else if (['Climactic Reversal','3 Push','Expanding Triangle','Shrinking Stairs','Final Flag Reversal'].includes(t.reversalType)){
+        yellowCount++;
+      } else if (t.reversalType === 'არ ვვაჭრობ Reversal-ზე'){
+        redCount++;
+      }
+    }
+
+    if (redCount >= 2 || (redCount>=1 && yellowCount>=2)) return 'weak';
+    if (redCount >= 1 || yellowCount >= 2) return 'caution';
+    return 'strong';
+  }
+
   function renderPositionCalcWidget(){
     return `
       <details style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; margin-bottom:20px;">
@@ -1096,7 +1152,10 @@
       const criteriaChecked = form.querySelectorAll('input[name=criteria]:checked').length;
 
       // --- Veto — ყველაზე მძიმე კატეგორია, ყოველი მონიშნული პირობა წითელი დროშაა
+      // (გამონაკლისი: "Doji signal bar" veto არ ემატება ცალკე, თუ Signal Quality-შიც უკვე Doji-ა მითითებული —
+      // ეს ერთი და იგივე ფაქტია, არა ორი დამოუკიდებელი პრობლემა)
       form.querySelectorAll('input[name=veto]:checked').forEach(box=>{
+        if (box.value === 'Doji signal bar' && signalQuality === 'Doji') return;
         flags.push({level:'red', text: vetoExplanations[box.value] || ('Veto: ' + box.value + ' — თქვენ თვითონ მონიშნეთ ეს პირობა.')});
       });
 
@@ -1200,6 +1259,13 @@
       const a = computeAssessment();
       assessmentEl.innerHTML = `
         <div style="border:0.5px solid ${a.verdictBorder}; background:${a.verdictBg}; border-radius:10px; padding:14px 16px;">
+          <div style="padding-bottom:14px; border-bottom:0.5px dashed var(--tj-border); margin-bottom:14px;">
+            <button type="button" id="tj-ask-ai-setup" ${aiSetupLoading ? 'disabled' : ''} style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.14); color:var(--tj-text); font-size:12px; cursor:pointer; ${aiSetupLoading ? 'opacity:0.5; cursor:default;' : ''}">
+              ${aiSetupLoading ? 'AI ფიქრობს…' : '🤖 მკითხე AI-ს ამ setup-ზე'}
+            </button>
+            ${aiSetupError ? `<div style="margin-top:8px; font-size:11.5px; color:var(--tj-red);">${aiSetupError}</div>` : ''}
+            ${aiSetupComment ? `<div class="tj-ai-content" style="margin-top:10px; padding:12px 14px; background:var(--tj-panel2); border-radius:8px; font-size:12.5px;">${marked.parse(aiSetupComment)}</div>` : ''}
+          </div>
           <div style="font-size:13px; font-weight:600; color:${a.verdictColor}; margin-bottom:10px;">წინასწარი შეფასება: ${a.verdict}</div>
           <div style="display:flex; flex-direction:column; gap:6px;">
             ${a.flags.map(f=>`
@@ -1211,13 +1277,6 @@
           </div>
           ${a.statLine ? `<div style="margin-top:10px; padding-top:10px; border-top:0.5px solid var(--tj-border); font-size:12px; color:var(--tj-text2);">${a.statLine}</div>` : ''}
           <div style="margin-top:10px; font-size:10.5px; color:var(--tj-text3);">ეს არის ავტომატური, წესებზე დაფუძნებული შეფასება (Al Brooks-ის მეთოდოლოგია) — არა გარანტია. საბოლოო გადაწყვეტილება თქვენია.</div>
-          <div style="margin-top:14px; padding-top:14px; border-top:0.5px dashed var(--tj-border);">
-            <button type="button" id="tj-ask-ai-setup" ${aiSetupLoading ? 'disabled' : ''} style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.14); color:var(--tj-text); font-size:12px; cursor:pointer; ${aiSetupLoading ? 'opacity:0.5; cursor:default;' : ''}">
-              ${aiSetupLoading ? 'AI ფიქრობს…' : '🤖 მკითხე AI-ს ამ setup-ზე'}
-            </button>
-            ${aiSetupError ? `<div style="margin-top:8px; font-size:11.5px; color:var(--tj-red);">${aiSetupError}</div>` : ''}
-            ${aiSetupComment ? `<div class="tj-ai-content" style="margin-top:10px; padding:12px 14px; background:var(--tj-panel2); border-radius:8px; font-size:12.5px;">${marked.parse(aiSetupComment)}</div>` : ''}
-          </div>
         </div>
       `;
       const askBtn = assessmentEl.querySelector('#tj-ask-ai-setup');
@@ -1441,7 +1500,7 @@
     const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $ (წმინდა)','საკომისიო','Veto','Chart','შენიშვნა',''];
 
     bodyEl.innerHTML = renderFilterBar() + `
-      <div style="overflow-x:auto; border:0.5px solid var(--tj-border); border-radius:10px;">
+      <div id="tj-log-scroll" style="overflow-x:auto; border:0.5px solid var(--tj-border); border-radius:10px; cursor:grab; user-select:none;">
         <table style="width:100%; border-collapse:collapse;">
           <thead>
             <tr style="text-align:left; font-size:10px; color:var(--tj-text3); text-transform:uppercase; letter-spacing:0.3px; background:var(--tj-panel);">
@@ -1451,9 +1510,34 @@
           <tbody>${rows || `<tr><td colspan="${headers.length}" style="padding:24px; text-align:center; color:var(--tj-text2); font-size:13px;">ფილტრით ვერაფერი მოიძებნა.</td></tr>`}</tbody>
         </table>
       </div>
+      <div style="font-size:10.5px; color:var(--tj-text3); margin-top:6px;">💡 ცხრილის ჩავჭერა და გვერდზე გადათრევა შესაძლებელია მაუსით (drag to scroll).</div>
       ${backupPanel()}
     `;
     wireFilterBar(renderLog);
+    (function wireDragScroll(){
+      const el = bodyEl.querySelector('#tj-log-scroll');
+      if (!el) return;
+      let isDown = false, startX = 0, startScroll = 0, moved = false;
+      el.addEventListener('mousedown', (e)=>{
+        isDown = true; moved = false;
+        startX = e.pageX; startScroll = el.scrollLeft;
+        el.style.cursor = 'grabbing';
+      });
+      window.addEventListener('mouseup', ()=>{
+        isDown = false; el.style.cursor = 'grab';
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if (!isDown) return;
+        e.preventDefault();
+        const dx = e.pageX - startX;
+        if (Math.abs(dx) > 4) moved = true;
+        el.scrollLeft = startScroll - dx;
+      });
+      // drag-ის შემდეგ არ ავამოქმედოთ ღილაკის კლიკი, თუ რეალურად გადავათრიეთ
+      el.addEventListener('click', (e)=>{
+        if (moved) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
+    })();
     bodyEl.querySelectorAll('.tj-del').forEach(b=>{
       b.onclick = async (e) => {
         await deleteTradeRemote(b.dataset.id);
@@ -1811,6 +1895,7 @@
     // --- section visibility (persisted locally per browser) ---
     const sectionDefs = [
       {key:'metrics', label:'ძირითადი მაჩვენებლები'},
+      {key:'verdictBacktest', label:'შეფასების სისტემის სანდოობა (Backtest)'},
       {key:'chips', label:'დამატებითი სტატისტიკა'},
       {key:'calendar', label:'PnL კალენდარი'},
       {key:'dailypnl', label:'დღიური P&L გრაფიკები'},
@@ -1864,6 +1949,43 @@
         ${metricCard('საშ. მოგება $', '+$'+avgWinUsd.toFixed(2), 'var(--tj-green)')}
         ${metricCard('საშ. ზარალი $', '-$'+Math.abs(avgLossUsd).toFixed(2), 'var(--tj-red)')}
       </div>` : ''}
+
+      ${isVisible('verdictBacktest') ? (function(){
+        const verdictGroups = { strong: [], caution: [], weak: [] };
+        filtered.filter(t=>t.outcome).forEach(t=>{
+          verdictGroups[evaluateHistoricalVerdict(t)].push(t);
+        });
+        const verdictMeta = {
+          strong: { label:'ძლიერი setup', color:'var(--tj-green)' },
+          caution: { label:'საშუალო setup', color:'var(--tj-amber)' },
+          weak: { label:'სუსტი setup', color:'var(--tj-red)' },
+        };
+        const rows = ['strong','caution','weak'].map(key=>{
+          const group = verdictGroups[key];
+          const gn = group.length;
+          const gwins = group.filter(t=>t.outcome==='win').length;
+          const gwr = gn ? Math.round(100*gwins/gn) : null;
+          const gavgR = gn ? (group.reduce((s,t)=>s+sR(t),0)/gn) : null;
+          return { key, gn, gwr, gavgR };
+        });
+        return `
+        <div style="margin-bottom:26px;">
+          <div style="font-size:13px; font-weight:500; margin-bottom:4px;">შეფასების სისტემის სანდოობა (Backtest)</div>
+          <div style="font-size:11px; color:var(--tj-text2); margin-bottom:12px;">რას აჩვენებდა წინასწარი შეფასების პანელი ამ ტრეიდებზე შესვლის მომენტში, და რეალურად როგორი იყო შედეგი — რომ ვნახოთ, რამდენად სანდოა თავად შეფასების სისტემა.</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px;">
+            ${rows.map(r=>`
+              <div style="background:var(--tj-panel); border:0.5px solid ${verdictMeta[r.key].color}; border-radius:10px; padding:14px 16px;">
+                <div style="font-size:12px; color:${verdictMeta[r.key].color}; font-weight:600; margin-bottom:8px;">${verdictMeta[r.key].label}</div>
+                ${r.gn ? `
+                  <div style="font-size:20px; font-weight:600; color:var(--tj-text);">${r.gwr}%</div>
+                  <div style="font-size:11px; color:var(--tj-text3); margin-bottom:6px;">Win rate (${r.gn} ტრეიდი)</div>
+                  <div style="font-size:12px; color:${r.gavgR>=0?'var(--tj-green)':'var(--tj-red)'};">${r.gavgR>=0?'+':''}${r.gavgR.toFixed(2)}R საშუალოდ</div>
+                ` : `<div style="font-size:12px; color:var(--tj-text3);">ტრეიდი ვერ მოიძებნა</div>`}
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+      })() : ''}
 
       ${isVisible('chips') ? `
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;">
