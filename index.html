@@ -63,6 +63,31 @@
   .tj-ai-content code { font-family: 'IBM Plex Mono', monospace; background: var(--tj-panel2); padding: 1px 6px; border-radius: 5px; font-size: 12px; color: var(--tj-accent); }
   .tj-ai-content > *:last-child { margin-bottom: 0; }
   .tj-ai-content h2:last-of-type, .tj-ai-content h1:last-of-type { color: var(--tj-green); }
+  /* --- დღის გზამკვლევის სტილები --- */
+  .tj-dg-card { background: var(--tj-panel); border: 0.5px solid var(--tj-border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; transition: border-color 0.2s ease; }
+  .tj-dg-card.current { border-color: rgba(110,147,176,0.55); box-shadow: 0 0 0 1px rgba(110,147,176,0.15); }
+  .tj-dg-card.done:not(.current) { }
+  .tj-dg-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .tj-dg-head:hover { background: rgba(255,255,255,0.02); }
+  .tj-dg-num { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--tj-border); color: var(--tj-text2); font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; }
+  .tj-dg-num.done { border-color: var(--tj-green); color: var(--tj-green); background: rgba(79,158,118,0.1); }
+  .tj-dg-time { margin-left: auto; font-size: 11px; color: var(--tj-text3); }
+  .tj-dg-badge { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; border: 0.5px solid var(--tj-accent); color: var(--tj-accent); flex-shrink: 0; }
+  .tj-dg-chevron { color: var(--tj-text3); font-size: 15px; transition: transform 0.18s ease; flex-shrink: 0; line-height: 1; }
+  .tj-dg-body { padding: 4px 18px 18px 50px; }
+  @media (max-width: 640px) { .tj-dg-body { padding-left: 16px; } .tj-dg-time { display: none; } }
+  .tj-dg-opt { padding: 7px 13px; border-radius: 8px; font-size: 12.5px; cursor: pointer; border: 0.5px solid var(--tj-border); background: transparent; color: var(--tj-text2); transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease; }
+  .tj-dg-opt:hover { border-color: var(--tj-accent); color: var(--tj-text); }
+  .tj-dg-opt.sel { border-color: var(--tj-accent); background: rgba(110,147,176,0.16); color: var(--tj-text); }
+  .tj-dg-flag { border-radius: 9px; padding: 10px 13px; font-size: 12.5px; line-height: 1.6; color: var(--tj-text2); background: rgba(255,255,255,0.02); border-left: 3px solid var(--tj-text3); }
+  .tj-dg-flag.red { border-left-color: var(--tj-red); background: rgba(189,90,76,0.07); }
+  .tj-dg-flag.yellow { border-left-color: var(--tj-amber); background: rgba(201,154,80,0.06); }
+  .tj-dg-flag.green { border-left-color: var(--tj-green); background: rgba(79,158,118,0.07); }
+  .tj-dg-flag-label { font-size: 10.5px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--tj-text3); margin-bottom: 3px; }
+  .tj-dg-flag.red .tj-dg-flag-label { color: var(--tj-red); }
+  .tj-dg-flag.yellow .tj-dg-flag-label { color: var(--tj-amber); }
+  .tj-dg-flag.green .tj-dg-flag-label { color: var(--tj-green); }
+  .tj-dg-summary { background: var(--tj-panel); border: 0.5px solid var(--tj-border); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
   .tj-progress-track { position: relative; height: 10px; border-radius: 999px; background: var(--tj-panel2); overflow: hidden; border: 0.5px solid var(--tj-border); }
   .tj-progress-fill { height: 100%; border-radius: 999px; width: 0%; background: linear-gradient(90deg, #5c7f99, var(--tj-accent), #8fc4e8); background-size: 200% 100%; animation: tj-progress-shimmer 1.6s linear infinite; transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
   @keyframes tj-progress-shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
@@ -2690,118 +2715,276 @@
     catch(e){ /* ignore */ }
   }
 
+  // კითხვებს აქვთ showIf — კონტექსტზე დამოკიდებული განშტოება: ჯერ ბაზრის
+  // მდგომარეობას ვსვამთ, და მხოლოდ რელევანტური კითხვები ჩნდება.
   const DAY_GUIDE_CHECKPOINTS = [
     {
-      key: 'cp1', barLabel: 'პირველი 3 ბარი', title: 'რას გვიჩვენებს დასაწყისი',
+      key: 'cp1', barLabel: 'ბარი 3', timeHint: 'გახსნიდან ~15 წუთი', title: 'გახსნის სურათი',
       questions: [
-        { key:'bar1', q:'პირველი ბარი ძლიერი, მკაფიო ტრენდული ბარია, თუ სუსტი/არეული?', options:[['strong','ძლიერი ტრენდული'],['weak','სუსტი/არეული']] },
-        { key:'gap', q:'დღეს გახსნა Gap-ით მოხდა? რამდენად დიდი იყო ეს Gap?', options:[['none','Gap არ ყოფილა'],['small','მცირე Gap'],['large','დიდი Gap']] },
-        { key:'report', q:'ახლა რეპორტის ან მნიშვნელოვანი სიახლის გამოსვლის დროა?', options:[['yes','დიახ'],['no','არა']] },
-        { key:'whipsaw', q:'პირველი სამი ბარის განმავლობაში ფასმა ორივე მხარეს სცადა?', options:[['yes','დიახ'],['no','არა']] },
+        { key:'gap', q:'რა ზომის Gap-ით გაიხსნა დღე? <span style="color:var(--tj-text3);">(Gap % = |გახსნა − გუშინდელი დახურვა| ÷ გუშინდელი დახურვა × 100)</span>', options:[
+          ['none','&lt; 0.10% — უმნიშვნელო'],
+          ['small','0.10 – 0.25% — მცირე'],
+          ['moderate','0.25 – 0.50% — საშუალო'],
+          ['large','0.50 – 1.00% — დიდი'],
+          ['huge','&gt; 1.00% — უზარმაზარი']
+        ]},
+        { key:'report', q:'ახლა (ან უახლოეს ბარებში) რეპორტის ან მნიშვნელოვანი სიახლის დროა?', options:[['yes','დიახ'],['no','არა']] },
+        { key:'bar1', q:'პირველი ბარი:', options:[['strong','ძლიერი ტრენდული ბარი'],['weak','სუსტი / Doji / არეული']] },
+        { key:'whipsaw', q:'პირველ სამ ბარში ფასმა ორივე მხარეს სცადა?', options:[['yes','დიახ'],['no','არა']] },
       ]
     },
     {
-      key: 'cp2', barLabel: 'ბარი 6', title: 'ტრენდი იწყება, თუ Trading Range?',
+      key: 'cp2', barLabel: 'ბარი 6', timeHint: '~30 წუთი', title: 'ტრენდი იწყება თუ Range?',
       questions: [
-        { key:'pullback', q:'პირველი 6 ბარის განმავლობაში მოხდა მაინც ერთი შესამჩნევი უკუსვლა (ტრენდლაინის გარღვევით)?', options:[['yes','დიახ'],['no','არა']] },
-        { key:'nopause', q:'ფასი 4+ ბარის განმავლობაში, პაუზის გარეშე, ერთი მიმართულებით მიდიოდა?', options:[['yes','დიახ'],['no','არა']] },
-        { key:'pullback_size', q:'ეს Pullback (თუ იყო) მცირე იყო, თუ საწყის მოძრაობასთან შედარებით სერიოზული?', options:[['small','მცირე'],['serious','სერიოზული'],['none','Pullback არ ყოფილა']] },
+        { key:'state6', q:'რას ჰგავს ბაზარი ამ მომენტში?', options:[
+          ['trending','მკაფიო მიმართულებით მოძრაობს'],
+          ['tight','ვიწრო საწყის არეალშია'],
+          ['choppy','ორივე მხარეს ბობოქრობს']
+        ]},
+        { key:'nopause', q:'Spike — ფასი 4+ ბარის განმავლობაში, პაუზის გარეშე, ერთი მიმართულებით მიდის (ან მიდიოდა)?', options:[['yes','დიახ'],['no','არა']],
+          showIf: a => a.state6 === 'trending' },
+        { key:'pullback_size', q:'პირველი Pullback (თუ იყო) როგორი იყო საწყის მოძრაობასთან შედარებით?', options:[['small','მცირე'],['serious','სერიოზული — Trendline გაარღვია'],['none','ჯერ არ ყოფილა']],
+          showIf: a => a.state6 === 'trending' },
       ]
     },
     {
-      key: 'cp3', barLabel: 'ბარი 12', title: 'შუალედური სურათი',
+      key: 'cp3', barLabel: 'ბარი 12', timeHint: '~1 საათი', title: 'შუალედური სურათი',
       questions: [
-        { key:'pullback_pattern', q:'ბოლო რამდენიმე Pullback მცირეა და ერთმანეთის მსგავსი ზომის, თუ თანდათან იზრდება?', options:[['small_consistent','მცირე და თანაბარი'],['growing','თანდათან იზრდება']] },
-        { key:'counter_spike', q:'ბოლო ბარებში იყო ერთი გამორჩეულად ძლიერი, საწინააღმდეგო მიმართულების ბარი (Countertrend Spike)?', options:[['yes','დიახ'],['no','არა']] },
-        { key:'market_state', q:'ბაზარი ახლა მკაფიო ტრენდშია, ვიწრო არეალშია, თუ ორივე მხარეს ბობოქრობს?', options:[['trend','მკაფიო ტრენდი'],['tight_range','ვიწრო არეალი'],['choppy','ორივე მხარეს ბობოქრობს']] },
+        { key:'state12', q:'ბაზრის მდგომარეობა ახლა:', options:[
+          ['trend','მკაფიო ტრენდშია'],
+          ['tight_range','ვიწრო არეალშია — პაუზა'],
+          ['broad_range','ფართო Range-ში ქანაობს']
+        ]},
+        { key:'pullback_pattern', q:'უკუსვლები მცირეა და ერთმანეთის მსგავსი ზომის, თუ თანდათან იზრდება?', options:[['small_consistent','მცირე და თანაბარი'],['growing','თანდათან იზრდება']],
+          showIf: a => a.state12 === 'trend' },
+        { key:'counter_spike', q:'ბოლო ბარებში იყო გამორჩეულად ძლიერი, საწინააღმდეგო მიმართულების ბარი (Countertrend Spike)?', options:[['yes','დიახ'],['no','არა']],
+          showIf: a => a.state12 === 'trend' },
+        { key:'prior_trend', q:'ამ პაუზამდე დღეს იყო მკაფიო ტრენდული მოძრაობა?', options:[['yes','დიახ'],['no','არა — თავიდანვე უმიმართულებოა']],
+          showIf: a => a.state12 === 'tight_range' },
+        { key:'range_pos', q:'ფასი ახლა Range-ის კიდესთანაა თუ შუაში?', options:[['edge','კიდესთან'],['middle','შუაშია']],
+          showIf: a => a.state12 === 'broad_range' },
       ]
     },
     {
-      key: 'cp4', barLabel: 'ბარი 18', title: 'თითქმის სრული სურათი',
+      key: 'cp4', barLabel: 'ბარი 18', timeHint: '~1.5 საათი', title: 'დღის ტიპი იკვეთება',
       questions: [
-        { key:'still_trending', q:'დღე ჯერ კიდევ იმავე, საწყისი მიმართულებით მოძრაობს?', options:[['yes','დიახ'],['no','არა']] },
-        { key:'sideways_width', q:'თუ ახლა გვერდით (sideways) მოძრაობს — ეს არეალი ვიწროა თუ ფართო?', options:[['tight','ვიწრო'],['broad','ფართო'],['na','არ ეხება — ტრენდშია']] },
-        { key:'reversal_signs', q:'ჩანს თუ არა, რომ საწყისი ტრენდი შეიძლება მთლიანად შებრუნდეს, არა უბრალოდ დროებით შეჩერდეს?', options:[['yes','დიახ'],['no','არა']] },
+        { key:'state18', q:'დღის საწყის მოძრაობასთან შედარებით, ბაზარი ახლა:', options:[
+          ['same','იმავე მიმართულებით ტრენდობს'],
+          ['reversed','საპირისპიროდ შებრუნდა'],
+          ['side_tight','გვერდითაა — ვიწრო არეალში'],
+          ['side_broad','გვერდითაა — ფართო არეალში']
+        ]},
+        { key:'late_pullback', q:'ბოლო უკუსვლა ადრინდელებზე შესამჩნევად ღრმაა (~1.5–2-ჯერ)?', options:[['yes','დიახ'],['no','არა']],
+          showIf: a => a.state18 === 'same' },
+        { key:'rev_confirmed', q:'შებრუნება Trendline-ის გარღვევით და ძლიერი საწინააღმდეგო ბარებით მოხდა?', options:[['yes','დიახ'],['no','არა / ჯერ ბუნდოვანია']],
+          showIf: a => a.state18 === 'reversed' },
       ]
     },
   ];
 
-  function dgDot(level){ return level==='red' ? 'var(--tj-red)' : level==='yellow' ? 'var(--tj-amber)' : level==='neutral' ? 'var(--tj-text3)' : 'var(--tj-green)'; }
+  function dgVisibleQuestions(cp, cpAnswers){
+    return cp.questions.filter(q => !q.showIf || q.showIf(cpAnswers || {}));
+  }
 
-  function computeCheckpointGuidance(cpKey, a){
+  // ერთი checkpoint-ის გზამკვლევი. მეორე არგუმენტად სრული answers ობიექტი
+  // მოდის, რომ checkpoint-ებმა ერთმანეთის კონტექსტიც გაითვალისწინონ
+  // (მაგ. „ვიწრო არეალი დიდი Gap-ის დღეზე").
+  function computeCheckpointGuidance(cpKey, a, all){
     const flags = [];
+    const cp1 = (all && all.cp1) || {};
+
     if (cpKey === 'cp1'){
-      if (a.report === 'yes') flags.push({level:'red', text:'რეპორტის ზუსტ მომენტში ვაჭრობა სარისკოა — კომპიუტერებს სიახლის დამუშავებაში დიდი უპირატესობა აქვთ ადამიანებთან შედარებით. დაელოდეთ 1-2 ბარს, სანამ მიმართულება ცხადი გახდება.'});
-      if (a.whipsaw === 'yes'){
-        flags.push({level:'yellow', text:'ფასმა უკვე ორივე მხარეს სცადა პირველ სამ ბარში — ეს ადრეული არასტაბილურობის ნიშანია. სავარაუდოდ საწყისი Trading Range ან Barb Wire ყალიბდება, არა წმინდა ტრენდი. მოემზადეთ, რომ საჭირო გახდეს მოთმინება.'});
+      if (a.report === 'yes') flags.push({level:'red', text:'რეპორტის ზუსტ მომენტში ვაჭრობა სარისკოა — კომპიუტერებს სიახლის დამუშავებაში დიდი უპირატესობა აქვთ. დაელოდეთ 1-2 ბარს, სანამ მიმართულება ცხადი გახდება.'});
+
+      if (a.gap === 'none' || a.gap === 'small'){
+        flags.push({level:'neutral', text:'Gap პრაქტიკულად არ არის — გახსნა გუშინდელი დახურვის სიახლოვესაა. ასეთ დღეებზე პირველი საათი, როგორც წესი, Opening Reversal-ების დროა: დღის High ან Low ~50%-ში პირველ 5 ბარში ყალიბდება, ხოლო Opening Range-ში — ~90%-ში.'});
+      } else if (a.gap === 'moderate'){
+        flags.push({level:'yellow', text:'საშუალო Gap ხშირად დღის High-ის ან Low-ის სიახლოვეს იხსნება — პირველი ბარი ხშირად ტრენდის მიმართულებაზე მიუთითებს. თუ პირველი ბარი ძლიერი ტრენდული ბარია, მისი გარღვევა ამ მიმართულებით ლეგიტიმური ადრეული სიგნალია.'});
+      } else if (a.gap === 'large'){
+        flags.push({level:'yellow', text:'დიდი Gap ფაქტობრივად Breakout-ია — მოექეცით როგორც ერთბარიან Spike-ს. ტრენდული დღის ალბათობა მაღალია ორივე მიმართულებით (Gap-ის მიმართულებით ~60/40). ხშირად ბაზარი ჯერ გახსნის დონეს ტესტავს (Double Bottom/Top გახსნასთან) და მერე იწყებს ტრენდს — ამ ტესტზე შესვლა ხშირად საუკეთესო ადგილია.'});
+      } else if (a.gap === 'huge'){
+        flags.push({level:'red', text:'უზარმაზარი Gap (&gt;1%) — ექსტრემალური სიტუაცია. ორი სცენარია: (1) თუ ადრეული რევერსალი არ მოხდა, დღე ხშირად ძლიერ ტრენდად იქცევა და ექსტრემუმთან იხურება — ნუ დაუპირისპირდებით მას "ძალიან შორსაა" ლოგიკით; (2) თუ Gap-ის მიმართულებით მყისიერი გაგრძელება არ ჩანს, ბაზარი სწრაფად შებრუნდება ექსტრემის გასაუქმებლად. პირველი 2-3 ბარი გადამწყვეტია.'});
+      }
+
+      if ((a.gap === 'large' || a.gap === 'huge') && a.bar1 === 'strong'){
+        flags.push({level:'yellow', text:'დიდი Gap + ძლიერი ტრენდული პირველი ბარი: ~50%+ შანსია, რომ პირველი ბარი დღის High ან Low აღმოჩნდეს. ეს ტრენდული დღის ძლიერი ადრეული ნიშანია — მაგრამ მაინც დაელოდეთ დამადასტურებელ ბარს ან პირველ Pullback-ს, პირველივე გარღვევაზე ავტომატურად ნუ შახვალთ.'});
       } else if (a.bar1 === 'strong'){
-        flags.push({level:'yellow', text:'ძლიერი პირველი ბარი ჩანს, თუმცა გაფრთხილება — ასეთი ბარი ხშირად ხაფანგია საწინააღმდეგო მხარისთვის. ნუ შახვალთ ავტომატურად პირველივე ბარის გარღვევაზე, დაელოდეთ დამადასტურებელ მე-2 ან მე-3 ბარს.'});
+        flags.push({level:'yellow', text:'ძლიერი პირველი ბარი ჩანს, თუმცა Gap-ის გარეშე ის ხშირად ხაფანგია საწინააღმდეგო მხარისთვის. Trend from the Open მხოლოდ დღეების ~20%-ია — პირველ საათში Reversal-ები ბევრად ხშირია. დაელოდეთ მე-2/მე-3 ბარის დადასტურებას.'});
       } else if (a.bar1 === 'weak'){
-        flags.push({level:'neutral', text:'პირველი ბარი სუსტია — ჯერჯერობით მიმართულებაზე ცოტა ინფორმაცია გვაქვს. საჭიროა მეტი დაკვირვება მომდევნო ბარებზე.'});
+        flags.push({level:'neutral', text:'პირველი ბარი სუსტია — მიმართულებაზე ჯერ ცოტა ინფორმაცია გვაქვს. საჭიროა მეტი დაკვირვება მომდევნო ბარებზე.'});
       }
-      if (a.gap === 'large') flags.push({level:'yellow', text:'დიდი Gap-ის დღეებზე, დღის უკიდურესობა (High/Low) ხშირად სწორედ პირველ რამდენიმე ბარშივე ყალიბდება — დაახლოებით ყოველ მეორე ასეთ დღეს. ფრთხილად იყავით, პირველივე მიმართულებას ბრმად ნუ მიჰყვებით.'});
+
+      if (a.whipsaw === 'yes'){
+        flags.push({level:'yellow', text:'ფასმა უკვე ორივე მხარეს სცადა პირველ სამ ბარში — ადრეული არასტაბილურობის ნიშანი. სავარაუდოდ საწყისი Trading Range ან Barb Wire ყალიბდება. მოთმინება — Barb Wire-ში შესვლა თქვენი Veto-სიაშიცაა.'});
+      }
     }
+
     if (cpKey === 'cp2'){
-      if (a.nopause === 'yes') flags.push({level:'yellow', text:'ფასი 4+ ბარია პაუზის გარეშე მოძრაობს — ეს შეიძლება იყოს ძლიერი Spike-ის ნიშანი, მაგრამ ასევე ნიშნავს, რომ ბაზარი შეიძლება ზედმეტად შორს და სწრაფად წავიდა, რაც ზრდის უახლოესი პაუზის/რევერსალის ალბათობას. მოემზადეთ პირველი უკუსვლის მოლოდინში.'});
-      if (a.pullback === 'yes'){
-        if (a.pullback_size === 'small') flags.push({level:'green', text:'პირველი Pullback მცირეა საწყის მოძრაობასთან შედარებით — ეს ძლიერი ტრენდის ნიშანია. ასეთი, "მცირე უკუსვლების" დღეები ყველაზე ძლიერი ტიპია — განაგრძეთ ტრენდის მიმართულებით შესვლების ძებნა ყოველ მცირე უკუსვლაზე.'});
-        else if (a.pullback_size === 'serious') flags.push({level:'yellow', text:'პირველი Pullback სერიოზულია — პირველი ტრენდლაინის გარღვევა ხშირად წარუმატებელია, მაგრამ თუ ეს კონკრეტული უკუსვლა მკაფიო და ღრმაა, გაითვალისწინეთ, რომ დღემ შეიძლება ტიპი შეიცვალოს, ვიდრე ველოდით.'});
-      } else if (a.nopause === 'no'){
-        flags.push({level:'neutral', text:'ჯერ არც სერიოზული პაუზა და არც გახანგრძლივებული ერთმიმართულებიანი მოძრაობა არ ჩანს — სურათი ჯერ კიდევ ბუნდოვანია, საჭიროა მეტი დრო.'});
+      if (a.state6 === 'trending'){
+        if (a.nopause === 'yes') flags.push({level:'yellow', text:'4+ ბარიანი Spike პაუზის გარეშე — ძლიერი საწყისი იმპულსი, რომელიც ხშირად Spike and Channel დღედ ვითარდება. Spike-ის შემდეგ პირველ Pullback-ზე შესვლა, როგორც წესი, მინიმუმ სქალპად ამართლებს.'});
+        if (a.pullback_size === 'small') flags.push({level:'green', text:'პირველი Pullback მცირეა — Small Pullback Trend Day-ის ნიშანი, ყველაზე ძლიერი ტიპის ტრენდი. განაგრძეთ With-Trend შესვლების ძებნა ყოველ მცირე უკუსვლაზე. გაითვალისწინეთ: ასეთ დღეს სიგნალ ბარები ხშირად "ცუდად" გამოიყურება — ეს ნორმალურია, ძლიერ ტრენდში სუსტი გარეგნობის Flag-ებიც მუშაობს.'});
+        else if (a.pullback_size === 'serious') flags.push({level:'yellow', text:'პირველი Pullback-მა Trendline გაარღვია — პირველი გარღვევა ხშირად მარცხდება და ტრენდი გრძელდება, მაგრამ ტესტს დააკვირდით: თუ ექსტრემის ტესტი სუსტია (Lower High / Higher Low), დღემ შეიძლება ტიპი შეიცვალოს.'});
+        else if (a.pullback_size === 'none' && a.nopause === 'no') flags.push({level:'neutral', text:'მიმართულება ჩანს, მაგრამ არც მკაფიო Spike ყოფილა და არც Pullback — სურათი ჯერ ყალიბდება. პირველი Pullback-ის ხარისხი (მცირე თუ ღრმა) ბევრს გეტყვით დღის ძალაზე.'});
+      } else if (a.state6 === 'tight'){
+        if (cp1.gap === 'large' || cp1.gap === 'huge'){
+          flags.push({level:'green', text:'ვიწრო არეალი დიდი Gap-ის დღეზე — შესანიშნავი Breakout Mode პატერნი. Gap-მა ბაზარი უკვე "დატენა"; ვიწრო Opening Range-ის გარღვევა ხშირად ძლიერ ტრენდს იწყებს (დიდი Gap-ის დღეზე უპირატესობა Gap-ის მიმართულებას აქვს). შედით გარღვევის მიმართულებით, ნუ ივაჭრებთ არეალის შიგნით.'});
+        } else {
+          flags.push({level:'neutral', text:'ვიწრო საწყისი არეალი Breakout Mode-ია — ორივე მხარე ღიაა. თუ Opening Range საშუალო დღიური დიაპაზონის &lt;25%-ია, გარღვევა ხშირად ტრენდულ დღეს იწყებს; თუ ~50%-ია — უფრო Trending Trading Range Day-ს ელოდეთ. არეალის შიგნით ნუ ივაჭრებთ, დაელოდეთ გარღვევას ან მის Pullback-ს.'});
+        }
+      } else if (a.state6 === 'choppy'){
+        flags.push({level:'red', text:'ბაზარი ორივე მხარეს ბობოქრობს — Trading Range-ის გახსნაა, შესაძლოა Barb Wire. ახალი Swing-ის ნაცვლად მხოლოდ Fade-ლოგიკა მუშაობს არეალის კიდეებთან, ისიც ძლიერი Signal Bar-ით. ხშირად საუკეთესო გადაწყვეტილება უბრალოდ ლოდინია.'});
       }
     }
+
     if (cpKey === 'cp3'){
-      if (a.counter_spike === 'yes') flags.push({level:'red', text:'⚠️ ეს არის ერთ-ერთი ყველაზე მნიშვნელოვანი ადრეული გაფრთხილება — როცა უკუსვლას ერთვის ძლიერი საწინააღმდეგო (Countertrend) Spike, ეს ნიშნავს, რომ ტრენდი შესაძლოა რევერსირდეს. შეამცირეთ საწყისი მიმართულების პოზიციები და ფრთხილად დააკვირდით მომდევნო ბარებს.'});
-      if (a.market_state === 'tight_range') flags.push({level:'yellow', text:'ბაზარი ახლა ვიწრო არეალშია რამდენიმე საათია — ეს ხშირად "Trend Resumption Day"-ის ნიშანია. ნუ მიატოვებთ დღეს მოსაწყენობის გამო — ტრენდი ხშირად ბოლო 1-2 საათში განახლდება, ჩვეულებრივ საწყისი მიმართულებით.'});
-      else if (a.market_state === 'choppy') flags.push({level:'red', text:'ბაზარი ორივე მხარეს ბობოქრობს, მკაფიო მიმართულების გარეშე — ეს Trading Range-ის ნიშანია. საიმედოა მხოლოდ Fade-ტიპის მიდგომა არეალის კიდეებთან, არა ახალი Swing-ის მოლოდინი.'});
-      else if (a.market_state === 'trend' && a.pullback_pattern === 'small_consistent') flags.push({level:'green', text:'უკუსვლები რჩება მცირე და თანაბარი ზომის, ტრენდიც უცვლელია — ეს კვლავ "მცირე უკუსვლების" ძლიერი დღის ნიშნებია, თქვენი ყველაზე ხელსაყრელი სცენარი.'});
-      if (a.pullback_pattern === 'growing') flags.push({level:'yellow', text:'უკუსვლები თანდათან იზრდება — ეს ტრენდის შესუსტების ადრეული ნიშანია, თუმცა ეს ჯერ არ ნიშნავს აუცილებელ რევერსალს.'});
+      if (a.state12 === 'trend'){
+        if (a.counter_spike === 'yes') flags.push({level:'red', text:'ერთ-ერთი ყველაზე მნიშვნელოვანი ადრეული გაფრთხილება — უკუსვლას ძლიერი Countertrend Spike ერთვის. ეს ნიშნავს, რომ ტრენდი შესაძლოა რევერსირდეს: შეამცირეთ საწყისი მიმართულების პოზიციები და ახალ With-Trend შესვლებზე მოთხოვნები აამაღლეთ.'});
+        if (a.pullback_pattern === 'small_consistent') flags.push({level:'green', text:'უკუსვლები რჩება მცირე და თანაბარი — Small Pullback Trend Day გრძელდება, თქვენი ყველაზე ხელსაყრელი სცენარი. ძლიერ ტრენდში ფასზე დაფუძნებული ვიწრო Stop-ები ხშირად ზედმეტად ადრე გდებთ გარეთ — Stop-ი Swing-წერტილებს მიღმა ატარეთ.'});
+        if (a.pullback_pattern === 'growing') flags.push({level:'yellow', text:'უკუსვლები თანდათან იზრდება — Spike ფაზა Channel ფაზაში გადადის ან ტრენდი სუსტდება. ეს ჯერ არ ნიშნავს რევერსალს, მაგრამ ორფეხა უკუსვლების ალბათობა იზრდება და მიზნები უფრო კონსერვატიული უნდა გახდეს. Channel = "მომავალი Trading Range-ის" ადრეული ფორმა.'});
+      } else if (a.state12 === 'tight_range'){
+        if (a.prior_trend === 'yes') flags.push({level:'yellow', text:'ტრენდის შემდეგ ვიწრო არეალი — კლასიკური Trend Resumption Day-ის შუა ფაზა. ნუ მიატოვებთ დღეს მოწყენილობის გამო: ტრენდი ხშირად ბოლო 1-2 საათში განახლდება, ჩვეულებრივ საწყისი მიმართულებით. არეალის შიგნით ნუ ივაჭრებთ — დაელოდეთ გარღვევას ან მის Pullback-ს.'});
+        else flags.push({level:'neutral', text:'დღე თავიდანვე ვიწრო, უმიმართულებო არეალშია — Breakout Mode გრძელდება. სანამ მკაფიო გარღვევა არ მოხდება, აქტიური ვაჭრობის დღე არ არის. ვიწრო არეალის შუაში ყოველი შესვლა Barb Wire-ის რისკს ატარებს.'});
+      } else if (a.state12 === 'broad_range'){
+        if (a.range_pos === 'edge') flags.push({level:'yellow', text:'Trading Range Day: ფასი კიდესთანაა — ერთადერთი საიმედო ლოგიკა ახლა კიდიდან Fade-ია (TR Fade), ძლიერი Reversal/Signal Bar-ით. Range-ის გარღვევის მოლოდინით შესვლა TR დღეზე ხშირად ხაფანგია — გარღვევების უმეტესობა მარცხდება.'});
+        else if (a.range_pos === 'middle') flags.push({level:'red', text:'ფასი Range-ის შუაშია — ეს პირდაპირ თქვენი Veto-პრინციპია („დღის/რეინჯის შუაში"). აქ არც Fade მუშაობს და არც Breakout — დაელოდეთ, სანამ ფასი კიდეს მიაღწევს.'});
+      }
     }
+
     if (cpKey === 'cp4'){
-      if (a.reversal_signs === 'yes') flags.push({level:'red', text:'სრული რევერსალის ნიშნები ჩანს — Reversal Day-ის მთავარი მახასიათებელია, რომ დღე ერთი მიმართულებით იწყება და საწინააღმდეგოთი ამთავრებს, ხშირად შემდეგ დღესაც ძლიერი გაგრძელებით. თუ ეს ხდება, შეზღუდეთ ვაჭრობა ახალი, საწინააღმდეგო მიმართულებით.'});
-      if (a.still_trending === 'yes') flags.push({level:'green', text:'დღე კვლავ საწყისი მიმართულებით მოძრაობს — გააგრძელეთ იმავე გეგმა, ტრენდის მიმართულებით შესვლების ძებნა.'});
-      else if (a.still_trending === 'no' && a.sideways_width === 'tight') flags.push({level:'yellow', text:'ბაზარი გვერდით, ვიწრო არეალშია — ეს კვლავ თანმიმდევრულია Trend Resumption Day სცენართან. მოთმინებით დაელოდეთ გვიან-შუადღის Breakout-ს.'});
-      else if (a.sideways_width === 'broad') flags.push({level:'yellow', text:'გვერდითი მოძრაობა ფართო არეალშია — ეს უფრო Trading Range Day-ის ნიშანია, ვიდრე დროებითი პაუზა ტრენდში. Scalp-ტიპის მიდგომა უფრო შესაფერისია, ვიდრე ახალი Swing-ის ძებნა.'});
+      if (a.state18 === 'same'){
+        if (a.late_pullback === 'yes') flags.push({level:'yellow', text:'ტრენდულ დღეებზე ბოლო 1-2 საათში ხშირად მოდის ადრინდელებზე ~150-200%-ით ღრმა Pullback, რის შემდეგაც ტრენდი ხშირად დახურვამდე განახლდება. სანამ Trendline-ის ძლიერი გარღვევა და ექსტრემის წარუმატებელი ტესტი არ ჩანს — ეს Pullback-ია, არა რევერსალი. With-Trend შესვლა ამ ღრმა უკუსვლიდან ხშირად დღის ბოლო კარგი შესაძლებლობაა.'});
+        else flags.push({level:'green', text:'დღე კვლავ საწყისი მიმართულებით მოძრაობს — გააგრძელეთ იმავე გეგმა. ძლიერ ტრენდულ დღეებს ხშირად მეორე დღის პირველ 1-2 საათშიც აქვთ გაგრძელება — ეს ხვალინდელი გეგმისთვისაც გაითვალისწინეთ.'});
+      } else if (a.state18 === 'reversed'){
+        if (a.rev_confirmed === 'yes') flags.push({level:'red', text:'დადასტურებული Reversal Day — დღე ერთი მიმართულებით დაიწყო და საპირისპიროთი ამთავრებს, ხშირად მეორე დღესაც ძლიერი გაგრძელებით. ძველი მიმართულებით შესვლები შეწყვიტეთ; ახალი მიმართულებით Pullback-ები ახლა With-Trend სეთაფებია.'});
+        else flags.push({level:'yellow', text:'შებრუნება ჩანს, მაგრამ Trendline-ის მკაფიო გარღვევის გარეშე — გახსოვდეთ: რევერსალის მცდელობების ~80% მარცხდება. სანამ Major Reversal-ის 4 პირობა არ შესრულდება, ეს უფრო ღრმა Pullback-ია, ვიდრე ახალი ტრენდი. ორივე მიმართულებით სიფრთხილე.'});
+      } else if (a.state18 === 'side_tight'){
+        flags.push({level:'yellow', text:'ვიწრო გვერდითი არეალი — Trend Resumption Day-ის სცენარი ძალაშია. მოთმინებით დაელოდეთ გვიან-შუადღის Breakout-ს, რომელიც ჩვეულებრივ საწყისი ტრენდის მიმართულებით ხდება.'});
+      } else if (a.state18 === 'side_broad'){
+        flags.push({level:'yellow', text:'ფართო გვერდითი არეალი — დღე Trading Range Day-ად ჩამოყალიბდა. კიდეებთან Fade-სქალპები უფრო შესაფერისია, ვიდრე ახალი Swing-ის ძებნა. დახურვისკენ გარღვევის მცდელობებს ნუ ენდობით ავტომატურად.'});
+      }
     }
     return flags;
   }
 
+  // დღის სავარაუდო ტიპის სინთეზი ყველა პასუხიდან — ბოლო შევსებული
+  // checkpoint-ი ყველაზე მეტს იწონის.
+  function dgEstimateDayType(answers){
+    const a1 = answers.cp1 || {}, a2 = answers.cp2 || {}, a3 = answers.cp3 || {}, a4 = answers.cp4 || {};
+    const smallPullbacks = a2.pullback_size === 'small' || a3.pullback_pattern === 'small_consistent';
+
+    if (a4.state18){
+      if (a4.state18 === 'same'){
+        return { tone:'green', label: smallPullbacks ? 'Trend from the Open — Small Pullback Trend Day' : 'ტრენდული დღე საწყისი მიმართულებით',
+          note: a4.late_pullback === 'yes' ? 'გვიანი ღრმა Pullback ნორმაა — ტრენდი ხშირად დახურვამდე ახლდება.' : 'გეგმა უცვლელია: With-Trend შესვლები Pullback-ებზე.' };
+      }
+      if (a4.state18 === 'reversed'){
+        return a4.rev_confirmed === 'yes'
+          ? { tone:'red', label:'Reversal Day', note:'ახალი მიმართულება დომინანტურია; ხვალაც შესაძლოა გაგრძელდეს.' }
+          : { tone:'yellow', label:'შესაძლო Reversal Day (დაუდასტურებელი)', note:'TL-ის გარღვევის გარეშე ~80% ასეთი მცდელობა მარცხდება.' };
+      }
+      if (a4.state18 === 'side_tight') return { tone:'yellow', label:'Trend Resumption Day (მოსალოდნელი)', note:'გვიანი Breakout, როგორც წესი, საწყისი მიმართულებით.' };
+      if (a4.state18 === 'side_broad') return { tone:'yellow', label:'Trading Range Day', note:'მხოლოდ Fade კიდეებთან; შუაში — Veto.' };
+    }
+
+    if (a3.state12){
+      if (a3.state12 === 'trend'){
+        if (a3.counter_spike === 'yes') return { tone:'yellow', label:'ტრენდი — რევერსალის ადრეული ნიშნებით', note:'Countertrend Spike ჩანს; ტრენდის ტიპი შესაძლოა შეიცვალოს.' };
+        if (a3.pullback_pattern === 'growing') return { tone:'yellow', label:'Spike and Channel', note:'Channel ფაზა — მიზნები კონსერვატიული, ორფეხა უკუსვლები ხშირი.' };
+        return { tone:'green', label: smallPullbacks ? 'Small Pullback Trend Day' : 'ტრენდული დღე', note:'With-Trend ლოგიკა ძალაშია.' };
+      }
+      if (a3.state12 === 'tight_range'){
+        return a3.prior_trend === 'yes'
+          ? { tone:'yellow', label:'Trend Resumption Day (შესაძლო)', note:'ტრენდი ხშირად ბოლო 1-2 საათში ახლდება.' }
+          : { tone:'neutral', label:'Breakout Mode — უმიმართულებო დღე', note:'გარღვევამდე აქტიური ვაჭრობის დღე არ არის.' };
+      }
+      if (a3.state12 === 'broad_range') return { tone:'yellow', label:'Trading Range Day', note:'TR Fade კიდეებთან — ერთადერთი ლოგიკა.' };
+    }
+
+    if (a2.state6){
+      if (a2.state6 === 'trending'){
+        if (a2.nopause === 'yes') return { tone:'yellow', label:'Spike → სავარაუდოდ Spike and Channel', note:'პირველი Pullback-ის ხარისხი დააზუსტებს დღის ტიპს.' };
+        if (a2.pullback_size === 'small') return { tone:'green', label:'Small Pullback Trend Day (ადრეული ნიშნები)', note:'ყველაზე ძლიერი ტიპის ტრენდი — With-Trend ყოველ მცირე უკუსვლაზე.' };
+        return { tone:'neutral', label:'ტრენდის ადრეული ფაზა', note:'ტიპი ჯერ ზუსტდება.' };
+      }
+      if (a2.state6 === 'tight'){
+        return (a1.gap === 'large' || a1.gap === 'huge')
+          ? { tone:'green', label:'Breakout Mode დიდ Gap-ზე', note:'გარღვევა ხშირად ძლიერ ტრენდს იწყებს, უპირატესობა Gap-ის მიმართულებას.' }
+          : { tone:'neutral', label:'Breakout Mode', note:'ორივე მხარე ღიაა — დაელოდეთ გარღვევას.' };
+      }
+      if (a2.state6 === 'choppy') return { tone:'yellow', label:'Trading Range / Barb Wire გახსნა', note:'მოთმინება; მხოლოდ კიდეებთან Fade.' };
+    }
+
+    if (a1.gap){
+      if (a1.gap === 'large' || a1.gap === 'huge') return { tone:'yellow', label:'ტრენდული დღის მაღალი ალბათობა', note:'დიდი Gap = Breakout; მიმართულება ჯერ ორივე მხარეს ღიაა.' };
+      if (a1.whipsaw === 'yes') return { tone:'neutral', label:'საწყისი Trading Range ყალიბდება', note:'პირველი საათი — Opening Reversal-ების დრო.' };
+      return { tone:'neutral', label:'ჯერ ადრეა', note:'Opening Range-ის ჩამოყალიბებას დააკვირდით.' };
+    }
+    return null;
+  }
+
+  function dgToneVar(tone){
+    return tone==='red' ? 'var(--tj-red)' : tone==='yellow' ? 'var(--tj-amber)' : tone==='green' ? 'var(--tj-green)' : 'var(--tj-text3)';
+  }
+  function dgFlagLabel(level){
+    return level==='red' ? 'გაფრთხილება' : level==='yellow' ? 'ყურადღება' : level==='green' ? 'ხელსაყრელი' : 'ნეიტრალური';
+  }
+
+  let dgOpenOverride = {}; // cpKey -> true/false; ხელით გახსნა-დახურვის მდგომარეობა
+
   function renderDayGuide(){
     let answers = loadDayGuideAnswers();
 
+    function cpStatus(cp){
+      const cpA = answers[cp.key] || {};
+      const visible = dgVisibleQuestions(cp, cpA);
+      const answered = visible.filter(q => cpA[q.key]).length;
+      return { answered, total: visible.length, done: answered === visible.length && visible.length > 0 };
+    }
+
+    const statuses = DAY_GUIDE_CHECKPOINTS.map(cp => ({ key: cp.key, ...cpStatus(cp) }));
+    const firstIncomplete = statuses.find(s => !s.done);
+    const firstIncompleteKey = firstIncomplete ? firstIncomplete.key : null;
+    const estimate = dgEstimateDayType(answers);
+
     function renderCheckpoint(cp, idx){
       const cpAnswers = answers[cp.key] || {};
-      const allAnswered = cp.questions.every(q => cpAnswers[q.key]);
-      const flags = allAnswered ? computeCheckpointGuidance(cp.key, cpAnswers) : [];
+      const st = statuses[idx];
+      const isOpen = dgOpenOverride[cp.key] !== undefined ? dgOpenOverride[cp.key] : (cp.key === firstIncompleteKey || (!firstIncompleteKey && idx === DAY_GUIDE_CHECKPOINTS.length - 1));
+      const isCurrent = cp.key === firstIncompleteKey;
+      const flags = st.done ? computeCheckpointGuidance(cp.key, cpAnswers, answers) : [];
+      const worstTone = flags.some(f=>f.level==='red') ? 'red' : flags.some(f=>f.level==='yellow') ? 'yellow' : flags.some(f=>f.level==='green') ? 'green' : 'neutral';
+      const visible = dgVisibleQuestions(cp, cpAnswers);
+
       return `
-        <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:16px 18px; margin-bottom:16px;">
-          <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:12px;">
+        <div class="tj-dg-card${isCurrent ? ' current' : ''}${st.done ? ' done' : ''}">
+          <div class="tj-dg-head" data-dg-toggle="${cp.key}">
+            <span class="tj-dg-num${st.done ? ' done' : ''}">${st.done ? '✓' : idx+1}</span>
             <span class="tj-serif" style="font-size:15px; font-weight:600; color:var(--tj-text);">${cp.barLabel}</span>
-            <span style="font-size:12.5px; color:var(--tj-text2);">${cp.title}</span>
+            <span style="font-size:12px; color:var(--tj-text2);">${cp.title}</span>
+            <span class="tj-dg-time tj-mono">${cp.timeHint}</span>
+            ${isCurrent ? '<span class="tj-dg-badge">მიმდინარე</span>' : ''}
+            ${st.done && !isOpen ? `<span style="width:8px; height:8px; border-radius:50%; background:${dgToneVar(worstTone)}; flex-shrink:0;"></span>` : ''}
+            <span class="tj-dg-chevron" style="transform:rotate(${isOpen ? 90 : 0}deg);">›</span>
           </div>
-          <div style="display:flex; flex-direction:column; gap:14px;">
-            ${cp.questions.map(q => `
-              <div>
-                <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:6px;">${q.q}</div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                  ${q.options.map(([val,label]) => `
-                    <button type="button" data-cp="${cp.key}" data-q="${q.key}" data-val="${val}"
-                      style="padding:6px 12px; border-radius:7px; font-size:12px; cursor:pointer;
-                      border:0.5px solid ${cpAnswers[q.key]===val ? 'var(--tj-accent)' : 'var(--tj-border)'};
-                      background:${cpAnswers[q.key]===val ? 'rgba(110,147,176,0.15)' : 'transparent'};
-                      color:${cpAnswers[q.key]===val ? 'var(--tj-text)' : 'var(--tj-text2)'};">${label}</button>
-                  `).join('')}
+          <div class="tj-dg-body" style="display:${isOpen ? 'block' : 'none'};">
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              ${visible.map(q => `
+                <div>
+                  <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:7px; line-height:1.5;">${q.q}</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    ${q.options.map(([val,label]) => `
+                      <button type="button" class="tj-dg-opt${cpAnswers[q.key]===val ? ' sel' : ''}" data-cp="${cp.key}" data-q="${q.key}" data-val="${val}">${label}</button>
+                    `).join('')}
+                  </div>
                 </div>
-              </div>
-            `).join('')}
-          </div>
-          <div data-guidance-for="${cp.key}" style="margin-top:14px; ${flags.length ? '' : 'display:none;'}">
+              `).join('')}
+            </div>
             ${flags.length ? `
-              <div style="padding-top:12px; border-top:0.5px dashed var(--tj-border); display:flex; flex-direction:column; gap:8px;">
+              <div style="margin-top:16px; padding-top:14px; border-top:0.5px dashed var(--tj-border); display:flex; flex-direction:column; gap:9px;">
                 ${flags.map(f=>`
-                  <div style="display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--tj-text2); line-height:1.55;">
-                    <span style="width:7px; height:7px; border-radius:50%; background:${dgDot(f.level)}; margin-top:5px; flex-shrink:0;"></span>
-                    <span>${f.text}</span>
+                  <div class="tj-dg-flag ${f.level}">
+                    <div class="tj-dg-flag-label">${dgFlagLabel(f.level)}</div>
+                    <div>${f.text}</div>
                   </div>
                 `).join('')}
               </div>
@@ -2811,28 +2994,60 @@
       `;
     }
 
+    const doneCount = statuses.filter(s=>s.done).length;
+
     bodyEl.innerHTML = `
       <div class="tj-serif" style="font-size:18px; font-weight:600; margin-bottom:6px;">დღის გზამკვლევი</div>
-      <div style="font-size:13px; color:var(--tj-text2); margin-bottom:20px; line-height:1.6;">
-        4 checkpoint დღის განმავლობაში — Bar 3, 6, 12 და 18. უპასუხეთ თითოეულ კითხვას, და დაუყოვნებლივ მიიღებთ კონკრეტულ გზამკვლევს Al Brooks-ის მეთოდოლოგიიდან (Trend from the Open, Spike and Channel, Trending TR Days, Reversal Day, Trend Resumption Day). პასუხები ინახება მხოლოდ დღევანდელი დღისთვის.
+      <div style="font-size:13px; color:var(--tj-text2); margin-bottom:18px; line-height:1.6;">
+        4 checkpoint — ბარი 3, 6, 12 და 18 (5-წუთიან ჩარტზე). კითხვები კონტექსტს ერგება: ჯერ ბაზრის მდგომარეობას აფასებთ, და მხოლოდ რელევანტური კითხვები ჩნდება. პასუხების მიხედვით სისტემა დღის სავარაუდო ტიპსაც ადგენს. წყარო — Al Brooks, <i>Trading Price Action: Trends</i>. პასუხები ინახება მხოლოდ დღევანდელი დღისთვის.
       </div>
+
+      <div class="tj-dg-summary" style="border-left:3px solid ${estimate ? dgToneVar(estimate.tone) : 'var(--tj-border)'};">
+        <div>
+          <div style="font-size:11px; color:var(--tj-text3); letter-spacing:0.4px; text-transform:uppercase; margin-bottom:4px;">დღის სავარაუდო ტიპი</div>
+          <div class="tj-serif" style="font-size:16px; font-weight:600; color:${estimate ? 'var(--tj-text)' : 'var(--tj-text3)'};">${estimate ? estimate.label : 'უპასუხეთ კითხვებს ქვემოთ'}</div>
+          ${estimate && estimate.note ? `<div style="font-size:12px; color:var(--tj-text2); margin-top:4px; line-height:1.5;">${estimate.note}</div>` : ''}
+        </div>
+        <div class="tj-mono" style="font-size:12px; color:var(--tj-text3); white-space:nowrap;">${doneCount}/4</div>
+      </div>
+
       ${DAY_GUIDE_CHECKPOINTS.map((cp,i)=>renderCheckpoint(cp,i)).join('')}
       <button type="button" id="tj-dayguide-reset" style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text3); font-size:12px; cursor:pointer;">დღევანდელი პასუხების გასუფთავება</button>
     `;
 
+    bodyEl.querySelectorAll('[data-dg-toggle]').forEach(head=>{
+      head.addEventListener('click', ()=>{
+        const key = head.dataset.dgToggle;
+        const cp = DAY_GUIDE_CHECKPOINTS.find(c=>c.key===key);
+        const idx = DAY_GUIDE_CHECKPOINTS.indexOf(cp);
+        const st = statuses[idx];
+        const wasOpen = dgOpenOverride[key] !== undefined ? dgOpenOverride[key] : (key === firstIncompleteKey || (!firstIncompleteKey && idx === DAY_GUIDE_CHECKPOINTS.length - 1));
+        dgOpenOverride[key] = !wasOpen;
+        renderDayGuide();
+      });
+    });
+
     bodyEl.querySelectorAll('[data-cp][data-q][data-val]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
         const cpKey = btn.dataset.cp, qKey = btn.dataset.q, val = btn.dataset.val;
         if (!answers[cpKey]) answers[cpKey] = {};
         answers[cpKey][qKey] = val;
+        // განშტოების შეცვლისას მოძველებული (უკვე უხილავი) პასუხების წაშლა,
+        // რომ ძველმა პასუხმა გზამკვლევი არ დააბინძუროს
+        const cp = DAY_GUIDE_CHECKPOINTS.find(c=>c.key===cpKey);
+        const visibleKeys = dgVisibleQuestions(cp, answers[cpKey]).map(q=>q.key);
+        Object.keys(answers[cpKey]).forEach(k=>{ if (!visibleKeys.includes(k)) delete answers[cpKey][k]; });
         saveDayGuideAnswers(answers);
         renderDayGuide();
       });
     });
+
     const resetBtn = bodyEl.querySelector('#tj-dayguide-reset');
     if (resetBtn) resetBtn.onclick = () => {
       if (!confirm('გავასუფთაო დღევანდელი პასუხები?')) return;
       window.localStorage.removeItem(dayGuideKey());
+      dgOpenOverride = {};
       renderDayGuide();
     };
   }
