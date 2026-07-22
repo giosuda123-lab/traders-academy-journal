@@ -1247,6 +1247,7 @@
       const totalRiskUsd = num(fd.get('totalRiskUsd'));
       const scalpR = totalRiskUsd > 0 ? scalpUsd / totalRiskUsd : 0;
       const swingR = totalRiskUsd > 0 ? swingUsd / totalRiskUsd : 0;
+      const commission = (standardContracts * DEFAULT_COMMISSION_ROUNDTURN.ES) + (microContracts * DEFAULT_COMMISSION_ROUNDTURN.MES);
       const trade = {
         date: fd.get('date'),
         instrument: fd.get('instrument'),
@@ -1266,7 +1267,8 @@
         partial: fd.get('partial'),
         outcome: fd.get('outcome'),
         scalpR, swingR, totalR: scalpR + swingR,
-        scalpUsd, swingUsd1, swingUsd2, swingUsd3, swingUsd, totalUsd: scalpUsd + swingUsd,
+        scalpUsd, swingUsd1, swingUsd2, swingUsd3, swingUsd, commission,
+        totalUsd: scalpUsd + swingUsd - commission,
         veto: fd.getAll('veto'),
         vetoOther: fd.get('vetoOther') || '',
         chartLink: fd.get('chartLink') || '',
@@ -1425,6 +1427,7 @@
         ${td('$'+num(t.scalpUsd).toFixed(2), 'color:var(--tj-text2); text-align:right;')}
         ${td('$'+num(t.swingUsd).toFixed(2), 'color:var(--tj-text2); text-align:right;')}
         ${td((num(t.totalUsd)>=0?'+$':'-$')+Math.abs(num(t.totalUsd)).toFixed(2), `text-align:right; font-weight:500; color:${num(t.totalUsd)>=0?'var(--tj-green)':'var(--tj-red)'};`)}
+        ${td('$'+num(t.commission).toFixed(2), 'color:var(--tj-text3); text-align:right;')}
         ${td((t.veto&&t.veto.length? t.veto.join('; ') : '—'), 'color:var(--tj-amber); white-space:normal; min-width:180px;')}
         ${td(t.chartLink ? `<button type="button" class="tj-chart-btn" data-url="${t.chartLink}" style="border:none; background:none; color:var(--tj-accent); text-decoration:none; cursor:pointer; font-size:12px; padding:0; font-family:inherit;">ჩარტი ⤢</button>` : '—')}
         ${td(t.notes || '—', 'color:var(--tj-text2); white-space:normal; min-width:160px;')}
@@ -1435,7 +1438,7 @@
       </tr>
     `).join('');
 
-    const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $','Veto','Chart','შენიშვნა',''];
+    const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $ (წმინდა)','საკომისიო','Veto','Chart','შენიშვნა',''];
 
     bodyEl.innerHTML = renderFilterBar() + `
       <div style="overflow-x:auto; border:0.5px solid var(--tj-border); border-radius:10px;">
@@ -1555,13 +1558,23 @@
   function sUsd(t){ return statsMode==='scalp' ? num(t.scalpUsd) : statsMode==='swing' ? num(t.swingUsd) : num(t.totalUsd); }
 
   function renderStats(){
-    const filtered = getFilteredTrades();
+    let filtered = getFilteredTrades();
     if (trades.length === 0){
       bodyEl.innerHTML = `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ანალიტიკისთვის საჭიროა მინიმუმ ერთი ჩანაწერი.</div>`;
       return;
     }
     if (filtered.length === 0){
       bodyEl.innerHTML = renderFilterBar() + `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ფილტრით ვერაფერი მოიძებნა.</div>`;
+      wireFilterBar(renderStats);
+      return;
+    }
+    // scalp/swing რეჟიმში, სრული სურათისთვის, გამოვრიცხავთ ტრეიდებს, სადაც ეს კონკრეტული
+    // ნაწილი (scalp ან swing) საერთოდ არ არსებობდა — წინააღმდეგ შემთხვევაში $0-იანი
+    // ჩანაწერები ხელოვნურად ავიწროებდა Win Rate-სა და საშუალო მაჩვენებლებს.
+    if (statsMode === 'scalp') filtered = filtered.filter(t => num(t.scalpUsd) !== 0 || num(t.scalpR) !== 0);
+    else if (statsMode === 'swing') filtered = filtered.filter(t => num(t.swingUsd) !== 0 || num(t.swingR) !== 0);
+    if (filtered.length === 0){
+      bodyEl.innerHTML = renderFilterBar() + `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ამ რეჟიმში (${statsMode==='scalp'?'სკალპი':'სვინგი'}) ვერცერთი ტრეიდი ვერ მოიძებნა.</div>`;
       wireFilterBar(renderStats);
       return;
     }
@@ -1847,7 +1860,9 @@
         ${metricCard('Profit factor', isFinite(profitFactor) ? profitFactor.toFixed(2) : '∞', profitFactor>=1.5?'var(--tj-green)':profitFactor>=1?'var(--tj-amber)':'var(--tj-red)')}
         ${metricCard('საშ. R / ტრეიდი', (avgR>0?'+':'')+avgR.toFixed(2)+'R', avgR>=0?'var(--tj-green)':'var(--tj-red)')}
         ${metricCard('ჯამური R', (totalR>0?'+':'')+totalR.toFixed(2)+'R', totalR>=0?'var(--tj-green)':'var(--tj-red)')}
-        ${metricCard('ჯამური $', (totalUsd>=0?'+$':'-$')+Math.abs(totalUsd).toFixed(2), totalUsd>=0?'var(--tj-green)':'var(--tj-red)')}
+        ${metricCard('ჯამური $ (წმინდა)', (totalUsd>=0?'+$':'-$')+Math.abs(totalUsd).toFixed(2), totalUsd>=0?'var(--tj-green)':'var(--tj-red)')}
+        ${metricCard('საშ. მოგება $', '+$'+avgWinUsd.toFixed(2), 'var(--tj-green)')}
+        ${metricCard('საშ. ზარალი $', '-$'+Math.abs(avgLossUsd).toFixed(2), 'var(--tj-red)')}
       </div>` : ''}
 
       ${isVisible('chips') ? `
@@ -1862,6 +1877,7 @@
         ${statChip('მაქს. Loss streak', maxLossStreak, 'var(--tj-red)')}
         ${statChip('სკალპ $ სულ', (totalScalpUsd>=0?'+$':'-$')+Math.abs(totalScalpUsd).toFixed(2))}
         ${statChip('სვინგ $ სულ', (totalSwingUsd>=0?'+$':'-$')+Math.abs(totalSwingUsd).toFixed(2))}
+        ${statChip('საკომისიო სულ', '-$'+filtered.reduce((s,t)=>s+num(t.commission),0).toFixed(2), 'var(--tj-text3)')}
         ${statChip('საშ. $ / ტრეიდი', (avgUsd>=0?'+$':'-$')+Math.abs(avgUsd).toFixed(2))}
         ${statChip('საშ. რისკი / ტრეიდი', '$'+avgRiskUsd.toFixed(2))}
         ${statChip('R-ის სტანდ. გადახრა', stdDevR.toFixed(2), stdDevR<=1?'var(--tj-green)':'var(--tj-amber)')}
