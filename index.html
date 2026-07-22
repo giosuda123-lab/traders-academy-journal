@@ -142,6 +142,12 @@
   const KEYS = {
     magnets: ['გუშინდელი High/Low', 'Swing point', 'Trendline break', 'არხის ხაზი', 'EMA', 'TR საზღვარი', 'Measured move', 'სხვა'],
     signalQ: ['ძლიერი trend bar', 'სუსტი trend bar', 'საპირისპირო ტრენდული ბარი', 'Doji'],
+    signalBarPatterns: [
+      'Inside Bar', 'ii პატერნი', 'iii პატერნი',
+      'პატარა ბარი დიდი ბარის წვერო/ძირთან', 'Outside Bar',
+      'Double Top Twin', 'Double Bottom Twin', '2-Bar Reversal',
+      'Reversal Bar Failure', 'Shaved Bar', 'EMA Gap Bar'
+    ],
     reasons: [
       'Reversal bar',
       'კარგი Signal bar პატერნი',
@@ -607,6 +613,26 @@
         </label>`).join('') + `</div>`;
   }
 
+  function signalBarPatternZone(prefill){
+    const checked = prefill && prefill.signalBarPatterns ? prefill.signalBarPatterns : [];
+    const isGood = prefill && prefill.signalQuality === 'ძლიერი trend bar';
+    return `
+      <div id="tj-signal-pattern-wrap" style="margin-top:10px; display:${isGood ? 'block' : 'none'};">
+        ${fieldLabel('რომელი Signal Bar პატერნი(ა) — Al Brooks-ის კლასიფიკაცია')}
+        ${checklistGroup('signalBarPatterns', KEYS.signalBarPatterns, 2, checked)}
+      </div>
+    `;
+  }
+
+  function wireSignalBarPatternToggle(form){
+    const sqSelects = form.querySelectorAll('[name=signalQuality]');
+    const wrap = form.querySelector('#tj-signal-pattern-wrap');
+    if (!wrap || !sqSelects.length) return;
+    function sync(){ wrap.style.display = (sqSelects[0].value === 'ძლიერი trend bar') ? 'block' : 'none'; }
+    sqSelects.forEach(sel => sel.addEventListener('change', sync));
+    sync();
+  }
+
   function renderEntryCriteriaZone(type, prefill){
     if (type === 'with_trend' || type === 'tr_fade'){
       const dayTypes = type === 'tr_fade' ? ['TR Day'] : KEYS.trendDayTypes;
@@ -629,6 +655,7 @@
           ${fieldLabel('Signal bar ხარისხი')}
           <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
         </div>
+        ${signalBarPatternZone(prefill)}
       `;
     }
     if (type === 'reversal'){
@@ -653,6 +680,7 @@
         <div style="max-width:280px; margin-bottom:14px;">
           ${fieldLabel('Signal bar ხარისხი')}
           <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
+          ${signalBarPatternZone(prefill)}
         </div>
         <div id="tj-major-reversal-zone">
           ${renderMajorReversalZone(prefill)}
@@ -663,7 +691,9 @@
       <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">Entry-კრიტერიუმები</div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:12px;">
         <div>${fieldLabel('Magnet / დონე')}<select name="magnet" style="${inputStyle()}">${KEYS.magnets.map(m=>`<option ${prefill && prefill.magnet===m?'selected':''}>${m}</option>`).join('')}</select></div>
-        <div>${fieldLabel('Signal bar ხარისხი')}<select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div>${fieldLabel('Signal bar ხარისხი')}<select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
+        ${signalBarPatternZone(prefill)}
+        </div>
       </div>
       ${checklistGroup('criteria', [
         'TL break countertrend-ის წინ', 'Double Top/Bottom ჩამოყალიბდა',
@@ -773,8 +803,11 @@
     if (reasonsN === 0) redCount++;
     else if (reasonsN === 1) yellowCount++;
 
-    if (signalQuality === 'Doji') redCount++;
-    else if (signalQuality === 'საპირისპირო ტრენდული ბარი') redCount++;
+    if (signalQuality === 'Doji'){
+      if (tradeType === 'reversal') redCount++;
+      else yellowCount++;
+    }
+    else if (signalQuality === 'საპირისპირო ტრენდული ბარი') yellowCount++;
     else if (signalQuality === 'სუსტი trend bar') yellowCount++;
 
     if (tradeType !== 'with_trend' && tradeType !== 'tr_fade' && tradeType !== 'reversal'){
@@ -881,6 +914,7 @@
     bodyEl.innerHTML = `
       ${!isEdit ? renderTraderProfileCard() : ''}
       ${!isEdit ? renderPositionCalcWidget() : ''}
+      ${!isEdit ? '<div id="tj-assessment" style="margin-bottom:20px;"></div>' : ''}
       <form id="tj-form">
         ${isEdit ? `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:10px 14px; background:rgba(201,154,80,0.12); border:0.5px solid var(--tj-amber); border-radius:8px;">
@@ -961,8 +995,6 @@
           <textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;" placeholder="ერთი წინადადება საკმარისია">${prefill && prefill.notes ? prefill.notes : ''}</textarea>
         </div>
 
-        <div id="tj-assessment" style="margin:20px 0;"></div>
-
         <button type="submit" style="margin-top:6px; padding:9px 20px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${isEdit ? 'ცვლილებების შენახვა' : 'ტრეიდის შენახვა'}</button>
         <span id="tj-save-msg" style="margin-left:10px; font-size:12px; color:var(--tj-green);"></span>
       </form>
@@ -993,6 +1025,7 @@
     const entryZone = form.querySelector('#tj-entry-criteria-zone');
 
     function wireEntryCriteriaZone(zonePrefill){
+      wireSignalBarPatternToggle(entryZone);
       const reversalTypeSel = entryZone.querySelector('#tj-reversalType');
       if (!reversalTypeSel) return;
       const majorReversalZone = entryZone.querySelector('#tj-major-reversal-zone');
@@ -1064,7 +1097,7 @@
     });
     syncTotalUsd();
 
-    const assessmentEl = form.querySelector('#tj-assessment');
+    const assessmentEl = bodyEl.querySelector('#tj-assessment');
     let aiSetupComment = '';
     let aiSetupLoading = false;
     let aiSetupError = '';
@@ -1164,9 +1197,19 @@
       else if (reasonsN === 1) flags.push({level:'yellow', text:'მხოლოდ 1 მიზეზი გაქვთ მონიშნული — Al Brooks: „Have at Least Two Reasons to Enter a Trade".'});
       else flags.push({level:'green', text: reasonsN + ' მიზეზი მონიშნული — საკმარისია.'});
 
-      // --- Signal Bar ხარისხი
-      if (signalQuality === 'Doji') flags.push({level:'red', text:'Doji არასდროს არის კარგი Signal Bar — წონასწორობას გამოხატავს, არა კონტროლს.'});
-      else if (signalQuality === 'საპირისპირო ტრენდული ბარი') flags.push({level:'red', text:'Signal Bar საწინააღმდეგო მიმართულების ტრენდულია — სუსტი სიგნალია.'});
+      // --- Signal Bar ხარისხი (კონტექსტზე დამოკიდებული — Al Brooks: "a doji bar can be
+      // an excellent signal bar, depending on context"; ცუდია კონკრეტულად Countertrend-ზე,
+      // ხოლო With Trend-ში, "trending dojis"-ის სახით, შეიძლება ტრენდის განგრძობის ნიშანიც იყოს)
+      if (signalQuality === 'Doji'){
+        if (currentTradeType === 'reversal'){
+          flags.push({level:'red', text:'Doji Signal Bar Reversal/Countertrend ტიპის ტრეიდზე — Al Brooks: "Small dojis are rarely ever good Countertrend entry bars." ეს კომბინაცია განსაკუთრებით სუსტია.'});
+        } else if (currentTradeType === 'with_trend'){
+          flags.push({level:'yellow', text:'Doji Signal Bar With Trend-ზე — თავისთავად სუსტი ნიშანია, მაგრამ Brooks: "trending dojis" (თანმიმდევრული, ტრენდის მიმართულებით მზარდი მაღალი/დაბალი წერტილებით დოჯიები) რეალურად ტრენდის ნიშანი შეიძლება იყოს. თუ დანარჩენი კონტექსტი (EMA, წინა swing) მაინც ცალსახად მხარს უჭერს ტრენდს — ეს ნაკლებად საშიშია, ვიდრე Countertrend-ზე.'});
+        } else {
+          flags.push({level:'yellow', text:'Doji Signal Bar — ზოგადად სუსტი ნიშანია (წონასწორობას გამოხატავს), თუმცა Brooks-ის მიხედვით კონკრეტულმა კონტექსტმა (მაგ. Failed Final Flag, EMA Gap Bar) შეიძლება ეს კომპენსირება გაუწიოს.'});
+        }
+      }
+      else if (signalQuality === 'საპირისპირო ტრენდული ბარი') flags.push({level:'yellow', text:'Signal Bar საწინააღმდეგო მიმართულების ტრენდულია — Brooks: ეს "შეიძლება იყოს გონივრული Signal Bar, სხვა ფასის მოძრაობაზე დამოკიდებულებით", მაგრამ ზოგადად სუსტია, სანამ თქვენი მხარემ კონტროლი არ დაამტკიცა ამ ბარზე მაინც.'});
       else if (signalQuality === 'სუსტი trend bar') flags.push({level:'yellow', text:'Signal Bar სუსტი trend bar-ია — არაიდეალურია, მაგრამ არა კრიტიკული.'});
       else if (signalQuality === 'ძლიერი trend bar') flags.push({level:'green', text:'Signal Bar ძლიერი trend bar-ია სავაჭრო მიმართულებით.'});
 
@@ -1256,16 +1299,10 @@
     function dotColor(level){ return level==='red' ? 'var(--tj-red)' : level==='yellow' ? 'var(--tj-amber)' : 'var(--tj-green)'; }
 
     function renderAssessment(){
+      if (!assessmentEl) return;
       const a = computeAssessment();
       assessmentEl.innerHTML = `
         <div style="border:0.5px solid ${a.verdictBorder}; background:${a.verdictBg}; border-radius:10px; padding:14px 16px;">
-          <div style="padding-bottom:14px; border-bottom:0.5px dashed var(--tj-border); margin-bottom:14px;">
-            <button type="button" id="tj-ask-ai-setup" ${aiSetupLoading ? 'disabled' : ''} style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.14); color:var(--tj-text); font-size:12px; cursor:pointer; ${aiSetupLoading ? 'opacity:0.5; cursor:default;' : ''}">
-              ${aiSetupLoading ? 'AI ფიქრობს…' : '🤖 მკითხე AI-ს ამ setup-ზე'}
-            </button>
-            ${aiSetupError ? `<div style="margin-top:8px; font-size:11.5px; color:var(--tj-red);">${aiSetupError}</div>` : ''}
-            ${aiSetupComment ? `<div class="tj-ai-content" style="margin-top:10px; padding:12px 14px; background:var(--tj-panel2); border-radius:8px; font-size:12.5px;">${marked.parse(aiSetupComment)}</div>` : ''}
-          </div>
           <div style="font-size:13px; font-weight:600; color:${a.verdictColor}; margin-bottom:10px;">წინასწარი შეფასება: ${a.verdict}</div>
           <div style="display:flex; flex-direction:column; gap:6px;">
             ${a.flags.map(f=>`
@@ -1277,6 +1314,13 @@
           </div>
           ${a.statLine ? `<div style="margin-top:10px; padding-top:10px; border-top:0.5px solid var(--tj-border); font-size:12px; color:var(--tj-text2);">${a.statLine}</div>` : ''}
           <div style="margin-top:10px; font-size:10.5px; color:var(--tj-text3);">ეს არის ავტომატური, წესებზე დაფუძნებული შეფასება (Al Brooks-ის მეთოდოლოგია) — არა გარანტია. საბოლოო გადაწყვეტილება თქვენია.</div>
+          <div style="margin-top:14px; padding-top:14px; border-top:0.5px dashed var(--tj-border);">
+            <button type="button" id="tj-ask-ai-setup" ${aiSetupLoading ? 'disabled' : ''} style="padding:7px 14px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.14); color:var(--tj-text); font-size:12px; cursor:pointer; ${aiSetupLoading ? 'opacity:0.5; cursor:default;' : ''}">
+              ${aiSetupLoading ? 'AI ფიქრობს…' : '🤖 მკითხე AI-ს ამ setup-ზე'}
+            </button>
+            ${aiSetupError ? `<div style="margin-top:8px; font-size:11.5px; color:var(--tj-red);">${aiSetupError}</div>` : ''}
+            ${aiSetupComment ? `<div class="tj-ai-content" style="margin-top:10px; padding:12px 14px; background:var(--tj-panel2); border-radius:8px; font-size:12.5px;">${marked.parse(aiSetupComment)}</div>` : ''}
+          </div>
         </div>
       `;
       const askBtn = assessmentEl.querySelector('#tj-ask-ai-setup');
@@ -1317,6 +1361,7 @@
         trendDayTypes: fd.getAll('trendDayTypes'),
         twoLegEnd: fd.get('twoLegEnd') || '',
         signalQuality: fd.get('signalQuality'),
+        signalBarPatterns: fd.getAll('signalBarPatterns'),
         reversalType: fd.get('reversalType') || '',
         trendlineBreak: fd.get('trendlineBreak') || '',
         majorReversalConditions: fd.getAll('majorReversalConditions'),
@@ -1361,6 +1406,7 @@
         syncReasonCount();
         syncTotalUsd();
         entryZone.innerHTML = renderEntryCriteriaZone('opening_reversal');
+        wireEntryCriteriaZone(null);
         msg.style.color = 'var(--tj-green)';
         msg.textContent = 'შენახულია (' + trades.length + ' ტრეიდი სულ).';
         form.querySelector('[name=date]').value = lastUsedDate;
