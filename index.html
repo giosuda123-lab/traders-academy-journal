@@ -793,6 +793,18 @@
     const reasonsN = (t.reasons||[]).length;
     const veto = t.veto || [];
 
+    if (t.alwaysIn === 'unclear'){
+      yellowCount++;
+    } else if (t.alwaysIn === 'long' || t.alwaysIn === 'short'){
+      if (t.direction === t.alwaysIn){
+        // green — ემატება არაფერი
+      } else if (tradeType !== 'reversal'){
+        redCount++;
+      } else {
+        yellowCount++;
+      }
+    }
+
     veto.forEach(v=>{
       if (v === 'Doji signal bar' && signalQuality === 'Doji') return; // დუბლირების თავიდან აცილება
       redCount++;
@@ -927,6 +939,12 @@
           </select></div>
           <div>${fieldLabel('თრეიდის ტიპი')}<select name="tradeType" id="tj-tradeType" style="${inputStyle()}">${KEYS.tradeTypes.map(t=>`<option value="${t.value}" ${prefill && prefill.tradeType===t.value?'selected':''}>${t.label}</option>`).join('')}</select></div>
           <div>${fieldLabel('მიმართულება')}<select name="direction" style="${inputStyle()}"><option value="long" ${prefill && prefill.direction==='long'?'selected':''}>Long</option><option value="short" ${prefill && prefill.direction==='short'?'selected':''}>Short</option></select></div>
+          <div>${fieldLabel('Always In მიმართულება')}<select name="alwaysIn" style="${inputStyle()}">
+            <option value="" ${prefill && !prefill.alwaysIn ? 'selected':''}>არ ვამოწმებ</option>
+            <option value="long" ${prefill && prefill.alwaysIn==='long'?'selected':''}>Long</option>
+            <option value="short" ${prefill && prefill.alwaysIn==='short'?'selected':''}>Short</option>
+            <option value="unclear" ${prefill && prefill.alwaysIn==='unclear'?'selected':''}>გაურკვეველი (Trading Range)</option>
+          </select></div>
         </div>
 
         <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;" id="tj-entry-criteria-zone">
@@ -1183,6 +1201,21 @@
       const trendDayBoxes = form.querySelectorAll('input[name=trendDayTypes]:checked');
       const trendDayValues = Array.from(trendDayBoxes).map(b=>b.value);
       const criteriaChecked = form.querySelectorAll('input[name=criteria]:checked').length;
+      const directionVal = form.querySelector('[name=direction]') ? form.querySelector('[name=direction]').value : '';
+      const alwaysInVal = form.querySelector('[name=alwaysIn]') ? form.querySelector('[name=alwaysIn]').value : '';
+
+      // --- Always In (Al Brooks, Chapter 15: "This might be the single most important concept in trading")
+      if (alwaysInVal === 'unclear'){
+        flags.push({level:'yellow', text:'Always In გაურკვეველია — ბაზარი Trading Range-შია. Brooks: ასეთ დროს საიმედოა მხოლოდ scalp ან წინა ტრენდის მიმართულებით ვაჭრობა, არა ახალი swing-ის აღება.'});
+      } else if (alwaysInVal === 'long' || alwaysInVal === 'short'){
+        if (directionVal === alwaysInVal){
+          flags.push({level:'green', text:`თქვენი მიმართულება ემთხვევა Always In-ს (${alwaysInVal==='long'?'Long':'Short'}) — Brooks: ასეთი სიგნალები საშუალოდ სულ მცირე 60%-ით საიმედოა.`});
+        } else if (currentTradeType !== 'reversal'){
+          flags.push({level:'red', text:`თქვენი მიმართულება (${directionVal==='long'?'Long':'Short'}) ეწინააღმდეგება Always In-ს (${alwaysInVal==='long'?'Long':'Short'}), ტრეიდის ტიპი კი არ არის Reversal — Brooks: "It is a costly mistake to keep betting that reversals will be successful, because 80 percent of them are not."`});
+        } else {
+          flags.push({level:'yellow', text:`Reversal ტრეიდი Always In-ის (${alwaysInVal==='long'?'Long':'Short'}) საწინააღმდეგოდ — ეს არის სწორედ Reversal-ის არსი (Always In-ის ცვლილების დაჭერა), მაგრამ დარწმუნდით, Major Reversal-ის ან შესაბამისი კრიტერიუმები ნამდვილად დაკმაყოფილებულია.`});
+        }
+      }
 
       // --- Veto — ყველაზე მძიმე კატეგორია, ყოველი მონიშნული პირობა წითელი დროშაა
       // (გამონაკლისი: "Doji signal bar" veto არ ემატება ცალკე, თუ Signal Quality-შიც უკვე Doji-ა მითითებული —
@@ -1356,6 +1389,7 @@
         instrument: fd.get('instrument'),
         accountId: fd.get('accountId') || '',
         direction: fd.get('direction'),
+        alwaysIn: fd.get('alwaysIn') || '',
         tradeType: fd.get('tradeType') || 'opening_reversal',
         magnet: fd.get('magnet') || '',
         trendDayTypes: fd.getAll('trendDayTypes'),
@@ -1514,6 +1548,7 @@
         ${td(t.instrument, 'font-weight:500;')}
         ${td(tradeTypeLabel(t.tradeType), 'color:var(--tj-accent);')}
         ${td(t.direction==='long'?'Long':'Short', 'color:var(--tj-text2);')}
+        ${td(t.alwaysIn ? (t.alwaysIn==='long'?'Long':t.alwaysIn==='short'?'Short':'გაურკვეველი') : '—', `color:${t.alwaysIn && t.direction===t.alwaysIn ? 'var(--tj-green)' : t.alwaysIn && t.alwaysIn!=='unclear' ? 'var(--tj-red)' : 'var(--tj-text3)'};`)}
         ${td(setupDetailText(t), 'color:var(--tj-text2); white-space:normal; min-width:180px;')}
         ${td(twoLegText(t), 'color:var(--tj-text2);')}
         ${td(t.signalQuality, 'color:var(--tj-text2); white-space:normal; min-width:120px;')}
@@ -1543,7 +1578,7 @@
       </tr>
     `).join('');
 
-    const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $ (წმინდა)','საკომისიო','Veto','Chart','შენიშვნა',''];
+    const headers = ['თარიღი','Instr','ტიპი','მიმართ.','Always In','Setup დეტალი','2-ფეხი','Signal','მიზეზები','სხვა კრიტერიუმი','Reversal ტიპი','TL Break','Major Reversal პირობები','კონტრ. (სტდ/მიკრო)','ჯამური რისკი $','50%@1R','შედეგი','სკალპ R','სვინგ R','ჯამური R','სკალპ $','სვინგ $','ჯამური $ (წმინდა)','საკომისიო','Veto','Chart','შენიშვნა',''];
 
     bodyEl.innerHTML = renderFilterBar() + `
       <div id="tj-log-scroll" style="overflow-x:auto; border:0.5px solid var(--tj-border); border-radius:10px; cursor:grab; user-select:none;">
