@@ -615,21 +615,23 @@
 
   function signalBarPatternZone(prefill){
     const checked = prefill && prefill.signalBarPatterns ? prefill.signalBarPatterns : [];
-    const isGood = prefill && prefill.signalQuality === 'ძლიერი trend bar';
     return `
-      <div id="tj-signal-pattern-wrap" style="margin-top:10px; display:${isGood ? 'block' : 'none'};">
-        ${fieldLabel('რომელი Signal Bar პატერნი(ა) — Al Brooks-ის კლასიფიკაცია')}
+      <div id="tj-signal-pattern-wrap" style="display:none; margin-top:10px; padding:10px 12px; background:var(--tj-panel2); border-radius:8px;">
+        ${fieldLabel('აირჩიე სიგნალ ბარის ტიპი/ტიპები')}
         ${checklistGroup('signalBarPatterns', KEYS.signalBarPatterns, 2, checked)}
       </div>
     `;
   }
 
   function wireSignalBarPatternToggle(form){
-    const sqSelects = form.querySelectorAll('[name=signalQuality]');
     const wrap = form.querySelector('#tj-signal-pattern-wrap');
-    if (!wrap || !sqSelects.length) return;
-    function sync(){ wrap.style.display = (sqSelects[0].value === 'ძლიერი trend bar') ? 'block' : 'none'; }
-    sqSelects.forEach(sel => sel.addEventListener('change', sync));
+    if (!wrap) return;
+    const reasonBoxes = form.querySelectorAll('input[name=reasons]');
+    function sync(){
+      const on = Array.from(form.querySelectorAll('input[name=reasons]:checked')).some(b => b.value === 'კარგი Signal bar პატერნი');
+      wrap.style.display = on ? 'block' : 'none';
+    }
+    reasonBoxes.forEach(b => b.addEventListener('change', sync));
     sync();
   }
 
@@ -655,7 +657,6 @@
           ${fieldLabel('Signal bar ხარისხი')}
           <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
         </div>
-        ${signalBarPatternZone(prefill)}
       `;
     }
     if (type === 'reversal'){
@@ -680,7 +681,6 @@
         <div style="max-width:280px; margin-bottom:14px;">
           ${fieldLabel('Signal bar ხარისხი')}
           <select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
-          ${signalBarPatternZone(prefill)}
         </div>
         <div id="tj-major-reversal-zone">
           ${renderMajorReversalZone(prefill)}
@@ -691,9 +691,7 @@
       <div style="font-size:13px; font-weight:500; margin-bottom:10px; color:var(--tj-text);">Entry-კრიტერიუმები</div>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:12px;">
         <div>${fieldLabel('Magnet / დონე')}<select name="magnet" style="${inputStyle()}">${KEYS.magnets.map(m=>`<option ${prefill && prefill.magnet===m?'selected':''}>${m}</option>`).join('')}</select></div>
-        <div>${fieldLabel('Signal bar ხარისხი')}<select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select>
-        ${signalBarPatternZone(prefill)}
-        </div>
+        <div>${fieldLabel('Signal bar ხარისხი')}<select name="signalQuality" style="${inputStyle()}">${KEYS.signalQ.map(s=>`<option ${prefill && prefill.signalQuality===s?'selected':''}>${s}</option>`).join('')}</select></div>
       </div>
       ${checklistGroup('criteria', [
         'TL break countertrend-ის წინ', 'Double Top/Bottom ჩამოყალიბდა',
@@ -914,7 +912,6 @@
     bodyEl.innerHTML = `
       ${!isEdit ? renderTraderProfileCard() : ''}
       ${!isEdit ? renderPositionCalcWidget() : ''}
-      ${!isEdit ? '<div id="tj-assessment" style="margin-bottom:20px;"></div>' : ''}
       <form id="tj-form">
         ${isEdit ? `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:10px 14px; background:rgba(201,154,80,0.12); border:0.5px solid var(--tj-amber); border-radius:8px;">
@@ -942,6 +939,7 @@
             <div id="tj-reason-count" style="font-size:12px; font-weight:500;"></div>
           </div>
           ${checklistGroup('reasons', KEYS.reasons, 2, prefill ? prefill.reasons : [])}
+          ${signalBarPatternZone(prefill)}
         </div>
 
         <div style="border-top:0.5px solid var(--tj-border); margin:16px 0; padding-top:16px;">
@@ -995,6 +993,8 @@
           <textarea name="notes" rows="2" style="${inputStyle()}; resize:vertical;" placeholder="ერთი წინადადება საკმარისია">${prefill && prefill.notes ? prefill.notes : ''}</textarea>
         </div>
 
+        <div id="tj-assessment" style="margin:20px 0;"></div>
+
         <button type="submit" style="margin-top:6px; padding:9px 20px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${isEdit ? 'ცვლილებების შენახვა' : 'ტრეიდის შენახვა'}</button>
         <span id="tj-save-msg" style="margin-left:10px; font-size:12px; color:var(--tj-green);"></span>
       </form>
@@ -1025,7 +1025,6 @@
     const entryZone = form.querySelector('#tj-entry-criteria-zone');
 
     function wireEntryCriteriaZone(zonePrefill){
-      wireSignalBarPatternToggle(entryZone);
       const reversalTypeSel = entryZone.querySelector('#tj-reversalType');
       if (!reversalTypeSel) return;
       const majorReversalZone = entryZone.querySelector('#tj-major-reversal-zone');
@@ -1059,6 +1058,7 @@
     }
     reasonBoxes.forEach(b => b.addEventListener('change', syncReasonCount));
     syncReasonCount();
+    wireSignalBarPatternToggle(form);
 
     const totalUsdEl = form.querySelector('#tj-total-usd');
     const scalpREl = form.querySelector('#tj-scalp-r');
@@ -1097,7 +1097,7 @@
     });
     syncTotalUsd();
 
-    const assessmentEl = bodyEl.querySelector('#tj-assessment');
+    const assessmentEl = form.querySelector('#tj-assessment');
     let aiSetupComment = '';
     let aiSetupLoading = false;
     let aiSetupError = '';
