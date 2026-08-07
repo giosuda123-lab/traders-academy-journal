@@ -630,7 +630,7 @@
   }
 
   function renderTabs(){
-    const tabs = [['new','ახალი ტრეიდი'],['log','ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['dayguide','დღის გზამკვლევი'],['accounts','ანგარიშები'],['guide','ინსტრუქცია']];
+    const tabs = [['new','ახალი ტრეიდი'],['log','ჟურნალი'],['replay','Replay ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['dayguide','დღის გზამკვლევი'],['accounts','ანგარიშები'],['guide','ინსტრუქცია']];
     tabsEl.innerHTML = tabs.map(([id,label]) =>
       `<button data-tab="${id}" style="${btnStyle(tab===id)}">${label}</button>`
     ).join('');
@@ -3413,6 +3413,794 @@
     };
   }
 
+  // ===================== REPLAY JOURNAL (ცალკე სისტემა "ახალი ტრეიდის" გვერდისგან) =====================
+  // მონაცემები ინახება იმავე `trades` ცხრილში (Supabase JSONB `data`), მაგრამ ცალკე
+  // მონიშნულია `entryKind:'replaySession'`-ით, რომ არსებულ სწრაფ ჩანაწერებს არ აირიოს.
+
+  const REPLAY_CATEGORIES = ['With Trend', 'Opening Reversal', 'Trading Range', 'Breakout', 'Failed Failure', 'სხვა'];
+  const REPLAY_MODES = ['Replay', 'Demo', 'Live'];
+  const REPLAY_AI_DIR = ['Long', 'Short', 'Trading Range'];
+  const REPLAY_TYPES = ['სქალპი', 'სვინგი'];
+  const REPLAY_PLAN = ['Yes', 'Partial', 'No'];
+  const REPLAY_BAR_STATES = ['AIL', 'AIS', 'TR'];
+
+  let replayView = 'list'; // 'list' | 'form' | 'trades' | 'dashboard'
+  let editingSessionId = null;
+  let replayFormState = null; // მუშა ასლი სესიისა, სანამ ფორმა ღიაა
+  let replayFilters = { mode: '', category: '', planAdherence: '', dateFrom: '', dateTo: '', qMin: '', qMax: '' };
+
+  function replaySessions(){
+    return trades.filter(t => t.entryKind === 'replaySession');
+  }
+  // ყველა ტრეიდი ყველა სესიიდან, სესიის კონტექსტის (თარიღი/ბაზარი/mode) დართვით
+  function allReplayTrades(){
+    const out = [];
+    replaySessions().forEach(s => (s.trades || []).forEach(tr => out.push({ ...tr, _session: s })));
+    return out;
+  }
+
+  function newReplaySession(){
+    return {
+      entryKind: 'replaySession',
+      date: new Date().toISOString().slice(0, 10),
+      time: '',
+      market: 'ES',
+      timeframe: '5m',
+      sessionLabel: '',
+      pageLabel: '',
+      mode: 'Replay',
+      bars: {},                       // { "1": "AIL", "2": "AIL", ... }
+      dayTypeNotes: { '6': '', '12': '', '18': '' },
+      finalDayType: '',
+      trades: [],
+      sessionNotes: ''
+    };
+  }
+  function newReplayTrade(){
+    return {
+      localId: 'rt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      signalBar: '', direction: 'L', aiDirection: 'Long',
+      category: 'With Trend', categoryOther: '',
+      type: 'სქალპი',
+      reasons: ['', ''],
+      entryPrice: '', initialStop: '', stopToBEPlan: '',
+      targets: [{ planned: '', actual: '' }, { planned: '', actual: '' }, { planned: '', actual: '' }],
+      resultR: '', screenshot: null, planAdherence: 'Yes', note: '',
+      qualityScore: null
+    };
+  }
+
+  function rNum(v){ const n = parseFloat(v); return isNaN(n) ? null : n; }
+
+  // ერთი სესიის შემაჯამებელი (ისევე, როგორც ქაღალდის ფურცლის ბოლოში)
+  function computeSessionSummary(session){
+    const tr = session.trades || [];
+    const results = tr.map(t => rNum(t.resultR)).filter(v => v !== null);
+    const wins = results.filter(v => v > 0).length;
+    const losses = results.filter(v => v < 0).length;
+    const be = results.filter(v => v === 0).length;
+    const totalR = results.reduce((s, v) => s + v, 0);
+    const winRate = (wins + losses) > 0 ? Math.round(100 * wins / (wins + losses)) : null;
+    const expectancy = tr.length > 0 ? totalR / tr.length : null;
+    const adherenceYes = tr.filter(t => t.planAdherence === 'Yes').length;
+    return { n: tr.length, wins, losses, be, totalR, winRate, expectancy, adherenceYes };
+  }
+
+  // ჯგუფური სტატისტიკა (Dashboard-ის სამივე დონისთვის საერთო ფუნქცია)
+  function computeGroupStats(list){
+    const results = list.map(t => rNum(t.resultR)).filter(v => v !== null);
+    const n = results.length;
+    const wins = results.filter(v => v > 0);
+    const losses = results.filter(v => v < 0);
+    const be = results.filter(v => v === 0);
+    const totalR = results.reduce((s, v) => s + v, 0);
+    const winRateWL = (wins.length + losses.length) > 0 ? Math.round(100 * wins.length / (wins.length + losses.length)) : null;
+    const winRateTotal = n > 0 ? Math.round(100 * wins.length / n) : null;
+    const avgWin = wins.length ? wins.reduce((s, v) => s + v, 0) / wins.length : 0;
+    const avgLoss = losses.length ? Math.abs(losses.reduce((s, v) => s + v, 0) / losses.length) : 0;
+    const expectancy = n ? totalR / n : 0;
+    const sumPos = wins.reduce((s, v) => s + v, 0);
+    const sumNeg = Math.abs(losses.reduce((s, v) => s + v, 0));
+    const profitFactor = sumNeg > 0 ? sumPos / sumNeg : (sumPos > 0 ? Infinity : 0);
+
+    // Outlier Sensitivity — expectancy ერთი უდიდესი მოგებული ტრეიდის გამოკლებით
+    let outlierDropPct = null;
+    if (wins.length >= 1 && n >= 2 && expectancy > 0){
+      const maxWin = Math.max(...wins);
+      const totalRWithoutMax = totalR - maxWin;
+      const expWithoutMax = (n - 1) > 0 ? totalRWithoutMax / (n - 1) : 0;
+      const dropPct = (1 - (expWithoutMax / expectancy)) * 100;
+      if (dropPct > 50) outlierDropPct = Math.round(dropPct);
+    }
+    return { n, wins: wins.length, losses: losses.length, be: be.length, winRateWL, winRateTotal, avgWin, avgLoss, expectancy, profitFactor, totalR, outlierDropPct };
+  }
+
+  function sampleBadge(n){
+    if (n < 20) return { label: 'მცირე sample — დასკვნა ნაადრევია', cls: 'yellow' };
+    if (n >= 30) return { label: 'საკმარისი sample', cls: 'green' };
+    return null;
+  }
+
+  function fmtR(v){
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    const n = Number(v);
+    return (n >= 0 ? '+' : '') + n.toFixed(2) + 'R';
+  }
+
+  // სქრინშოტის შეკუმშვა (canvas-ით), Supabase JSONB-ის ზომის დასაზოგად
+  function fileToCompressedBase64(file, maxW, quality){
+    maxW = maxW || 900; quality = quality || 0.72;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('სურათის წაკითხვა ვერ მოხერხდა'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('ფაილის წაკითხვა ვერ მოხერხდა'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Trade Quality Score — იმავე check-setup Edge Function-ის გამოძახებით, რასაც
+  // "ახალი ტრეიდის" გვერდიც იყენებს, უბრალოდ Replay-ტრეიდის მსუბუქი setup-ობიექტით.
+  async function computeTradeQuality(trade){
+    try {
+      const reasons = (trade.reasons || []).filter(Boolean);
+      const setup = {
+        tradeType: trade.category === 'სხვა' ? (trade.categoryOther || 'სხვა') : trade.category,
+        direction: trade.direction === 'L' ? 'long' : 'short',
+        alwaysIn: trade.aiDirection,
+        reasons,
+        signalBar: trade.signalBar || undefined,
+        type: trade.type,
+        planAdherence: trade.planAdherence
+      };
+      const { data, error } = await supabase.functions.invoke('check-setup', { body: { setup, stats: {} } });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      const comment = (data && data.comment) ? data.comment : 'პასუხი ვერ მოვიდა.';
+      let verdict = 'yellow';
+      if (/^\s*\*{0,2}გავხსნა/.test(comment)) verdict = 'green';
+      else if (/^\s*\*{0,2}არ\s+გავხსნა/.test(comment)) verdict = 'red';
+      const score = verdict === 'green' ? 85 : verdict === 'red' ? 15 : 50;
+      return { comment, verdict, score, computedAt: new Date().toISOString() };
+    } catch (e){
+      return { comment: 'შეფასება ვერ მოხერხდა: ' + (e && e.message ? e.message : 'უცნობი შეცდომა'), verdict: 'yellow', score: null, computedAt: new Date().toISOString() };
+    }
+  }
+
+  function qualityBadgeHtml(q){
+    if (!q) return `<span style="font-size:11px; color:var(--tj-text3);">არ არის შეფასებული</span>`;
+    const color = q.verdict === 'green' ? 'var(--tj-green)' : q.verdict === 'red' ? 'var(--tj-red)' : 'var(--tj-amber)';
+    const label = q.verdict === 'green' ? 'კარგი' : q.verdict === 'red' ? 'სუსტი' : 'პირობითი';
+    return `<span style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:${color};"><span style="width:7px; height:7px; border-radius:50%; background:${color};"></span>${label}</span>`;
+  }
+
+  async function saveReplaySession(session){
+    if (session.id){
+      return await updateTradeRemote(session.id, session);
+    } else {
+      const ok = await addTradeRemote(session);
+      return ok;
+    }
+  }
+  function renderReplayJournal(){
+    const subtabs = [['list', 'სესიები'], ['trades', 'ტრეიდების ცხრილი'], ['dashboard', 'Dashboard']];
+    const activeSub = replayView === 'form' ? 'list' : replayView;
+    bodyEl.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${subtabs.map(([id, label]) => `<button data-rsub="${id}" style="${btnStyle(activeSub === id)}">${label}</button>`).join('')}
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="tj-replay-export" style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">Export JSON</button>
+          <label style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">
+            Import JSON
+            <input type="file" id="tj-replay-import" accept="application/json" style="display:none;"/>
+          </label>
+        </div>
+      </div>
+      <div id="tj-replay-inner"></div>
+    `;
+    bodyEl.querySelectorAll('[data-rsub]').forEach(b => {
+      b.onclick = () => { replayView = b.dataset.rsub; editingSessionId = null; replayFormState = null; renderReplayJournal(); };
+    });
+    bodyEl.querySelector('#tj-replay-export').onclick = () => {
+      const blob = new Blob([JSON.stringify(replaySessions(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'replay-journal-export-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+    bodyEl.querySelector('#tj-replay-import').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const arr = JSON.parse(text);
+        if (!Array.isArray(arr)) throw new Error('მოსალოდნელია სესიების მასივი (JSON array)');
+        arr.forEach(s => { s.entryKind = 'replaySession'; delete s.id; });
+        const count = await bulkInsertRemote(arr);
+        showStatus(`შემოტანილია ${count} სესია.`, 'ok');
+        renderReplayJournal();
+      } catch (err){
+        showStatus('იმპორტის შეცდომა: ' + (err && err.message ? err.message : 'უცნობი'), 'error');
+      }
+    });
+
+    const inner = bodyEl.querySelector('#tj-replay-inner');
+    if (replayView === 'form') renderReplaySessionForm(inner);
+    else if (replayView === 'trades') renderReplayTradesTable(inner);
+    else if (replayView === 'dashboard') renderReplayDashboard(inner);
+    else renderReplaySessionsList(inner);
+  }
+
+  function replayCardStyle(){
+    return `background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:12px; padding:16px 18px;`;
+  }
+
+  function renderReplaySessionsList(inner){
+    const sessions = replaySessions().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    inner.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="tj-serif" style="font-size:18px; font-weight:600;">Replay / Backtest სესიები</div>
+        <button type="button" id="tj-replay-new" style="padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text);">+ ახალი სესია</button>
+      </div>
+      ${sessions.length === 0 ? `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ჯერ არცერთი სესია არ არის შენახული.</div>` : `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${sessions.map(s => {
+            const sum = computeSessionSummary(s);
+            return `
+              <div style="${replayCardStyle()} display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                    <span class="tj-serif" style="font-size:14.5px; font-weight:600;">${s.date || '—'}</span>
+                    <span class="tj-mono" style="font-size:11.5px; color:var(--tj-text3);">${s.market || ''} · ${s.timeframe || ''} · ${s.mode || ''}</span>
+                    ${s.sessionLabel ? `<span style="font-size:11.5px; color:var(--tj-text2);">${s.sessionLabel}</span>` : ''}
+                  </div>
+                  <div style="font-size:12px; color:var(--tj-text2);">
+                    ${sum.n} ტრეიდი · Win Rate ${sum.winRate === null ? '—' : sum.winRate + '%'} · ჯამური ${fmtR(sum.totalR)}
+                    ${s.finalDayType ? ` · ${s.finalDayType}` : ''}
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" data-edit="${s.id}" style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">რედაქტირება</button>
+                  <button type="button" data-del="${s.id}" style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-red);">წაშლა</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    `;
+    inner.querySelector('#tj-replay-new').onclick = () => {
+      editingSessionId = null;
+      replayFormState = newReplaySession();
+      replayView = 'form';
+      renderReplayJournal();
+    };
+    inner.querySelectorAll('[data-edit]').forEach(b => {
+      b.onclick = () => {
+        const s = sessions.find(x => String(x.id) === b.dataset.edit);
+        editingSessionId = s.id;
+        replayFormState = JSON.parse(JSON.stringify(s));
+        replayView = 'form';
+        renderReplayJournal();
+      };
+    });
+    inner.querySelectorAll('[data-del]').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('წავშალო ეს სესია ყველა შიდა ტრეიდით?')) return;
+        await deleteTradeRemote(isNaN(b.dataset.del) ? b.dataset.del : Number(b.dataset.del));
+        renderReplaySessionsList(inner);
+      };
+    });
+  }
+  const REPLAY_BAR_GROUPS = [[1,6],[7,12],[13,18],[19,24],[25,30],[31,35]];
+  const REPLAY_NOTE_AFTER = [6, 12, 18];
+
+  function renderReplaySessionForm(inner){
+    const s = replayFormState;
+    // დაცვა არასრული/იმპორტირებული სესიებისთვის, რომ ველების არარსებობამ არ გაარღვიოს ფორმა
+    if (!s.bars) s.bars = {};
+    if (!s.dayTypeNotes) s.dayTypeNotes = { '6': '', '12': '', '18': '' };
+    if (!s.trades) s.trades = [];
+    s.trades.forEach(t => {
+      if (!t.reasons || !t.reasons.length) t.reasons = ['', ''];
+      if (!t.targets || t.targets.length !== 3) t.targets = [{ planned: '', actual: '' }, { planned: '', actual: '' }, { planned: '', actual: '' }];
+    });
+    inner.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="tj-serif" style="font-size:18px; font-weight:600;">${editingSessionId ? 'სესიის რედაქტირება' : 'ახალი Replay სესია'}</div>
+        <button type="button" id="tj-replay-cancel" style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">← სესიების სია</button>
+      </div>
+
+      <div style="${replayCardStyle()} margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px;">
+          <div>${fieldLabel('თარიღი')}<input type="date" id="rf-date" value="${s.date || ''}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('ბაზარი')}<input list="rf-market-list" id="rf-market" value="${s.market || ''}" style="${inputStyle()}"/>
+            <datalist id="rf-market-list">${KEYS.instruments.map(m=>`<option value="${m}">`).join('')}</datalist>
+          </div>
+          <div>${fieldLabel('ტაიმფრეიმი')}<input id="rf-timeframe" value="${s.timeframe || ''}" placeholder="5m" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('Mode')}<select id="rf-mode" style="${inputStyle()}">${REPLAY_MODES.map(m=>`<option value="${m}" ${s.mode===m?'selected':''}>${m}</option>`).join('')}</select></div>
+          <div>${fieldLabel('სესია/მონაკვეთი')}<input id="rf-sessionlabel" value="${s.sessionLabel || ''}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('გვერდი')}<input id="rf-pagelabel" value="${s.pageLabel || ''}" placeholder="1/2" style="${inputStyle()}"/></div>
+        </div>
+      </div>
+
+      <div style="${replayCardStyle()} margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:600; color:var(--tj-text); margin-bottom:10px;">ბარი-ბარზე Always In (AIL / AIS / TR)</div>
+        <div id="rf-bars-grid"></div>
+      </div>
+
+      <div style="${replayCardStyle()} margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-size:13px; font-weight:600; color:var(--tj-text);">ტრეიდები ამ სესიაში</div>
+          <button type="button" id="rf-add-trade" style="padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text);">+ ტრეიდის დამატება</button>
+        </div>
+        <div id="rf-trades-list"></div>
+      </div>
+
+      <div style="${replayCardStyle()} margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:12px;">
+          <div>${fieldLabel('დღის საბოლოო ტიპი')}<input id="rf-finaldaytype" value="${s.finalDayType || ''}" placeholder="მაგ. Small Pullback Trend Day" style="${inputStyle()}"/></div>
+        </div>
+        <div>${fieldLabel('სესიის შენიშვნები')}<textarea id="rf-notes" rows="3" style="${inputStyle()}">${s.sessionNotes || ''}</textarea></div>
+      </div>
+
+      <div id="rf-summary-box" style="${replayCardStyle()} margin-bottom:16px;"></div>
+
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="rf-save" style="padding:9px 20px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-weight:600;">სესიის შენახვა</button>
+        <button type="button" id="rf-cancel2" style="padding:9px 20px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">გაუქმება</button>
+      </div>
+    `;
+
+    // --- header ველების ჩაწერა უშუალოდ formState-ში, სრული re-render გარეშე ---
+    inner.querySelector('#rf-date').oninput = e => s.date = e.target.value;
+    inner.querySelector('#rf-market').oninput = e => s.market = e.target.value;
+    inner.querySelector('#rf-timeframe').oninput = e => s.timeframe = e.target.value;
+    inner.querySelector('#rf-mode').onchange = e => s.mode = e.target.value;
+    inner.querySelector('#rf-sessionlabel').oninput = e => s.sessionLabel = e.target.value;
+    inner.querySelector('#rf-pagelabel').oninput = e => s.pageLabel = e.target.value;
+    inner.querySelector('#rf-finaldaytype').oninput = e => s.finalDayType = e.target.value;
+    inner.querySelector('#rf-notes').oninput = e => s.sessionNotes = e.target.value;
+
+    inner.querySelector('#tj-replay-cancel').onclick = () => { replayView = 'list'; renderReplayJournal(); };
+    inner.querySelector('#rf-cancel2').onclick = () => { replayView = 'list'; renderReplayJournal(); };
+
+    inner.querySelector('#rf-add-trade').onclick = () => {
+      s.trades.push(newReplayTrade());
+      renderTradesList();
+    };
+
+    inner.querySelector('#rf-save').onclick = async () => {
+      const ok = await saveReplaySession(s);
+      if (ok){
+        showStatus('სესია შენახულია.', 'ok');
+        editingSessionId = null; replayFormState = null; replayView = 'list';
+        renderReplayJournal();
+      }
+    };
+
+    renderBarsGrid();
+    renderTradesList();
+    refreshSessionSummaryBox();
+
+    // ===== ბარების ბადე =====
+    function renderBarsGrid(){
+      const grid = inner.querySelector('#rf-bars-grid');
+      grid.innerHTML = REPLAY_BAR_GROUPS.map(([from, to]) => {
+        let html = `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">`;
+        for (let n = from; n <= to; n++){
+          const cur = s.bars[n] || '';
+          html += `
+            <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+              <div class="tj-mono" style="font-size:9.5px; color:var(--tj-text3);">${n}</div>
+              <div style="display:flex; border-radius:6px; overflow:hidden; border:0.5px solid var(--tj-border);">
+                ${REPLAY_BAR_STATES.map(st => `
+                  <button type="button" data-bar="${n}" data-state="${st}" style="padding:4px 5px; font-size:9px; cursor:pointer; border:none; background:${cur===st ? (st==='AIL'?'rgba(79,158,118,0.35)':st==='AIS'?'rgba(189,90,76,0.35)':'rgba(201,154,80,0.35)') : 'var(--tj-panel2)'}; color:${cur===st ? 'var(--tj-text)':'var(--tj-text3)'};">${st}</button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+        html += `</div>`;
+        if (REPLAY_NOTE_AFTER.includes(to)){
+          html += `
+            <div style="margin:4px 0 14px; padding:8px 10px; background:var(--tj-panel2); border-radius:8px;">
+              ${fieldLabel('დღის ტიპი (ბარი ' + to + '-ის მდგომარეობით)')}
+              <input data-daynote="${to}" value="${s.dayTypeNotes[to] || ''}" style="${inputStyle()}"/>
+            </div>
+          `;
+        }
+        return html;
+      }).join('');
+      grid.querySelectorAll('[data-bar]').forEach(b => {
+        b.onclick = () => {
+          const n = b.dataset.bar, st = b.dataset.state;
+          s.bars[n] = (s.bars[n] === st) ? '' : st;
+          renderBarsGrid();
+        };
+      });
+      grid.querySelectorAll('[data-daynote]').forEach(inp => {
+        inp.oninput = e => { s.dayTypeNotes[inp.dataset.daynote] = e.target.value; };
+      });
+    }
+
+    // ===== ტრეიდების სია =====
+    function renderTradesList(){
+      const list = inner.querySelector('#rf-trades-list');
+      if (!s.trades.length){
+        list.innerHTML = `<div style="padding:20px 0; text-align:center; color:var(--tj-text3); font-size:12.5px;">ჯერ არცერთი ტრეიდი არ დამატებულა ამ სესიაში.</div>`;
+        return;
+      }
+      list.innerHTML = s.trades.map((t, idx) => renderTradeCardHtml(t, idx)).join('');
+      s.trades.forEach((t, idx) => wireTradeCard(list, t, idx));
+    }
+
+    function renderTradeCardHtml(t, idx){
+      return `
+      <div style="border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; margin-bottom:12px; background:var(--tj-panel2);" data-trade-card="${idx}">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div class="tj-serif" style="font-size:13.5px; font-weight:600;">ტრეიდი #${idx + 1}</div>
+          <button type="button" data-remove-trade="${idx}" style="padding:4px 10px; border-radius:7px; font-size:11px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-red);">წაშლა</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:10px;">
+          <div>${fieldLabel('სიგნალ ბარი #')}<input type="number" data-f="signalBar" data-i="${idx}" value="${t.signalBar}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('მიმართულება')}
+            <div style="display:flex; border-radius:8px; overflow:hidden; border:0.5px solid var(--tj-border);">
+              <button type="button" data-dir="L" data-i="${idx}" style="flex:1; padding:8px; font-size:12px; cursor:pointer; border:none; background:${t.direction==='L'?'rgba(79,158,118,0.25)':'transparent'}; color:var(--tj-text);">Long</button>
+              <button type="button" data-dir="S" data-i="${idx}" style="flex:1; padding:8px; font-size:12px; cursor:pointer; border:none; background:${t.direction==='S'?'rgba(189,90,76,0.25)':'transparent'}; color:var(--tj-text);">Short</button>
+            </div>
+          </div>
+          <div>${fieldLabel('Always-In მიმართულება')}
+            <select data-f="aiDirection" data-i="${idx}" style="${inputStyle()}">${REPLAY_AI_DIR.map(o=>`<option value="${o}" ${t.aiDirection===o?'selected':''}>${o}</option>`).join('')}</select>
+          </div>
+          <div>${fieldLabel('Trade Category')}
+            <select data-f="category" data-i="${idx}" style="${inputStyle()}">${REPLAY_CATEGORIES.map(o=>`<option value="${o}" ${t.category===o?'selected':''}>${o}</option>`).join('')}</select>
+          </div>
+          ${t.category === 'სხვა' ? `<div>${fieldLabel('კატეგორია (სხვა)')}<input data-f="categoryOther" data-i="${idx}" value="${t.categoryOther||''}" style="${inputStyle()}"/></div>` : ''}
+          <div>${fieldLabel('ტიპი')}
+            <div style="display:flex; border-radius:8px; overflow:hidden; border:0.5px solid var(--tj-border);">
+              ${REPLAY_TYPES.map(ty => `<button type="button" data-type="${ty}" data-i="${idx}" style="flex:1; padding:8px; font-size:12px; cursor:pointer; border:none; background:${t.type===ty?'rgba(110,147,176,0.25)':'transparent'}; color:var(--tj-text);">${ty}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          ${fieldLabel('მიზეზები (მინ. 2, მაქს. 4)')}
+          <div data-reasons-wrap="${idx}" style="display:flex; flex-direction:column; gap:6px;">
+            ${t.reasons.map((r, ri) => `<input data-reason="${ri}" data-i="${idx}" value="${r}" placeholder="მიზეზი ${ri+1}" style="${inputStyle()}"/>`).join('')}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            ${t.reasons.length < 4 ? `<button type="button" data-add-reason="${idx}" style="font-size:11px; padding:4px 9px; border-radius:6px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); cursor:pointer;">+ მიზეზი</button>` : ''}
+            ${t.reasons.length > 2 ? `<button type="button" data-del-reason="${idx}" style="font-size:11px; padding:4px 9px; border-radius:6px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); cursor:pointer;">− მიზეზი</button>` : ''}
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:10px;">
+          <div>${fieldLabel('Entry ფასი')}<input type="number" step="any" data-f="entryPrice" data-i="${idx}" value="${t.entryPrice}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('საწყისი Stop')}<input type="number" step="any" data-f="initialStop" data-i="${idx}" value="${t.initialStop}" style="${inputStyle()}"/></div>
+          <div style="grid-column:span 2;">${fieldLabel('Stop → Breakeven-ზე გადატანის პირობა')}<input data-f="stopToBEPlan" data-i="${idx}" value="${t.stopToBEPlan}" style="${inputStyle()}"/></div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          ${fieldLabel('Targets — დაგეგმილი / რეალური (R)')}
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+            ${[0,1,2].map(ti => `
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <div class="tj-mono" style="font-size:10px; color:var(--tj-text3);">T${ti+1}</div>
+                <input type="number" step="any" placeholder="დაგეგმილი" data-target="${ti}" data-kind="planned" data-i="${idx}" value="${t.targets[ti].planned}" style="${inputStyle()}"/>
+                <input type="number" step="any" placeholder="რეალური" data-target="${ti}" data-kind="actual" data-i="${idx}" value="${t.targets[ti].actual}" style="${inputStyle()}"/>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px; margin-bottom:10px;">
+          <div>${fieldLabel('საბოლოო შედეგი (R)')}<input type="number" step="any" data-f="resultR" data-i="${idx}" value="${t.resultR}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('Plan Adherence')}
+            <div style="display:flex; border-radius:8px; overflow:hidden; border:0.5px solid var(--tj-border);">
+              ${REPLAY_PLAN.map(p => `<button type="button" data-plan="${p}" data-i="${idx}" style="flex:1; padding:8px; font-size:11px; cursor:pointer; border:none; background:${t.planAdherence===p?'rgba(110,147,176,0.25)':'transparent'}; color:var(--tj-text);">${p}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          ${fieldLabel('Screenshot')}
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="padding:6px 12px; border-radius:7px; font-size:11.5px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2);">
+              აირჩიე ფაილი
+              <input type="file" accept="image/*" data-screenshot="${idx}" style="display:none;"/>
+            </label>
+            ${t.screenshot ? `<img src="${t.screenshot}" style="height:40px; border-radius:6px; border:0.5px solid var(--tj-border);"/><button type="button" data-remove-screenshot="${idx}" style="font-size:11px; color:var(--tj-red); background:none; border:none; cursor:pointer;">წაშლა</button>` : `<span style="font-size:11px; color:var(--tj-text3);">არ არის ატვირთული</span>`}
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          ${fieldLabel('შენიშვნა')}<textarea data-f="note" data-i="${idx}" rows="2" style="${inputStyle()}">${t.note}</textarea>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:10px; border-top:0.5px dashed var(--tj-border);">
+          <div data-quality-badge="${idx}">${qualityBadgeHtml(t.qualityScore)}</div>
+          <button type="button" data-assess="${idx}" style="padding:5px 12px; border-radius:7px; font-size:11.5px; cursor:pointer; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.12); color:var(--tj-text);">ხარისხის შეფასება (AI)</button>
+        </div>
+        ${t.qualityScore && t.qualityScore.comment ? `<div data-quality-comment="${idx}" style="margin-top:8px; font-size:12px; color:var(--tj-text2); line-height:1.55;">${t.qualityScore.comment}</div>` : `<div data-quality-comment="${idx}"></div>`}
+      </div>
+      `;
+    }
+
+    function wireTradeCard(list, t, idx){
+      const card = list.querySelector(`[data-trade-card="${idx}"]`);
+      if (!card) return;
+      card.querySelectorAll('[data-f]').forEach(el => {
+        el.oninput = () => { t[el.dataset.f] = el.value; if (el.dataset.f === 'resultR') refreshSessionSummaryBox(); };
+        if (el.tagName === 'SELECT') el.onchange = () => { t[el.dataset.f] = el.value; if (el.dataset.f === 'category') renderTradesList(); };
+      });
+      card.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { t.direction = b.dataset.dir; renderTradesList(); });
+      card.querySelectorAll('[data-type]').forEach(b => b.onclick = () => { t.type = b.dataset.type; renderTradesList(); });
+      card.querySelectorAll('[data-plan]').forEach(b => b.onclick = () => { t.planAdherence = b.dataset.plan; renderTradesList(); refreshSessionSummaryBox(); });
+      card.querySelectorAll('[data-reason]').forEach(inp => inp.oninput = () => { t.reasons[Number(inp.dataset.reason)] = inp.value; });
+      const addReasonBtn = card.querySelector('[data-add-reason]');
+      if (addReasonBtn) addReasonBtn.onclick = () => { t.reasons.push(''); renderTradesList(); };
+      const delReasonBtn = card.querySelector('[data-del-reason]');
+      if (delReasonBtn) delReasonBtn.onclick = () => { t.reasons.pop(); renderTradesList(); };
+      card.querySelectorAll('[data-target]').forEach(inp => {
+        inp.oninput = () => { t.targets[Number(inp.dataset.target)][inp.dataset.kind] = inp.value; };
+      });
+      card.querySelector(`[data-remove-trade="${idx}"]`).onclick = () => {
+        if (!confirm('წავშალო ეს ტრეიდი სესიიდან?')) return;
+        s.trades.splice(idx, 1);
+        renderTradesList(); refreshSessionSummaryBox();
+      };
+      const shotInput = card.querySelector(`[data-screenshot="${idx}"]`);
+      if (shotInput) shotInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          t.screenshot = await fileToCompressedBase64(file);
+          renderTradesList();
+        } catch (err){
+          showStatus('სურათის დამუშავება ვერ მოხერხდა.', 'error');
+        }
+      };
+      const removeShotBtn = card.querySelector(`[data-remove-screenshot="${idx}"]`);
+      if (removeShotBtn) removeShotBtn.onclick = () => { t.screenshot = null; renderTradesList(); };
+      card.querySelector(`[data-assess="${idx}"]`).onclick = async () => {
+        const badgeEl = card.querySelector(`[data-quality-badge="${idx}"]`);
+        const commentEl = card.querySelector(`[data-quality-comment="${idx}"]`);
+        badgeEl.innerHTML = `<span style="font-size:11px; color:var(--tj-text3);">იტვირთება…</span>`;
+        const q = await computeTradeQuality(t);
+        t.qualityScore = q;
+        badgeEl.innerHTML = qualityBadgeHtml(q);
+        commentEl.innerHTML = q.comment || '';
+      };
+    }
+
+    function refreshSessionSummaryBox(){
+      const box = inner.querySelector('#rf-summary-box');
+      const sum = computeSessionSummary(s);
+      box.innerHTML = `
+        <div style="font-size:11px; color:var(--tj-text3); letter-spacing:0.4px; text-transform:uppercase; margin-bottom:10px;">სესიის შემაჯამებელი</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px,1fr)); gap:12px;">
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-text);">${sum.n}</div><div style="font-size:11px; color:var(--tj-text3);">ტრეიდი</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-green);">${sum.wins}</div><div style="font-size:11px; color:var(--tj-text3);">Win</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-red);">${sum.losses}</div><div style="font-size:11px; color:var(--tj-text3);">Loss</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-text2);">${sum.be}</div><div style="font-size:11px; color:var(--tj-text3);">BE</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-text);">${sum.winRate===null?'—':sum.winRate+'%'}</div><div style="font-size:11px; color:var(--tj-text3);">Win Rate</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:${sum.totalR>0?'var(--tj-green)':sum.totalR<0?'var(--tj-red)':'var(--tj-text)'};">${fmtR(sum.totalR)}</div><div style="font-size:11px; color:var(--tj-text3);">ჯამური R</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-text);">${sum.expectancy===null?'—':fmtR(sum.expectancy)}</div><div style="font-size:11px; color:var(--tj-text3);">Expectancy</div></div>
+          <div><div class="tj-mono" style="font-size:17px; color:var(--tj-text);">${sum.n?sum.adherenceYes+'/'+sum.n:'—'}</div><div style="font-size:11px; color:var(--tj-text3);">Plan Adherence</div></div>
+        </div>
+      `;
+    }
+  }
+  function applyReplayFilters(list){
+    return list.filter(t => {
+      if (replayFilters.mode && t._session.mode !== replayFilters.mode) return false;
+      if (replayFilters.category && t.category !== replayFilters.category) return false;
+      if (replayFilters.planAdherence && t.planAdherence !== replayFilters.planAdherence) return false;
+      if (replayFilters.dateFrom && (t._session.date || '') < replayFilters.dateFrom) return false;
+      if (replayFilters.dateTo && (t._session.date || '') > replayFilters.dateTo) return false;
+      if (replayFilters.qMin !== '' && (!t.qualityScore || t.qualityScore.score === null || t.qualityScore.score < Number(replayFilters.qMin))) return false;
+      if (replayFilters.qMax !== '' && (!t.qualityScore || t.qualityScore.score === null || t.qualityScore.score > Number(replayFilters.qMax))) return false;
+      return true;
+    });
+  }
+
+  function renderReplayTradesTable(inner){
+    const all = allReplayTrades();
+    const filtered = applyReplayFilters(all).sort((a, b) => (b._session.date || '').localeCompare(a._session.date || ''));
+
+    inner.innerHTML = `
+      <div style="${replayCardStyle()} margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px;">
+          <div>${fieldLabel('Mode')}<select id="tf-mode" style="${inputStyle()}"><option value="">ყველა</option>${REPLAY_MODES.map(m=>`<option value="${m}" ${replayFilters.mode===m?'selected':''}>${m}</option>`).join('')}</select></div>
+          <div>${fieldLabel('Category')}<select id="tf-category" style="${inputStyle()}"><option value="">ყველა</option>${REPLAY_CATEGORIES.map(c=>`<option value="${c}" ${replayFilters.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          <div>${fieldLabel('Plan Adherence')}<select id="tf-plan" style="${inputStyle()}"><option value="">ყველა</option>${REPLAY_PLAN.map(p=>`<option value="${p}" ${replayFilters.planAdherence===p?'selected':''}>${p}</option>`).join('')}</select></div>
+          <div>${fieldLabel('თარიღიდან')}<input type="date" id="tf-from" value="${replayFilters.dateFrom}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('თარიღამდე')}<input type="date" id="tf-to" value="${replayFilters.dateTo}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('Quality Score min')}<input type="number" id="tf-qmin" value="${replayFilters.qMin}" style="${inputStyle()}"/></div>
+          <div>${fieldLabel('Quality Score max')}<input type="number" id="tf-qmax" value="${replayFilters.qMax}" style="${inputStyle()}"/></div>
+        </div>
+        <button type="button" id="tf-reset" style="margin-top:10px; padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text3);">ფილტრის გასუფთავება</button>
+      </div>
+
+      ${filtered.length === 0 ? `<div style="padding:30px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ვერაფერი მოიძებნა.</div>` : `
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead>
+            <tr style="text-align:left; color:var(--tj-text3); font-size:11px; text-transform:uppercase; letter-spacing:0.3px;">
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">თარიღი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">ბაზარი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">Mode</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">Category</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">Dir</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">R</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">Plan</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">ხარისხი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(t => {
+              const r = rNum(t.resultR);
+              const rColor = r>0?'var(--tj-green)':r<0?'var(--tj-red)':'var(--tj-text2)';
+              return `
+                <tr>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);">${t._session.date || '—'}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);">${t._session.market || ''}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);">${t._session.mode || ''}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text);">${t.category}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);">${t.direction}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:${rColor};" class="tj-mono">${fmtR(r)}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);">${t.planAdherence}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);">${qualityBadgeHtml(t.qualityScore)}</td>
+                  <td style="padding:8px 10px; border-bottom:0.5px solid var(--tj-border);"><button type="button" data-open-session="${t._session.id}" style="font-size:11px; padding:4px 9px; border-radius:6px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); cursor:pointer;">სესია →</button></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      `}
+    `;
+
+    const wire = (id, key) => { const el = inner.querySelector('#' + id); el.onchange = () => { replayFilters[key] = el.value; renderReplayTradesTable(inner); }; };
+    wire('tf-mode', 'mode'); wire('tf-category', 'category'); wire('tf-plan', 'planAdherence');
+    wire('tf-from', 'dateFrom'); wire('tf-to', 'dateTo'); wire('tf-qmin', 'qMin'); wire('tf-qmax', 'qMax');
+    inner.querySelector('#tf-reset').onclick = () => { replayFilters = { mode:'', category:'', planAdherence:'', dateFrom:'', dateTo:'', qMin:'', qMax:'' }; renderReplayTradesTable(inner); };
+    inner.querySelectorAll('[data-open-session]').forEach(b => {
+      b.onclick = () => {
+        const sess = replaySessions().find(x => String(x.id) === b.dataset.openSession);
+        if (!sess) return;
+        editingSessionId = sess.id;
+        replayFormState = JSON.parse(JSON.stringify(sess));
+        replayView = 'form';
+        renderReplayJournal();
+      };
+    });
+  }
+  function renderGroupStatsTable(title, groups){
+    // groups: [{label, list}]
+    const rows = groups.map(g => ({ label: g.label, s: computeGroupStats(g.list) })).filter(r => r.s.n > 0);
+    if (!rows.length) return `<div style="margin-bottom:22px;"><div style="font-size:13px; font-weight:600; color:var(--tj-text); margin-bottom:8px;">${title}</div><div style="font-size:12px; color:var(--tj-text3);">მონაცემი არ არის.</div></div>`;
+    return `
+      <div style="margin-bottom:22px;">
+        <div style="font-size:13px; font-weight:600; color:var(--tj-text); margin-bottom:8px;">${title}</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+              <tr style="text-align:left; color:var(--tj-text3); font-size:10.5px; text-transform:uppercase; letter-spacing:0.3px;">
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);"></th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">N</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">W/L/BE</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">WR (w/w+l)</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">WR (w/N)</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">Avg Win</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">Avg Loss</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">Expectancy</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">Profit Factor</th>
+                <th style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">Sample</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => {
+                const badge = sampleBadge(r.s.n);
+                return `
+                <tr>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text); font-weight:600;">${r.label}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);" class="tj-mono">${r.s.n}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);" class="tj-mono">${r.s.wins}/${r.s.losses}/${r.s.be}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);" class="tj-mono">${r.s.winRateWL===null?'—':r.s.winRateWL+'%'}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);" class="tj-mono">${r.s.winRateTotal===null?'—':r.s.winRateTotal+'%'}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-green);" class="tj-mono">${fmtR(r.s.avgWin)}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-red);" class="tj-mono">${fmtR(-Math.abs(r.s.avgLoss))}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:${r.s.expectancy>0?'var(--tj-green)':r.s.expectancy<0?'var(--tj-red)':'var(--tj-text)'};" class="tj-mono">${fmtR(r.s.expectancy)}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border); color:var(--tj-text2);" class="tj-mono">${r.s.profitFactor===Infinity?'∞':r.s.profitFactor.toFixed(2)}</td>
+                  <td style="padding:7px 9px; border-bottom:0.5px solid var(--tj-border);">
+                    ${badge ? `<span style="font-size:10px; padding:2px 7px; border-radius:999px; border:0.5px solid ${badge.cls==='yellow'?'var(--tj-amber)':'var(--tj-green)'}; color:${badge.cls==='yellow'?'var(--tj-amber)':'var(--tj-green)'};">${badge.label}</span>` : ''}
+                    ${r.s.outlierDropPct ? `<div style="margin-top:4px; font-size:10.5px; color:var(--tj-amber);">⚠ შედეგი მნიშვნელოვნად არის დამოკიდებული ერთ outlier ტრეიდზე (−${r.s.outlierDropPct}%) — მეტი მონაცემია საჭირო.</div>` : ''}
+                  </td>
+                </tr>
+              `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderReplayDashboard(inner){
+    const all = allReplayTrades();
+    if (!all.length){
+      inner.innerHTML = `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">Dashboard-ისთვის საჭიროა მინიმუმ ერთი ტრეიდი Replay ჟურნალში.</div>`;
+      return;
+    }
+    const overall = [{ label: 'მთლიანი', list: all }];
+    const byCategory = REPLAY_CATEGORIES.map(c => ({ label: c, list: all.filter(t => t.category === c) }));
+    const byMode = REPLAY_MODES.map(m => ({ label: m, list: all.filter(t => t._session.mode === m) }));
+
+    inner.innerHTML = `
+      <div style="${replayCardStyle()} margin-bottom:20px;">
+        ${renderGroupStatsTable('მთლიანი სტატისტიკა', overall)}
+        ${renderGroupStatsTable('Trade Category-ის მიხედვით', byCategory)}
+        ${renderGroupStatsTable('Mode-ის მიხედვით (Replay / Demo / Live)', byMode)}
+      </div>
+      <div style="${replayCardStyle()} margin-bottom:20px;">
+        <div style="font-size:13px; font-weight:600; color:var(--tj-text); margin-bottom:12px;">Expectancy კატეგორიების მიხედვით</div>
+        <div style="position:relative; height:${Math.max(120, REPLAY_CATEGORIES.length*32+30)}px;"><canvas id="rd-cat-expectancy"></canvas></div>
+      </div>
+      <div style="${replayCardStyle()};">
+        <div style="font-size:13px; font-weight:600; color:var(--tj-text); margin-bottom:12px;">კუმულატიური R დროში</div>
+        <div style="position:relative; height:200px;"><canvas id="rd-cum-r"></canvas></div>
+      </div>
+    `;
+
+    function draw(){
+      const gridColor = '#2E343B', textColor = '#9B9993';
+      const catStats = REPLAY_CATEGORIES.map(c => computeGroupStats(all.filter(t => t.category === c)));
+      new Chart(document.getElementById('rd-cat-expectancy'), {
+        type: 'bar',
+        data: { labels: REPLAY_CATEGORIES, datasets: [{ data: catStats.map(s => Number(s.expectancy.toFixed(3))), backgroundColor: catStats.map(s => s.expectancy >= 0 ? '#4F9E76' : '#BD5A4C') }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: gridColor }, ticks: { color: textColor } }, y: { grid: { display: false }, ticks: { color: textColor } } } }
+      });
+
+      const sorted = all.slice().sort((a, b) => (a._session.date || '').localeCompare(b._session.date || ''));
+      let cum = 0;
+      const cumData = sorted.map(t => { cum += (rNum(t.resultR) || 0); return cum; });
+      new Chart(document.getElementById('rd-cum-r'), {
+        type: 'line',
+        data: { labels: sorted.map((t, i) => i + 1), datasets: [{ data: cumData, borderColor: '#6E93B0', backgroundColor: 'rgba(110,147,176,0.12)', fill: true, tension: 0.25, pointRadius: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { x: { grid: { color: gridColor }, ticks: { color: textColor } }, y: { grid: { color: gridColor }, ticks: { color: textColor } } } }
+      });
+    }
+    if (!window.Chart){
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+      sc.onload = draw;
+      document.body.appendChild(sc);
+    } else {
+      draw();
+    }
+  }
+
   function renderAccounts(editId){
     const editing = editId ? accounts.find(a=>a.id===editId) : null;
     bodyEl.innerHTML = `
@@ -3499,6 +4287,7 @@
     else if (tab === 'log') renderLog();
     else if (tab === 'stats') renderStats();
     else if (tab === 'ai') renderAI();
+    else if (tab === 'replay') renderReplayJournal();
     else if (tab === 'accounts') renderAccounts();
     else if (tab === 'dayguide') renderDayGuide();
     else renderGuide();
