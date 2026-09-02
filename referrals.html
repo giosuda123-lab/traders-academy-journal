@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>რესურსები - Traders Academy</title>
+<meta name="description" content="ბროკერები, პლატფორმები და ტულები, რასაც პირადად ვიყენებ ვაჭრობაში."/>
+<link rel="stylesheet" href="/assets/site.css"/>
+</head>
+<body>
+<div id="ta-nav" class="nav"></div>
+
+<section class="section" style="padding-bottom:36px;">
+  <div class="wrap-narrow">
+    <div class="eyebrow">რესურსები</div>
+    <h1 class="serif" style="font-size:34px; font-weight:600; margin:0 0 16px;">ინსტრუმენტები, რასაც პირადად ვიყენებ</h1>
+    <p style="font-size:15.5px; color:var(--text2); max-width:56ch; margin:0;">
+      ქვემოთ მოცემული ბროკერები და პლატფორმები ჩემი ყოველდღიური სავაჭრო პრაქტიკის ნაწილია. ზოგი ბმული პარტნიორული/რეფერალურია - ეს არანაირად არ ცვლის თქვენს ღირებულებას, უბრალოდ მხარს უჭერს აკადემიის საქმიანობას.
+    </p>
+  </div>
+</section>
+
+<hr class="hr"/>
+
+<section class="section">
+  <div class="wrap">
+    <div id="referral-list" style="display:flex; flex-direction:column;">
+      <!-- სტატიკური საწყისი სია - შემდეგ ცალკე შეგიძლიათ გახადოთ დინამიური Admin პანელიდან -->
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; padding:22px 0; border-top:0.5px solid var(--border);">
+        <div>
+          <div class="serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">XM - ბროკერი</div>
+          <p style="font-size:14px; color:var(--text2); margin:0;">ჩემი ვიდეო-კურსების აღწერაში მითითებული ბროკერი, რომელსაც ვიყენებ დემო/ცოცხალ ანგარიშებზე. რეფერალური კოდი: FTPJH.</p>
+        </div>
+        <a href="#" class="btn btn-sm" data-ref-link="xm">ბმული</a>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; padding:22px 0; border-top:0.5px solid var(--border); border-bottom:0.5px solid var(--border);">
+        <div>
+          <div class="serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">TradingView</div>
+          <p style="font-size:14px; color:var(--text2); margin:0;">ჩარტინგისა და ანალიზის პლატფორმა, სადაც ვაქვეყნებ ჩემს ინდიკატორებსაც.</p>
+        </div>
+        <a href="#" class="btn btn-sm" data-ref-link="tradingview">ბმული</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="ta-footer" class="site-footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/site.js"></script>
+<script>
+  TA.mountNav('/referrals.html');
+  TA.mountFooter();
+  // TODO: შეცვალეთ რეალური რეფერალური ბმულებით
+  const REF_LINKS = { xm: 'https://affs.click/vQ2wc', tradingview: 'https://tradingview.com/?aff_id=YOUR_ID' };
+  document.querySelectorAll('[data-ref-link]').forEach(a => { a.href = REF_LINKS[a.dataset.refLink] || '#'; });
+</script>
+</body>
+</html>
