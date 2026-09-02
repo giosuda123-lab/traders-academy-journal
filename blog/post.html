@@ -5,10 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title id="page-title">სტატია - Traders Academy</title>
 <meta name="description" id="page-desc" content=""/>
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png"/>
+<link rel="icon" href="/assets/favicon-16.png" sizes="16x16" type="image/png"/>
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+<link rel="canonical" href="https://tradersacademy.ge/blog/post.html" id="page-canonical"/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="Traders Academy"/>
+<meta property="og:locale" content="ka_GE"/>
+<meta property="og:url" content="https://tradersacademy.ge/blog/post.html" id="og-url"/>
+<meta property="og:title" content="სტატია - Traders Academy" id="og-title"/>
+<meta property="og:description" content="" id="og-desc"/>
+<meta property="og:image" content="https://tradersacademy.ge/assets/og-image.jpg" id="og-image"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="სტატია - Traders Academy" id="tw-title"/>
+<meta name="twitter:description" content="" id="tw-desc"/>
+<meta name="twitter:image" content="https://tradersacademy.ge/assets/og-image.jpg" id="tw-image"/>
 <link rel="stylesheet" href="/assets/site.css"/>
 </head>
 <body>
-<div id="ta-nav" class="nav"></div>
+<a href="#main-content" class="skip-link">კონტენტზე გადასვლა</a>
+<header id="ta-nav" class="nav"></header>
+<main id="main-content">
 
 <article class="section" style="padding-bottom:36px;">
   <div class="wrap-narrow">
@@ -28,7 +45,8 @@
 </div>
 
 <div style="height:60px;"></div>
-<div id="ta-footer" class="site-footer"></div>
+</main>
+<footer id="ta-footer" class="site-footer"></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/site.js"></script>
@@ -44,15 +62,28 @@
 
   async function loadPost(){
     if (!slug){
-      document.getElementById('post-header').innerHTML = '<div style="color:var(--red); font-size:14px;">სტატია ვერ მოიძებნა.</div>';
+      document.getElementById('post-header').innerHTML = '<div class="status-msg status-error">სტატიის ბმული არასრულია - აკლია slug პარამეტრი.</div>';
       return;
     }
     try {
-      const { data, error } = await TA.sb.from('posts').select('*').eq('slug', slug).eq('published', true).single();
-      if (error || !data) throw error || new Error('არ მოიძებნა');
+      const { data, error } = await TA.withTimeout(
+        TA.sb.from('posts').select('*').eq('slug', slug).eq('published', true).single()
+      );
+      if (error || !data) throw (error && error.code !== 'PGRST116' ? error : new Error('სტატია არ მოიძებნა ან ჯერ არ არის გამოქვეყნებული.'));
       currentPost = data;
       document.getElementById('page-title').textContent = data.title + ' - Traders Academy';
       document.getElementById('page-desc').setAttribute('content', data.excerpt || '');
+      document.title = data.title + ' - Traders Academy';
+      const canonical = document.getElementById('page-canonical');
+      const canonicalUrl = location.origin + '/blog/post.html?slug=' + encodeURIComponent(data.slug);
+      if (canonical) canonical.setAttribute('href', canonicalUrl);
+      const setMeta = (id, val) => { const e = document.getElementById(id); if (e){ e.hasAttribute('content') ? e.setAttribute('content', val) : e.setAttribute('href', val); } };
+      setMeta('og-title', data.title + ' - Traders Academy');
+      setMeta('og-desc', data.excerpt || '');
+      setMeta('og-url', canonicalUrl);
+      setMeta('tw-title', data.title + ' - Traders Academy');
+      setMeta('tw-desc', data.excerpt || '');
+      if (data.cover_image){ setMeta('og-image', data.cover_image); setMeta('tw-image', data.cover_image); }
       document.getElementById('post-header').innerHTML = `
         <div class="mono" style="font-size:12px; color:var(--text3); margin-bottom:12px;">${TA.CATEGORY_LABELS[data.category]||data.category} · ${TA.fmtDate(data.created_at)}</div>
         <h1 class="serif" style="font-size:32px; font-weight:600; line-height:1.25; margin:0;">${TA.escapeHtml(data.title)}</h1>
@@ -60,9 +91,29 @@
       // შენიშვნა: content ინახება მხოლოდ ადმინის მიერ დაწერილი - ნდობით რენდერდება HTML-ად.
       // მომხმარებლის შემოტანილი კონტენტი (კომენტარები) ყოველთვის escapeHtml-ით გადის.
       document.getElementById('post-body').innerHTML = data.content || '';
+      injectArticleSchema(data);
     } catch(e){
-      document.getElementById('post-header').innerHTML = '<div style="color:var(--red); font-size:14px;">სტატია ვერ მოიძებნა.</div>';
+      document.getElementById('post-header').innerHTML = `<div class="status-msg status-error">${e && e.message ? TA.escapeHtml(e.message) : 'სტატია ვერ მოიძებნა.'} <button type="button" id="retry-post" style="background:none; border:none; color:var(--accent); text-decoration:underline; cursor:pointer; padding:0; font:inherit;">სცადეთ თავიდან</button></div>`;
+      const retryBtn = document.getElementById('retry-post');
+      if (retryBtn) retryBtn.onclick = loadPost;
     }
+  }
+
+  function injectArticleSchema(post){
+    const s = document.createElement('script');
+    s.type = 'application/ld+json';
+    s.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: post.title,
+      description: post.excerpt || '',
+      datePublished: post.created_at,
+      dateModified: post.updated_at || post.created_at,
+      author: { '@type': 'Person', name: 'გიორგი სუდაძე' },
+      publisher: { '@type': 'Organization', name: 'Traders Academy' },
+      mainEntityOfPage: location.href
+    });
+    document.head.appendChild(s);
   }
 
   async function loadComments(){
