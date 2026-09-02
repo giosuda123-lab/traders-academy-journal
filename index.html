@@ -10,40 +10,35 @@
 <body>
 <div id="ta-nav" class="nav"></div>
 
-<section class="section" style="padding-top:64px; padding-bottom:56px; position:relative; overflow:hidden;">
-  <div class="wrap" style="display:grid; grid-template-columns:1.15fr 0.85fr; gap:48px; align-items:center;">
+<section class="section" style="padding-top:56px; padding-bottom:64px; position:relative; overflow:hidden;">
+  <div class="wrap" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;">
     <div>
-      <div class="eyebrow">Price Action · Al Brooks მეთოდოლოგია</div>
-      <h1 class="serif" style="font-size:44px; line-height:1.18; font-weight:600; margin:0 0 22px; max-width:15ch;">
-        ბაზარი კითხულობს იმას, ვინც მას ბარ-ბარზე სწავლობს
+      <div class="eyebrow reveal reveal-1">Price Action · Al Brooks მეთოდოლოგია</div>
+      <h1 class="serif reveal reveal-2" style="font-size:46px; line-height:1.15; font-weight:600; margin:0 0 10px; max-width:14ch;">
+        თრეიდერთა აკადემია
       </h1>
-      <p style="font-size:17px; color:var(--text2); max-width:52ch; margin:0 0 32px;">
+      <div class="serif reveal reveal-2" style="font-size:20px; font-weight:500; color:var(--accent); margin:0 0 22px;">
+        თრეიდინგის შესწავლა პროფესიონალურ დონეზე
+      </div>
+      <p class="reveal reveal-3" style="font-size:16.5px; color:var(--text2); max-width:50ch; margin:0 0 32px;">
         Traders Academy ასწავლის თრეიდინგს ინდიკატორების გარეშე - სუფთა ბარების ანალიზზე, ბაზრის მათემატიკურ ლოგიკასა და დისციპლინაზე დაფუძნებული მიდგომით. ეს არ არის სწრაფი გამდიდრების კურსი - ეს არის სერიოზული პროფესიის საფუძველი.
       </p>
-      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+      <div class="reveal reveal-4" style="display:flex; gap:14px; flex-wrap:wrap;">
         <a href="/course.html" class="btn btn-primary">კურსის დეტალები</a>
         <a href="/blog/" class="btn">სტატიების კითხვა</a>
       </div>
     </div>
-    <div>
-      <svg viewBox="0 0 400 260" style="width:100%; height:auto;">
-        <defs>
-          <linearGradient id="lineFade" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6E93B0" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="#6E93B0" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <g stroke="#2E343B" stroke-width="1">
-          <line x1="0" y1="50" x2="400" y2="50"/>
-          <line x1="0" y1="110" x2="400" y2="110"/>
-          <line x1="0" y1="170" x2="400" y2="170"/>
-          <line x1="0" y1="230" x2="400" y2="230"/>
-        </g>
-        <path d="M0,190 L20,175 L40,182 L60,150 L80,160 L100,120 L120,132 L140,95 L160,108 L180,78 L200,90 L220,60 L240,72 L260,48 L280,58 L300,35 L320,44 L340,25 L360,38 L380,20 L400,30"
-          fill="none" stroke="#6E93B0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M0,190 L20,175 L40,182 L60,150 L80,160 L100,120 L120,132 L140,95 L160,108 L180,78 L200,90 L220,60 L240,72 L260,48 L280,58 L300,35 L320,44 L340,25 L360,38 L380,20 L400,30 L400,260 L0,260 Z"
-          fill="url(#lineFade)" stroke="none"/>
-      </svg>
+    <div class="reveal reveal-2" style="position:relative;">
+      <div class="gold-frame" style="aspect-ratio:4/5;">
+        <img src="/assets/george-photo.jpg" alt="გიორგი სუდაძე" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+        <div class="frame-fallback" style="display:none; position:absolute; inset:0;">ატვირთეთ ფოტო როგორც<br/><span class="mono" style="margin-top:6px;">/assets/george-photo.jpg</span></div>
+      </div>
+      <div style="position:absolute; left:-18px; bottom:-22px; width:150px; background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:12px 14px; box-shadow:0 14px 34px rgba(0,0,0,0.5);">
+        <svg viewBox="0 0 120 46" style="width:100%; height:auto; display:block;">
+          <path class="draw-line" d="M2,38 L10,30 L18,34 L26,20 L34,26 L42,12 L50,18 L58,6 L66,14 L74,4"
+            fill="none" stroke="#C9A24B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
     </div>
   </div>
 </section>
