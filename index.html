@@ -20,16 +20,16 @@
       <img src="/assets/george-photo.jpg" alt="გიორგი სუდაძე" onerror="this.style.display='none'; this.parentElement.classList.add('no-photo');"/>
       <div class="hero-overlay"></div>
       <div class="hero-content">
-        <h1 class="serif io-reveal" data-delay="0" style="font-size:40px; line-height:1.15; font-weight:600; margin:0 0 10px; max-width:14ch;">
+        <h1 class="serif io-reveal-repeat" data-delay="0" style="font-size:40px; line-height:1.15; font-weight:600; margin:0 0 10px; max-width:14ch;">
           თრეიდერთა აკადემია
         </h1>
-        <div class="serif hero-sub io-reveal" data-delay="90" style="font-size:18px; font-weight:500; color:var(--accent); margin:0 0 14px;">
+        <div class="serif hero-sub io-reveal-repeat" data-delay="90" style="font-size:18px; font-weight:500; color:var(--accent); margin:0 0 14px;">
           თრეიდინგის შესწავლა პროფესიონალურ დონეზე
         </div>
-        <p class="io-reveal" data-delay="180" style="font-size:14.5px; color:var(--text2); margin:0 0 26px; max-width:46ch;">
+        <p class="io-reveal-repeat" data-delay="180" style="font-size:14.5px; color:var(--text2); margin:0 0 26px; max-width:46ch;">
           Traders Academy ასწავლის თრეიდინგს ინდიკატორების გარეშე - სუფთა ბარების ანალიზზე, ბაზრის მათემატიკურ ლოგიკასა და დისციპლინაზე დაფუძნებული მიდგომით. ეს არ არის სწრაფი გამდიდრების კურსი - ეს არის სერიოზული პროფესიის საფუძველი.
         </p>
-        <div class="io-reveal" data-delay="270" style="display:flex; gap:14px; flex-wrap:wrap;">
+        <div class="io-reveal-repeat" data-delay="270" style="display:flex; gap:14px; flex-wrap:wrap;">
           <a href="/course.html" class="btn btn-primary">კურსის დეტალები</a>
           <a href="/blog/" class="btn">სტატიების კითხვა</a>
         </div>
@@ -119,6 +119,7 @@
   TA.mountNav('/');
   TA.mountFooter();
   TA.initScrollReveal();
+  TA.initScrollRevealRepeat();
   TA.mountAmbient();
   TA.initCountUp();
 
