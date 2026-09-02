@@ -11,7 +11,7 @@
 <div id="ta-nav" class="nav"></div>
 
 <section class="section" style="padding-top:56px; padding-bottom:64px; position:relative; overflow:hidden;">
-  <div class="wrap" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;">
+  <div class="wrap hero-grid">
     <div>
       <div class="eyebrow reveal reveal-1">Price Action · Al Brooks მეთოდოლოგია</div>
       <h1 class="serif reveal reveal-2" style="font-size:46px; line-height:1.15; font-weight:600; margin:0 0 10px; max-width:14ch;">
@@ -29,15 +29,9 @@
       </div>
     </div>
     <div class="reveal reveal-2" style="position:relative;">
-      <div class="gold-frame" style="aspect-ratio:4/5;">
+      <div class="gold-frame" style="aspect-ratio:16/9;">
         <img src="/assets/george-photo.jpg" alt="გიორგი სუდაძე" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
         <div class="frame-fallback" style="display:none; position:absolute; inset:0;">ატვირთეთ ფოტო როგორც<br/><span class="mono" style="margin-top:6px;">/assets/george-photo.jpg</span></div>
-      </div>
-      <div style="position:absolute; left:-18px; bottom:-22px; width:150px; background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:12px 14px; box-shadow:0 14px 34px rgba(0,0,0,0.5);">
-        <svg viewBox="0 0 120 46" style="width:100%; height:auto; display:block;">
-          <path class="draw-line" d="M2,38 L10,30 L18,34 L26,20 L34,26 L42,12 L50,18 L58,6 L66,14 L74,4"
-            fill="none" stroke="#C9A24B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
       </div>
     </div>
   </div>
@@ -48,15 +42,15 @@
 <section class="section-tight">
   <div class="wrap">
     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:32px;">
-      <div>
+      <div class="io-reveal" data-delay="0">
         <div class="mono" style="font-size:13px; color:var(--text3); margin-bottom:8px;">მეთოდოლოგია</div>
         <p style="font-size:15px; color:var(--text2); margin:0;">Al Brooks-ის Price Action - ბარების, ტრენდლაინების და Always In ლოგიკის სისტემატური კითხვა, ინდიკატორების გარეშე.</p>
       </div>
-      <div>
+      <div class="io-reveal" data-delay="100">
         <div class="mono" style="font-size:13px; color:var(--text3); margin-bottom:8px;">გამოცდილება</div>
         <p style="font-size:15px; color:var(--text2); margin:0;">5+ წელი აქტიური ვაჭრობა ES/NQ/YM ფიუჩერსებზე, ცოცხალ ანგარიშებზე და პროფესიონალურ პროგრამებში.</p>
       </div>
-      <div>
+      <div class="io-reveal" data-delay="200">
         <div class="mono" style="font-size:13px; color:var(--text3); margin-bottom:8px;">ფორმატი</div>
         <p style="font-size:15px; color:var(--text2); margin:0;">პერსონალური 1-on-1 მენტორობა შერჩეულ სტუდენტებთან - არა მასობრივი კურსი ყველასთვის.</p>
       </div>
@@ -67,7 +61,7 @@
 <hr class="hr"/>
 
 <section class="section">
-  <div class="wrap">
+  <div class="wrap io-reveal">
     <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:28px; flex-wrap:wrap; gap:10px;">
       <h2 class="serif" style="font-size:26px; font-weight:600; margin:0;">ბოლო სტატიები</h2>
       <a href="/blog/" style="font-size:14px; color:var(--accent); text-decoration:none;">ყველა სტატია</a>
@@ -81,7 +75,7 @@
 <hr class="hr"/>
 
 <section class="section">
-  <div class="wrap" style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;">
+  <div class="wrap io-reveal" style="display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;">
     <div>
       <h2 class="serif" style="font-size:26px; font-weight:600; margin:0 0 14px;">მზად ხართ სერიოზული მიდგომისთვის?</h2>
       <p style="font-size:15.5px; color:var(--text2); margin:0 0 20px; max-width:48ch;">
@@ -104,6 +98,7 @@
 <script>
   TA.mountNav('/');
   TA.mountFooter();
+  TA.initScrollReveal();
 
   (async function loadLatestPosts(){
     const el = document.getElementById('latest-posts');
