@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin - Traders Academy</title>
+<meta name="robots" content="noindex,nofollow"/>
+<link rel="stylesheet" href="/assets/site.css"/>
+</head>
+<body>
+<div id="ta-nav" class="nav"></div>
+
+<section class="section">
+  <div class="wrap">
+    <div id="admin-root">
+      <div style="color:var(--text3); font-size:14px;">იტვირთება…</div>
+    </div>
+  </div>
+</section>
+
+<div id="ta-footer" class="site-footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/site.js"></script>
+<script>
+  TA.mountNav('');
+  TA.mountFooter();
+
+  const root = document.getElementById('admin-root');
+  let currentUser = null;
+  let posts = [];
+  let editingPost = null; // null | {} | post-object
+
+  function slugify(str){
+    const map = { 'ა':'a','ბ':'b','გ':'g','დ':'d','ე':'e','ვ':'v','ზ':'z','თ':'t','ი':'i','კ':'k','ლ':'l','მ':'m','ნ':'n','ო':'o','პ':'p','ჟ':'zh','რ':'r','ს':'s','ტ':'t','უ':'u','ფ':'f','ქ':'q','ღ':'gh','ყ':'y','შ':'sh','ჩ':'ch','ც':'ts','ძ':'dz','წ':'w','ჭ':'ch','ხ':'x','ჯ':'j','ჰ':'h' };
+    return str.toLowerCase().split('').map(ch => map[ch] !== undefined ? map[ch] : ch).join('')
+      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-');
+  }
+
+  async function boot(){
+    currentUser = await TA.getUser();
+    if (!currentUser){
+      root.innerHTML = `<div class="card" style="max-width:400px;"><div class="serif" style="font-size:17px; font-weight:600; margin-bottom:14px;">ადმინის შესვლა</div><div id="admin-auth"></div></div>`;
+      TA.renderAuthWidget(document.getElementById('admin-auth'), async (user) => { currentUser = user; boot(); });
+      return;
+    }
+    const isAdmin = await TA.isAdmin(currentUser.id);
+    if (!isAdmin){
+      root.innerHTML = `<div style="font-size:14px; color:var(--text2);">ეს ანგარიშს ადმინის უფლება არ აქვს. თუ ეს შენი ანგარიშია, გაააქტიურე is_admin ველი Supabase-ის profiles ცხრილში.</div>`;
+      return;
+    }
+    await loadPosts();
+    renderList();
+  }
+
+  async function loadPosts(){
+    const { data, error } = await TA.sb.from('posts').select('*').order('created_at', { ascending: false });
+    posts = error ? [] : (data || []);
+  }
+
+  function renderList(){
+    root.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div class="serif" style="font-size:22px; font-weight:600;">სტატიების მართვა</div>
+        <button id="new-post-btn" class="btn btn-primary">+ ახალი სტატია</button>
+      </div>
+      <div style="display:flex; flex-direction:column;">
+        ${posts.length === 0 ? '<div style="color:var(--text3); font-size:14px;">ჯერ არცერთი სტატია არ არის.</div>' : posts.map(p => `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; padding:16px 0; border-bottom:0.5px solid var(--border);">
+            <div>
+              <div style="font-size:15px; font-weight:600;">${TA.escapeHtml(p.title)} ${!p.published ? '<span class="badge" style="margin-left:8px;">დრაფტი</span>' : ''}</div>
+              <div class="mono" style="font-size:11.5px; color:var(--text3); margin-top:4px;">${TA.CATEGORY_LABELS[p.category]||p.category} · ${TA.fmtDate(p.created_at)} · /blog/post.html?slug=${p.slug}</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-shrink:0;">
+              <button class="btn btn-sm" data-edit="${p.id}">რედაქტირება</button>
+              <button class="btn btn-sm" data-del="${p.id}" style="color:var(--red);">წაშლა</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.getElementById('new-post-btn').onclick = () => { editingPost = { title:'', slug:'', category:'market_analysis', excerpt:'', content:'', published:true }; renderEditor(); };
+    root.querySelectorAll('[data-edit]').forEach(b => { b.onclick = () => { editingPost = { ...posts.find(p=>p.id===b.dataset.edit) }; renderEditor(); }; });
+    root.querySelectorAll('[data-del]').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('წავშალო ეს სტატია?')) return;
+        await TA.sb.from('posts').delete().eq('id', b.dataset.del);
+        await loadPosts(); renderList();
+      };
+    });
+  }
+
+  function renderEditor(){
+    const p = editingPost;
+    root.innerHTML = `
+      <button id="back-btn" class="btn btn-sm" style="margin-bottom:20px;">← სია</button>
+      <div class="serif" style="font-size:20px; font-weight:600; margin-bottom:20px;">${p.id ? 'სტატიის რედაქტირება' : 'ახალი სტატია'}</div>
+      <div style="display:grid; gap:14px; max-width:760px;">
+        <div><label class="field-label">სათაური</label><input class="input" id="f-title" value="${TA.escapeHtml(p.title)}"/></div>
+        <div><label class="field-label">Slug (URL)</label><input class="input" id="f-slug" value="${TA.escapeHtml(p.slug)}"/></div>
+        <div><label class="field-label">კატეგორია</label>
+          <select class="input" id="f-category">
+            <option value="market_analysis" ${p.category==='market_analysis'?'selected':''}>ბაზრის ანალიზი</option>
+            <option value="price_action_tips" ${p.category==='price_action_tips'?'selected':''}>Price Action Tips</option>
+            <option value="psychology" ${p.category==='psychology'?'selected':''}>ფსიქოლოგია</option>
+          </select>
+        </div>
+        <div><label class="field-label">მოკლე აღწერა (excerpt)</label><textarea class="input" id="f-excerpt" rows="2">${TA.escapeHtml(p.excerpt||'')}</textarea></div>
+        <div>
+          <label class="field-label">კონტენტი (HTML)</label>
+          <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <button type="button" class="btn btn-sm" data-wrap="h2">H2</button>
+            <button type="button" class="btn btn-sm" data-wrap="h3">H3</button>
+            <button type="button" class="btn btn-sm" data-wrap="strong">Bold</button>
+            <button type="button" class="btn btn-sm" data-wrap="em">Italic</button>
+            <button type="button" class="btn btn-sm" data-wrap="p">P</button>
+          </div>
+          <textarea class="input" id="f-content" rows="16" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">${p.content||''}</textarea>
+        </div>
+        <div><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" id="f-published" ${p.published?'checked':''}/> გამოქვეყნებულია</label></div>
+        <div id="editor-msg"></div>
+        <div style="display:flex; gap:10px;">
+          <button id="save-btn" class="btn btn-primary">შენახვა</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('back-btn').onclick = () => { editingPost = null; renderList(); };
+    document.getElementById('f-title').addEventListener('input', (e) => {
+      if (!p.id) document.getElementById('f-slug').value = slugify(e.target.value);
+    });
+    root.querySelectorAll('[data-wrap]').forEach(b => {
+      b.onclick = () => {
+        const ta = document.getElementById('f-content');
+        const tag = b.dataset.wrap;
+        const start = ta.selectionStart, end = ta.selectionEnd;
+        const sel = ta.value.slice(start, end) || 'ტექსტი';
+        ta.value = ta.value.slice(0, start) + `<${tag}>${sel}</${tag}>` + ta.value.slice(end);
+        ta.focus();
+      };
+    });
+    document.getElementById('save-btn').onclick = async () => {
+      const payload = {
+        title: document.getElementById('f-title').value.trim(),
+        slug: document.getElementById('f-slug').value.trim(),
+        category: document.getElementById('f-category').value,
+        excerpt: document.getElementById('f-excerpt').value.trim(),
+        content: document.getElementById('f-content').value,
+        published: document.getElementById('f-published').checked,
+        author_id: currentUser.id
+      };
+      const msg = document.getElementById('editor-msg');
+      if (!payload.title || !payload.slug){ msg.innerHTML = '<div class="status-msg status-error">სათაური და Slug სავალდებულოა.</div>'; return; }
+      let error;
+      if (p.id){
+        ({ error } = await TA.sb.from('posts').update(payload).eq('id', p.id));
+      } else {
+        ({ error } = await TA.sb.from('posts').insert(payload));
+      }
+      if (error){ msg.innerHTML = `<div class="status-msg status-error">${TA.escapeHtml(error.message)}</div>`; return; }
+      msg.innerHTML = '<div class="status-msg status-ok">შენახულია.</div>';
+      await loadPosts();
+      setTimeout(() => { editingPost = null; renderList(); }, 600);
+    };
+  }
+
+  boot();
+</script>
+</body>
+</html>
