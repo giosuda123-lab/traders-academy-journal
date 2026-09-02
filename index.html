@@ -10,6 +10,10 @@
 <body>
 <div id="ta-nav" class="nav"></div>
 
+<div class="ticker-wrap">
+  <div class="ticker-track" id="ticker-track"></div>
+</div>
+
 <section class="section" style="padding-top:40px; padding-bottom:56px;">
   <div class="wrap">
     <div class="hero-photo">
@@ -29,6 +33,25 @@
           <a href="/course.html" class="btn btn-primary">კურსის დეტალები</a>
           <a href="/blog/" class="btn">სტატიების კითხვა</a>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" style="padding-top:0;">
+  <div class="wrap io-reveal">
+    <div class="grid-3" style="gap:24px; text-align:center;">
+      <div>
+        <div class="serif count-up" data-target="5" data-suffix="+" style="font-size:38px; font-weight:600; color:var(--accent);">0</div>
+        <div style="font-size:13px; color:var(--text3); margin-top:4px;">წელი აქტიური ვაჭრობა</div>
+      </div>
+      <div>
+        <div class="serif count-up" data-target="100" data-suffix="+" style="font-size:38px; font-weight:600; color:var(--accent);">0</div>
+        <div style="font-size:13px; color:var(--text3); margin-top:4px;">გადამზადებული სტუდენტი</div>
+      </div>
+      <div>
+        <div class="serif count-up" data-target="1" data-suffix=":1" style="font-size:38px; font-weight:600; color:var(--accent);">0</div>
+        <div style="font-size:13px; color:var(--text3); margin-top:4px;">ინდივიდუალური მენტორობა</div>
       </div>
     </div>
   </div>
@@ -96,6 +119,19 @@
   TA.mountNav('/');
   TA.mountFooter();
   TA.initScrollReveal();
+  TA.mountAmbient();
+  TA.initCountUp();
+
+  (function renderTicker(){
+    const items = [
+      ['Price Action', null], ['Al Brooks მეთოდოლოგია', null], ['ES', 'up'], ['NQ', 'down'], ['YM', 'up'],
+      ['Always In Long', 'up'], ['Trend Bar', null], ['Signal Bar', null], ['Breakout Pullback', 'up'], ['Trading Range', null]
+    ];
+    const html = items.map(([label, dir]) => `
+      <div class="ticker-item"><span class="ticker-dot"></span>${label}${dir ? `<span class="${dir}">${dir==='up'?'▲':'▼'}</span>` : ''}</div>
+    `).join('');
+    document.getElementById('ticker-track').innerHTML = html + html; // დუბლირება - უწყვეტი loop-ისთვის
+  })();
 
   (async function loadLatestPosts(){
     const el = document.getElementById('latest-posts');
