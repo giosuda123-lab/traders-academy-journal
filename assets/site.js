@@ -220,5 +220,27 @@ window.TA = (function(){
     els.forEach(el => io.observe(el));
   }
 
-  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, mountAmbient, initCountUp };
+  // განმეორებადი reveal - ყოველ ჯერზე ცოცხლდება, როცა ელემენტი
+  // ეკრანზე შემოდის (მათ შორის ხელახლა, თუ სქროლით გავედით და დავბრუნდით)
+  function initScrollRevealRepeat(){
+    const els = document.querySelectorAll('.io-reveal-repeat');
+    if (!els.length) return;
+    if (!('IntersectionObserver' in window)){ els.forEach(el => el.classList.add('io-in')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const el = entry.target;
+        if (entry.isIntersecting){
+          const delay = el.dataset.delay ? Number(el.dataset.delay) : 0;
+          clearTimeout(el._taRevealTimer);
+          el._taRevealTimer = setTimeout(() => el.classList.add('io-in'), delay);
+        } else {
+          clearTimeout(el._taRevealTimer);
+          el.classList.remove('io-in');
+        }
+      });
+    }, { threshold: 0.2 });
+    els.forEach(el => io.observe(el));
+  }
+
+  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp };
 })();
