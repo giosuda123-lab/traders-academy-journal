@@ -33,6 +33,7 @@
 <script>
   TA.mountNav('/blog/');
   TA.mountFooter();
+  TA.initScrollReveal();
 
   const CATS = [['', 'ყველა'], ['market_analysis', 'ბაზრის ანალიზი'], ['price_action_tips', 'Price Action Tips'], ['psychology', 'ფსიქოლოგია']];
   let activeCat = new URLSearchParams(location.search).get('category') || '';
@@ -41,7 +42,7 @@
   function renderFilters(){
     const el = document.getElementById('cat-filters');
     el.innerHTML = CATS.map(([val, label]) => `
-      <button data-cat="${val}" class="btn btn-sm" style="${activeCat===val ? 'border-color:var(--accent); background:rgba(110,147,176,0.16);' : ''}">${label}</button>
+      <button data-cat="${val}" class="btn btn-sm" style="${activeCat===val ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">${label}</button>
     `).join('');
     el.querySelectorAll('[data-cat]').forEach(b => {
       b.onclick = () => { activeCat = b.dataset.cat; renderFilters(); renderPosts(); };
