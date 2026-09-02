@@ -124,8 +124,8 @@
 
   (function renderTicker(){
     const items = [
-      ['Price Action', null], ['Al Brooks მეთოდოლოგია', null], ['ES', 'up'], ['NQ', 'down'], ['YM', 'up'],
-      ['Always In Long', 'up'], ['Trend Bar', null], ['Signal Bar', null], ['Breakout Pullback', 'up'], ['Trading Range', null]
+      ['Traders Academy', null], ['Price Action მეთოდოლოგია', null], ['ინდივიდუალური მენტორობა', null],
+      ['100+ გადამზადებული სტუდენტი', null], ['5+ წლის გამოცდილება', null]
     ];
     const html = items.map(([label, dir]) => `
       <div class="ticker-item"><span class="ticker-dot"></span>${label}${dir ? `<span class="${dir}">${dir==='up'?'▲':'▼'}</span>` : ''}</div>
