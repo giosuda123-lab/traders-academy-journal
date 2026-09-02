@@ -166,5 +166,25 @@ window.TA = (function(){
     render();
   }
 
-  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget };
+  // სქროლზე გამოჩენადი ელემენტების ამამუშავებელი - ნებისმიერ გვერდზე
+  // საკმარისია `.io-reveal` კლასის დამატება ელემენტზე (და სურვილისამებრ
+  // `data-delay="120"` მილიწამებში), ეს ფუნქცია თავად ამატებს `.io-in`-ს,
+  // როცა ელემენტი ეკრანზე შემოდის.
+  function initScrollReveal(){
+    const els = document.querySelectorAll('.io-reveal');
+    if (!els.length) return;
+    if (!('IntersectionObserver' in window)){ els.forEach(el => el.classList.add('io-in')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          const delay = entry.target.dataset.delay ? Number(entry.target.dataset.delay) : 0;
+          setTimeout(() => entry.target.classList.add('io-in'), delay);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(el => io.observe(el));
+  }
+
+  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal };
 })();
