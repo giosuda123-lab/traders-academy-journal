@@ -4,14 +4,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg: #14171B;
-  --panel: #1B1F24;
-  --panel2: #21262D;
-  --border: #2E343B;
-  --text: #E7E5DE;
-  --text2: #9B9993;
-  --text3: #6E6C67;
-  --accent: #6E93B0;
+  --bg: #14120E;
+  --panel: #1C1913;
+  --panel2: #24201A;
+  --border: #3A3226;
+  --text: #F0EAD8;
+  --text2: #B3A88F;
+  --text3: #7A7061;
+  --accent: #C9A24B;
+  --accent-rgb: 201,162,75;
+  --accent-deep: #A9822F;
   --green: #4F9E76;
   --red: #BD5A4C;
   --amber: #C99A50;
@@ -60,7 +62,7 @@ a { color: inherit; }
 .nav-links a:hover, .nav-links a.active { color: var(--text); }
 .nav-cta {
   padding: 8px 16px; border-radius: 8px; border: 0.5px solid var(--accent);
-  background: rgba(110,147,176,0.14); color: var(--text) !important; font-size: 13.5px;
+  background: rgba(var(--accent-rgb),0.14); color: var(--text) !important; font-size: 13.5px;
   text-decoration: none; white-space: nowrap;
 }
 .nav-burger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
@@ -79,8 +81,8 @@ a { color: inherit; }
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .btn:hover { border-color: var(--accent); }
-.btn-primary { border-color: var(--accent); background: rgba(110,147,176,0.16); }
-.btn-primary:hover { background: rgba(110,147,176,0.26); }
+.btn-primary { border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
+.btn-primary:hover { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent-deep); }
 .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
 
 /* ===== ფორმის ველები ===== */
@@ -125,4 +127,31 @@ textarea.input { resize: vertical; }
 @media (max-width: 640px) {
   .section { padding: 48px 0; }
   .prose { font-size: 16px; }
+}
+
+/* ===== ერთი, დისციპლინირებული motion-მომენტი - hero-ს გამოჩენისას ===== */
+@keyframes ta-fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.reveal { opacity: 0; animation: ta-fade-up 0.7s ease forwards; }
+.reveal-1 { animation-delay: 0.05s; }
+.reveal-2 { animation-delay: 0.18s; }
+.reveal-3 { animation-delay: 0.31s; }
+.reveal-4 { animation-delay: 0.44s; }
+
+@keyframes ta-draw-line { to { stroke-dashoffset: 0; } }
+.draw-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: ta-draw-line 1.8s 0.3s ease forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .draw-line { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+}
+
+/* ===== ოქროსფერი ჩარჩო ფოტოსთვის ===== */
+.gold-frame {
+  position: relative; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45);
+}
+.gold-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gold-frame .frame-fallback {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  aspect-ratio: 4/5; background: var(--panel2); color: var(--text3); font-size: 13px; padding: 24px;
 }
