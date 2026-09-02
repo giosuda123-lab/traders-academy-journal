@@ -1,0 +1,128 @@
+/* ===== Traders Academy - საერთო დიზაინის სისტემა =====
+   იგივე პალიტრა, რაც Trade Journal-ში - შენარჩუნებული ვიზუალური იდენტობა. */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #14171B;
+  --panel: #1B1F24;
+  --panel2: #21262D;
+  --border: #2E343B;
+  --text: #E7E5DE;
+  --text2: #9B9993;
+  --text3: #6E6C67;
+  --accent: #6E93B0;
+  --green: #4F9E76;
+  --red: #BD5A4C;
+  --amber: #C99A50;
+  --maxw: 1080px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+.serif { font-family: 'Source Serif 4', Georgia, serif; }
+.mono { font-family: 'IBM Plex Mono', monospace; }
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+.wrap-narrow { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+/* ===== ნავიგაცია ===== */
+.nav {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(20,23,27,0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 0.5px solid var(--border);
+}
+.nav-inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+}
+.nav-logo {
+  font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 18px;
+  letter-spacing: 0.2px; text-decoration: none; color: var(--text);
+  white-space: nowrap;
+}
+.nav-links { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.nav-links a {
+  text-decoration: none; color: var(--text2); font-size: 14px; transition: color 0.15s ease;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); }
+.nav-cta {
+  padding: 8px 16px; border-radius: 8px; border: 0.5px solid var(--accent);
+  background: rgba(110,147,176,0.14); color: var(--text) !important; font-size: 13.5px;
+  text-decoration: none; white-space: nowrap;
+}
+.nav-burger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border-bottom: 0.5px solid var(--border); flex-direction: column; align-items: flex-start; padding: 16px 24px; gap: 14px; }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: block; }
+}
+
+/* ===== ღილაკები ===== */
+.btn {
+  display: inline-block; padding: 11px 22px; border-radius: 9px; font-size: 14.5px;
+  text-decoration: none; cursor: pointer; border: 0.5px solid var(--border);
+  background: transparent; color: var(--text); font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.btn:hover { border-color: var(--accent); }
+.btn-primary { border-color: var(--accent); background: rgba(110,147,176,0.16); }
+.btn-primary:hover { background: rgba(110,147,176,0.26); }
+.btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+
+/* ===== ფორმის ველები ===== */
+.field-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
+.input {
+  width: 100%; padding: 10px 12px; border-radius: 8px; border: 0.5px solid var(--border);
+  background: var(--panel2); color: var(--text); font-size: 14px; font-family: inherit;
+}
+textarea.input { resize: vertical; }
+
+/* ===== საერთო სექციები ===== */
+.section { padding: 72px 0; }
+.section-tight { padding: 40px 0; }
+.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text3); margin-bottom: 14px; }
+.hr { border: none; border-top: 0.5px solid var(--border); margin: 0; }
+
+.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; }
+
+/* ===== სტატიის prose ===== */
+.prose { font-size: 17px; line-height: 1.75; color: var(--text); }
+.prose p { margin: 0 0 20px; }
+.prose h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 600; margin: 40px 0 16px; }
+.prose h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 21px; font-weight: 600; margin: 32px 0 14px; }
+.prose ul, .prose ol { margin: 0 0 20px; padding-left: 22px; }
+.prose li { margin-bottom: 8px; }
+.prose img { border-radius: 10px; margin: 24px 0; }
+.prose blockquote { border-left: 3px solid var(--accent); padding-left: 18px; margin: 24px 0; color: var(--text2); font-style: italic; }
+
+/* ===== ფუტერი ===== */
+.site-footer { border-top: 0.5px solid var(--border); padding: 40px 0; margin-top: 60px; }
+.site-footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+.site-footer, .site-footer a { color: var(--text3); font-size: 13px; text-decoration: none; }
+.site-footer a:hover { color: var(--text2); }
+.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+/* ===== უტილიტები ===== */
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 4px 10px; border-radius: 999px; border: 0.5px solid var(--border); color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+.status-msg { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin: 12px 0; }
+.status-error { background: rgba(189,90,76,0.12); color: var(--red); border: 0.5px solid rgba(189,90,76,0.3); }
+.status-ok { background: rgba(79,158,118,0.12); color: var(--green); border: 0.5px solid rgba(79,158,118,0.3); }
+
+@media (max-width: 640px) {
+  .section { padding: 48px 0; }
+  .prose { font-size: 16px; }
+}
