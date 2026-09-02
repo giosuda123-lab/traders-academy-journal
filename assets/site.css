@@ -99,7 +99,8 @@ textarea.input { resize: vertical; }
 .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text3); margin-bottom: 14px; }
 .hr { border: none; border-top: 0.5px solid var(--border); margin: 0; }
 
-.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; }
+.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color 0.2s ease, transform 0.2s ease; }
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
 /* ===== სტატიის prose ===== */
 .prose { font-size: 17px; line-height: 1.75; color: var(--text); }
@@ -140,18 +141,35 @@ textarea.input { resize: vertical; }
 @keyframes ta-draw-line { to { stroke-dashoffset: 0; } }
 .draw-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: ta-draw-line 1.8s 0.3s ease forwards; }
 
+/* ===== სქროლზე გამოჩენადი ელემენტები (მთელს საიტზე გამოსაყენებელი) ===== */
+.io-reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.io-reveal.io-in { opacity: 1; transform: translateY(0); }
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .draw-line { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; }
+  .reveal, .draw-line, .io-reveal { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
 }
 
-/* ===== ოქროსფერი ჩარჩო ფოტოსთვის ===== */
+/* ===== ოქროსფერი ჩარჩო ფოტოსთვის - ბუნებრივი პროპორციით, დაუჭრელად ===== */
 .gold-frame {
   position: relative; border-radius: 14px; overflow: hidden;
   border: 1px solid var(--accent);
   box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45);
+  animation: ta-glow 5s ease-in-out infinite;
 }
 .gold-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gold-frame .frame-fallback {
   display: flex; align-items: center; justify-content: center; text-align: center;
-  aspect-ratio: 4/5; background: var(--panel2); color: var(--text3); font-size: 13px; padding: 24px;
+  aspect-ratio: 16/9; background: var(--panel2); color: var(--text3); font-size: 13px; padding: 24px;
+}
+@keyframes ta-glow {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb),0.16), 0 24px 60px rgba(0,0,0,0.45); }
+}
+@media (prefers-reduced-motion: reduce) { .gold-frame { animation: none; } }
+
+/* ===== Hero grid - მობილურზე ერთ სვეტად იკეცება ===== */
+.hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+@media (max-width: 760px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .hero-grid > div:last-child { order: -1; }
 }
