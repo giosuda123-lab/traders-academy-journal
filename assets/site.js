@@ -20,6 +20,17 @@ window.TA = (function(){
     return d.toLocaleDateString('ka-GE', { year:'numeric', month:'long', day:'numeric' });
   }
 
+  // Supabase (ან ნებისმიერი) მოთხოვნას აჭერს ზედა ზღვარს - თუ ქსელი/სერვერი
+  // არ პასუხობს, error-ს isვამბობს timeout-ის მიზეზით, "იტვირთება..."
+  // მდგომარეობაში სამუდამოდ არ დარჩენა გარანტირებულია.
+  function withTimeout(promise, ms){
+    ms = ms || 8000;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('მოთხოვნამ დრო ამოწურა (' + Math.round(ms/1000) + 'წმ) - შეამოწმეთ ინტერნეტ-კავშირი.')), ms))
+    ]);
+  }
+
   const CATEGORY_LABELS = {
     market_analysis: 'ბაზრის ანალიზი',
     price_action_tips: 'Price Action Tips',
@@ -38,18 +49,43 @@ window.TA = (function(){
     const el = document.getElementById('ta-nav');
     if (!el) return;
     el.innerHTML = `
-      <div class="nav-inner">
+      <nav class="nav-inner" aria-label="მთავარი ნავიგაცია">
         <a href="/" class="nav-logo">Traders Academy</a>
-        <button class="nav-burger" id="ta-burger" aria-label="მენიუ">☰</button>
+        <button type="button" class="nav-burger" id="ta-burger" aria-label="მენიუს გახსნა" aria-expanded="false" aria-controls="ta-nav-links">☰</button>
         <div class="nav-links" id="ta-nav-links">
-          ${NAV_LINKS.map(([href, label]) => `<a href="${href}" ${activePath===href?'class="active"':''}>${label}</a>`).join('')}
+          ${NAV_LINKS.map(([href, label]) => `<a href="${href}" ${activePath===href?'class="active" aria-current="page"':''}>${label}</a>`).join('')}
           <a href="/journal/" class="nav-cta">Trade Journal</a>
         </div>
-      </div>
+      </nav>
     `;
     const burger = document.getElementById('ta-burger');
     const links = document.getElementById('ta-nav-links');
-    if (burger) burger.onclick = () => links.classList.toggle('open');
+    if (!burger || !links) return;
+
+    function openMenu(){
+      links.classList.add('open');
+      burger.setAttribute('aria-expanded', 'true');
+      burger.setAttribute('aria-label', 'მენიუს დახურვა');
+      const first = links.querySelector('a');
+      if (first) first.focus();
+      document.addEventListener('keydown', onKeydown);
+      document.addEventListener('click', onOutsideClick, true);
+    }
+    function closeMenu(returnFocus){
+      links.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+      burger.setAttribute('aria-label', 'მენიუს გახსნა');
+      document.removeEventListener('keydown', onKeydown);
+      document.removeEventListener('click', onOutsideClick, true);
+      if (returnFocus) burger.focus();
+    }
+    function onKeydown(e){ if (e.key === 'Escape') closeMenu(true); }
+    function onOutsideClick(e){ if (!links.contains(e.target) && e.target !== burger) closeMenu(false); }
+
+    burger.addEventListener('click', () => { links.classList.contains('open') ? closeMenu(true) : openMenu(); });
+    links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => closeMenu(false)));
+    // desktop-ზე ეკრანის გაფართოებისას მენიუს "ღია" მდგომარეობა არ უნდა ჩამორჩეს
+    window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMenu(false); });
   }
 
   function mountFooter(){
@@ -63,6 +99,15 @@ window.TA = (function(){
           <a href="/course.html">კურსი</a>
           <a href="/blog/">სტატიები</a>
           <a href="/referrals.html">რესურსები</a>
+        </div>
+      </div>
+      <div class="wrap" style="margin-top:14px; padding-top:14px; border-top:0.5px solid var(--border);">
+        <div class="footer-links" style="font-size:12px;">
+          <a href="/legal/risk-disclosure.html">რისკის განმარტება</a>
+          <a href="/legal/privacy-policy.html">კონფიდენციალურობა</a>
+          <a href="/legal/terms.html">წესები და პირობები</a>
+          <a href="/legal/cookie-policy.html">Cookie პოლიტიკა</a>
+          <a href="/legal/affiliate-disclosure.html">პარტნიორული ბმულები</a>
         </div>
       </div>
     `;
@@ -242,5 +287,5 @@ window.TA = (function(){
     els.forEach(el => io.observe(el));
   }
 
-  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp };
+  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp };
 })();
