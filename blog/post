@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title id="page-title">სტატია - Traders Academy</title>
+<meta name="description" id="page-desc" content=""/>
+<link rel="stylesheet" href="/assets/site.css"/>
+</head>
+<body>
+<div id="ta-nav" class="nav"></div>
+
+<article class="section" style="padding-bottom:36px;">
+  <div class="wrap-narrow">
+    <div id="post-header">
+      <div style="color:var(--text3); font-size:14px;">იტვირთება…</div>
+    </div>
+  </div>
+</article>
+
+<div class="wrap-narrow">
+  <div id="post-body" class="prose"></div>
+</div>
+
+<div class="wrap-narrow">
+  <hr class="hr" style="margin:48px 0 40px;"/>
+  <div id="comments-section"></div>
+</div>
+
+<div style="height:60px;"></div>
+<div id="ta-footer" class="site-footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/site.js"></script>
+<script>
+  TA.mountNav('/blog/');
+  TA.mountFooter();
+
+  const slug = new URLSearchParams(location.search).get('slug');
+  let currentPost = null;
+  let currentUser = null;
+  let currentUserIsAdmin = false;
+
+  async function loadPost(){
+    if (!slug){
+      document.getElementById('post-header').innerHTML = '<div style="color:var(--red); font-size:14px;">სტატია ვერ მოიძებნა.</div>';
+      return;
+    }
+    try {
+      const { data, error } = await TA.sb.from('posts').select('*').eq('slug', slug).eq('published', true).single();
+      if (error || !data) throw error || new Error('არ მოიძებნა');
+      currentPost = data;
+      document.getElementById('page-title').textContent = data.title + ' - Traders Academy';
+      document.getElementById('page-desc').setAttribute('content', data.excerpt || '');
+      document.getElementById('post-header').innerHTML = `
+        <div class="mono" style="font-size:12px; color:var(--text3); margin-bottom:12px;">${TA.CATEGORY_LABELS[data.category]||data.category} · ${TA.fmtDate(data.created_at)}</div>
+        <h1 class="serif" style="font-size:32px; font-weight:600; line-height:1.25; margin:0;">${TA.escapeHtml(data.title)}</h1>
+      `;
+      // შენიშვნა: content ინახება მხოლოდ ადმინის მიერ დაწერილი - ნდობით რენდერდება HTML-ად.
+      // მომხმარებლის შემოტანილი კონტენტი (კომენტარები) ყოველთვის escapeHtml-ით გადის.
+      document.getElementById('post-body').innerHTML = data.content || '';
+    } catch(e){
+      document.getElementById('post-header').innerHTML = '<div style="color:var(--red); font-size:14px;">სტატია ვერ მოიძებნა.</div>';
+    }
+  }
+
+  async function loadComments(){
+    const el = document.getElementById('comments-section');
+    if (!currentPost){ el.innerHTML = ''; return; }
+    let comments = [];
+    try {
+      const { data, error } = await TA.sb.from('comments').select('*').eq('post_id', currentPost.id).order('created_at', { ascending: true });
+      if (error) throw error;
+      comments = data || [];
+    } catch(e){ /* ცარიელ სიად ჩაითვლება */ }
+
+    el.innerHTML = `
+      <div class="serif" style="font-size:19px; font-weight:600; margin-bottom:20px;">კომენტარები (${comments.length})</div>
+      <div id="comments-list" style="display:flex; flex-direction:column; gap:16px; margin-bottom:28px;">
+        ${comments.length === 0 ? '<div style="font-size:14px; color:var(--text3);">ჯერ არცერთი კომენტარი არ არის - იყავით პირველი.</div>' : comments.map(c => `
+          <div style="border-bottom:0.5px solid var(--border); padding-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+              <div style="font-size:13.5px; font-weight:600; color:var(--text);">${TA.escapeHtml(c.author_name || 'მომხმარებელი')}</div>
+              <div class="mono" style="font-size:11px; color:var(--text3);">${TA.fmtDate(c.created_at)}</div>
+            </div>
+            <div style="font-size:14.5px; color:var(--text2); margin-top:6px; white-space:pre-wrap;">${TA.escapeHtml(c.content)}</div>
+            ${(currentUserIsAdmin || (currentUser && currentUser.id === c.user_id)) ? `<button data-del-comment="${c.id}" style="margin-top:6px; font-size:11.5px; color:var(--red); background:none; border:none; cursor:pointer; padding:0;">წაშლა</button>` : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div id="comment-form-area"></div>
+    `;
+    el.querySelectorAll('[data-del-comment]').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('წავშალო ეს კომენტარი?')) return;
+        await TA.sb.from('comments').delete().eq('id', b.dataset.delComment);
+        loadComments();
+      };
+    });
+    renderCommentForm();
+  }
+
+  function renderCommentForm(){
+    const area = document.getElementById('comment-form-area');
+    if (currentUser){
+      area.innerHTML = `
+        <form id="comment-form">
+          <label class="field-label">კომენტარის დატოვება</label>
+          <textarea class="input" name="content" rows="3" required style="margin-bottom:10px;"></textarea>
+          <div id="comment-msg"></div>
+          <button type="submit" class="btn btn-primary">გამოქვეყნება</button>
+        </form>
+      `;
+      area.querySelector('#comment-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const content = fd.get('content').trim();
+        if (!content) return;
+        const { error } = await TA.sb.from('comments').insert({
+          post_id: currentPost.id,
+          user_id: currentUser.id,
+          author_name: currentUser.user_metadata && currentUser.user_metadata.display_name ? currentUser.user_metadata.display_name : currentUser.email,
+          content
+        });
+        const msg = area.querySelector('#comment-msg');
+        if (error){ msg.innerHTML = `<div class="status-msg status-error">${TA.escapeHtml(error.message)}</div>`; return; }
+        loadComments();
+      });
+    } else {
+      area.innerHTML = `<div style="font-size:13.5px; color:var(--text2); margin-bottom:14px;">კომენტარის დასატოვებლად საჭიროა შესვლა.</div><div id="comment-auth-widget"></div>`;
+      TA.renderAuthWidget(document.getElementById('comment-auth-widget'), async (user) => {
+        currentUser = user;
+        currentUserIsAdmin = await TA.isAdmin(user.id);
+        loadComments();
+      });
+    }
+  }
+
+  (async function init(){
+    currentUser = await TA.getUser();
+    if (currentUser) currentUserIsAdmin = await TA.isAdmin(currentUser.id);
+    await loadPost();
+    await loadComments();
+  })();
+</script>
+</body>
+</html>
