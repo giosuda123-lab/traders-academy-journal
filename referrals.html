@@ -52,6 +52,7 @@
   TA.mountNav('/referrals.html');
   TA.mountFooter();
   TA.initScrollReveal();
+  TA.mountAmbient();
   // TODO: შეცვალეთ რეალური რეფერალური ბმულებით
   const REF_LINKS = { xm: 'https://affs.click/vQ2wc', tradingview: 'https://tradingview.com/?aff_id=YOUR_ID' };
   document.querySelectorAll('[data-ref-link]').forEach(a => { a.href = REF_LINKS[a.dataset.refLink] || '#'; });
