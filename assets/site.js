@@ -186,5 +186,39 @@ window.TA = (function(){
     els.forEach(el => io.observe(el));
   }
 
-  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal };
+  // ფონური ambient-ნათების ინექცია (ერთხელ გვერდზე) - სუფთა დეკორაცია, კონტენტს არ ეხება
+  function mountAmbient(){
+    if (document.querySelector('.ambient-glow')) return;
+    const el = document.createElement('div');
+    el.className = 'ambient-glow';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    document.body.prepend(el);
+  }
+
+  // რიცხვების ეტაპობრივი "დათვლა" 0-დან target-მდე, სქროლზე გამოჩენისას.
+  // გამოყენება: <span class="count-up" data-target="100" data-suffix="+"></span>
+  function initCountUp(){
+    const els = document.querySelectorAll('.count-up[data-target]');
+    if (!els.length) return;
+    const animate = (el) => {
+      const target = Number(el.dataset.target) || 0;
+      const suffix = el.dataset.suffix || '';
+      const dur = 1400;
+      const start = performance.now();
+      function step(now){
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(eased * target) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    };
+    if (!('IntersectionObserver' in window)){ els.forEach(el => animate(el)); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting){ animate(entry.target); io.unobserve(entry.target); } });
+    }, { threshold: 0.4 });
+    els.forEach(el => io.observe(el));
+  }
+
+  return { sb, escapeHtml, fmtDate, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, mountAmbient, initCountUp };
 })();
