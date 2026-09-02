@@ -25,6 +25,7 @@
 <script>
   TA.mountNav('');
   TA.mountFooter();
+  TA.mountAmbient();
 
   const root = document.getElementById('admin-root');
   let currentUser = null;
