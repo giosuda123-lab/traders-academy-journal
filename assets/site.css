@@ -266,3 +266,19 @@ textarea.input { resize: vertical; }
   .hero-grid { grid-template-columns: 1fr; gap: 32px; }
   .hero-grid > div:last-child { order: -1; }
 }
+
+/* ===== ხელმისაწვდომობა: ხილული focus, skip-link, შეხების არე ===== */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 100;
+  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+  padding: 10px 16px; border-radius: 8px; text-decoration: none; font-size: 14px;
+  transition: top 0.2s ease;
+}
+.skip-link:focus { top: 12px; }
+.nav-burger { min-width: 44px; min-height: 44px; }
+.nav-cta, .btn { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
