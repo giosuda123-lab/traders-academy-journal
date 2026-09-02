@@ -34,6 +34,7 @@
   TA.mountNav('/blog/');
   TA.mountFooter();
   TA.initScrollReveal();
+  TA.mountAmbient();
 
   const CATS = [['', 'ყველა'], ['market_analysis', 'ბაზრის ანალიზი'], ['price_action_tips', 'Price Action Tips'], ['psychology', 'ფსიქოლოგია']];
   let activeCat = new URLSearchParams(location.search).get('category') || '';
