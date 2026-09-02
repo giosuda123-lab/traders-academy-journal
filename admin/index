@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Admin - Traders Academy</title>
 <meta name="robots" content="noindex,nofollow"/>
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png"/>
+<link rel="icon" href="/assets/favicon-16.png" sizes="16x16" type="image/png"/>
 <link rel="stylesheet" href="/assets/site.css"/>
 </head>
 <body>
-<div id="ta-nav" class="nav"></div>
+<a href="#main-content" class="skip-link">კონტენტზე გადასვლა</a>
+<header id="ta-nav" class="nav"></header>
+<main id="main-content">
 
 <section class="section">
   <div class="wrap">
@@ -18,7 +22,8 @@
   </div>
 </section>
 
-<div id="ta-footer" class="site-footer"></div>
+</main>
+<footer id="ta-footer" class="site-footer"></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/site.js"></script>
