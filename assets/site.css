@@ -1,284 +1,302 @@
-/* ===== Traders Academy - საერთო დიზაინის სისტემა =====
-   იგივე პალიტრა, რაც Trade Journal-ში - შენარჩუნებული ვიზუალური იდენტობა. */
+// ===== Traders Academy - საერთო JS (ყველა გვერდზე იტვირთება) =====
+// იგივე Supabase პროექტი, რასაც Trade Journal იყენებს - ერთი ანგარიში
+// მუშაობს ორივეგან (კომენტარებზეც და ჟურნალზეც).
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+const SUPABASE_URL = 'https://wodwjidgyztutjmopjga.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_rcMEGjuzhrugF4UiMmfr8g_5ciBAbu-';
 
-:root {
-  --bg: #14120E;
-  --panel: #1C1913;
-  --panel2: #24201A;
-  --border: #3A3226;
-  --text: #F0EAD8;
-  --text2: #B3A88F;
-  --text3: #7A7061;
-  --accent: #E6B94D;
-  --accent-rgb: 230,185,77;
-  --accent-deep: #C79A2E;
-  --green: #4F9E76;
-  --red: #BD5A4C;
-  --amber: #C99A50;
-  --maxw: 1080px;
-}
+window.TA = (function(){
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-img { max-width: 100%; display: block; }
-a { color: inherit; }
-.serif { font-family: 'Source Serif 4', Georgia, serif; }
-.mono { font-family: 'IBM Plex Mono', monospace; }
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : String(str);
+    return d.innerHTML;
+  }
 
-.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
-.wrap-narrow { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  function fmtDate(iso){
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ka-GE', { year:'numeric', month:'long', day:'numeric' });
+  }
 
-/* ===== ნავიგაცია ===== */
-.nav {
-  position: sticky; top: 0; z-index: 40;
-  background: rgba(20,23,27,0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 0.5px solid var(--border);
-}
-.nav-inner {
-  max-width: var(--maxw); margin: 0 auto; padding: 16px 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
-}
-.nav-logo {
-  font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 18px;
-  letter-spacing: 0.2px; text-decoration: none; color: var(--text);
-  white-space: nowrap;
-}
-.nav-links { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
-.nav-links a {
-  text-decoration: none; color: var(--text2); font-size: 14px; transition: color 0.15s ease;
-}
-.nav-links a:hover, .nav-links a.active { color: var(--text); }
-.nav-cta {
-  padding: 8px 16px; border-radius: 8px; border: 0.5px solid var(--accent);
-  background: rgba(var(--accent-rgb),0.14); color: var(--text) !important; font-size: 13.5px;
-  text-decoration: none; white-space: nowrap;
-}
-.nav-burger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+  // Supabase (ან ნებისმიერი) მოთხოვნას აჭერს ზედა ზღვარს - თუ ქსელი/სერვერი
+  // არ პასუხობს, error-ს isვამბობს timeout-ის მიზეზით, "იტვირთება..."
+  // მდგომარეობაში სამუდამოდ არ დარჩენა გარანტირებულია.
+  function withTimeout(promise, ms){
+    ms = ms || 8000;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('მოთხოვნამ დრო ამოწურა (' + Math.round(ms/1000) + 'წმ) - შეამოწმეთ ინტერნეტ-კავშირი.')), ms))
+    ]);
+  }
 
-@media (max-width: 760px) {
-  .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border-bottom: 0.5px solid var(--border); flex-direction: column; align-items: flex-start; padding: 16px 24px; gap: 14px; }
-  .nav-links.open { display: flex; }
-  .nav-burger { display: block; }
-}
+  const CATEGORY_LABELS = {
+    market_analysis: 'ბაზრის ანალიზი',
+    price_action_tips: 'Price Action Tips',
+    psychology: 'ფსიქოლოგია'
+  };
 
-/* ===== ღილაკები ===== */
-.btn {
-  display: inline-block; padding: 11px 22px; border-radius: 9px; font-size: 14.5px;
-  text-decoration: none; cursor: pointer; border: 0.5px solid var(--border);
-  background: transparent; color: var(--text); font-family: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.btn:hover { border-color: var(--accent); }
-.btn-primary { border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
-.btn-primary:hover { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent-deep); }
-.btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
+  const NAV_LINKS = [
+    ['/', 'მთავარი'],
+    ['/about.html', 'აკადემია'],
+    ['/course.html', 'კურსი'],
+    ['/blog/', 'სტატიები'],
+    ['/referrals.html', 'რესურსები']
+  ];
 
-/* ===== ფორმის ველები ===== */
-.field-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; }
-.input {
-  width: 100%; padding: 10px 12px; border-radius: 8px; border: 0.5px solid var(--border);
-  background: var(--panel2); color: var(--text); font-size: 14px; font-family: inherit;
-}
-textarea.input { resize: vertical; }
+  function mountNav(activePath){
+    const el = document.getElementById('ta-nav');
+    if (!el) return;
+    el.innerHTML = `
+      <nav class="nav-inner" aria-label="მთავარი ნავიგაცია">
+        <a href="/" class="nav-logo">Traders Academy</a>
+        <button type="button" class="nav-burger" id="ta-burger" aria-label="მენიუს გახსნა" aria-expanded="false" aria-controls="ta-nav-links">☰</button>
+        <div class="nav-links" id="ta-nav-links">
+          ${NAV_LINKS.map(([href, label]) => `<a href="${href}" ${activePath===href?'class="active" aria-current="page"':''}>${label}</a>`).join('')}
+          <a href="/account.html" ${activePath==='/account.html'?'class="active" aria-current="page"':''}>ანგარიში</a>
+          <a href="/journal/" class="nav-cta">Trade Journal</a>
+        </div>
+      </nav>
+    `;
+    const burger = document.getElementById('ta-burger');
+    const links = document.getElementById('ta-nav-links');
+    if (!burger || !links) return;
 
-/* ===== საერთო სექციები ===== */
-.section { padding: 72px 0; }
-.section-tight { padding: 40px 0; }
-.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text3); margin-bottom: 14px; }
-.hr { border: none; border-top: 0.5px solid var(--border); margin: 0; }
+    function openMenu(){
+      links.classList.add('open');
+      burger.setAttribute('aria-expanded', 'true');
+      burger.setAttribute('aria-label', 'მენიუს დახურვა');
+      const first = links.querySelector('a');
+      if (first) first.focus();
+      document.addEventListener('keydown', onKeydown);
+      document.addEventListener('click', onOutsideClick, true);
+    }
+    function closeMenu(returnFocus){
+      links.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+      burger.setAttribute('aria-label', 'მენიუს გახსნა');
+      document.removeEventListener('keydown', onKeydown);
+      document.removeEventListener('click', onOutsideClick, true);
+      if (returnFocus) burger.focus();
+    }
+    function onKeydown(e){ if (e.key === 'Escape') closeMenu(true); }
+    function onOutsideClick(e){ if (!links.contains(e.target) && e.target !== burger) closeMenu(false); }
 
-.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color 0.2s ease, transform 0.2s ease; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    burger.addEventListener('click', () => { links.classList.contains('open') ? closeMenu(true) : openMenu(); });
+    links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => closeMenu(false)));
+    // desktop-ზე ეკრანის გაფართოებისას მენიუს "ღია" მდგომარეობა არ უნდა ჩამორჩეს
+    window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMenu(false); });
+  }
 
-/* ===== სტატიის prose ===== */
-.prose { font-size: 17px; line-height: 1.75; color: var(--text); }
-.prose p { margin: 0 0 20px; }
-.prose h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 600; margin: 40px 0 16px; }
-.prose h3 { font-family: 'Source Serif 4', Georgia, serif; font-size: 21px; font-weight: 600; margin: 32px 0 14px; }
-.prose ul, .prose ol { margin: 0 0 20px; padding-left: 22px; }
-.prose li { margin-bottom: 8px; }
-.prose img { border-radius: 10px; margin: 24px 0; }
-.prose blockquote { border-left: 3px solid var(--accent); padding-left: 18px; margin: 24px 0; color: var(--text2); font-style: italic; }
+  function mountFooter(){
+    const el = document.getElementById('ta-footer');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="wrap">
+        <span>© ${new Date().getFullYear()} Traders Academy · ყველა უფლება დაცულია</span>
+        <div class="footer-links">
+          <a href="/about.html">აკადემია</a>
+          <a href="/course.html">კურსი</a>
+          <a href="/blog/">სტატიები</a>
+          <a href="/referrals.html">რესურსები</a>
+        </div>
+      </div>
+      <div class="wrap" style="margin-top:14px; padding-top:14px; border-top:0.5px solid var(--border);">
+        <div class="footer-links" style="font-size:12px;">
+          <a href="/legal/risk-disclosure.html">რისკის განმარტება</a>
+          <a href="/legal/affiliate-disclosure.html">პარტნიორული ბმულები</a>
+        </div>
+      </div>
+    `;
+  }
 
-/* ===== ფუტერი ===== */
-.site-footer { border-top: 0.5px solid var(--border); padding: 40px 0; margin-top: 60px; }
-.site-footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
-.site-footer, .site-footer a { color: var(--text3); font-size: 13px; text-decoration: none; }
-.site-footer a:hover { color: var(--text2); }
-.footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+  async function getUser(){
+    const { data: { session } } = await sb.auth.getSession();
+    return session && session.user ? session.user : null;
+  }
 
-/* ===== უტილიტები ===== */
-.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 4px 10px; border-radius: 999px; border: 0.5px solid var(--border); color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
-.status-msg { font-size: 13px; padding: 10px 14px; border-radius: 8px; margin: 12px 0; }
-.status-error { background: rgba(189,90,76,0.12); color: var(--red); border: 0.5px solid rgba(189,90,76,0.3); }
-.status-ok { background: rgba(79,158,118,0.12); color: var(--green); border: 0.5px solid rgba(79,158,118,0.3); }
+  async function isAdmin(userId){
+    if (!userId) return false;
+    try {
+      const { data, error } = await sb.from('profiles').select('is_admin').eq('id', userId).single();
+      if (error) return false;
+      return !!(data && data.is_admin);
+    } catch(e){ return false; }
+  }
 
-@media (max-width: 640px) {
-  .section { padding: 48px 0; }
-  .prose { font-size: 16px; }
-}
+  async function ensureProfile(user){
+    if (!user) return;
+    try {
+      await sb.from('profiles').upsert({ id: user.id, display_name: user.email }, { onConflict: 'id', ignoreDuplicates: true });
+    } catch(e){ /* profile უკვე არსებობს ან RLS არ უშვებს - უსაფრთხოდ იგნორირდება */ }
+  }
 
-/* ===== საერთო grid-კომპონენტები - მობილურზე ერთ სვეტად იკეცება ===== */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); }
-@media (max-width: 700px) {
-  .grid-2, .grid-3 { grid-template-columns: 1fr !important; }
-}
+  // კომპაქტური ავტორიზაციის ვიჯეტი - გამოიყენება კომენტარებზე და Admin გვერდზე.
+  // container-ში რენდერავს login/register ფორმას; წარმატებული შესვლის შემდეგ
+  // იძახებს onAuthChange(user)-ს.
+  function renderAuthWidget(container, onAuthChange){
+    let mode = 'login'; // 'login' | 'register' | 'verify'
+    let pendingEmail = '';
 
-/* ===== რესურსების რიგი (referrals.html) - მობილურზე ვერტიკალურად ===== */
-.resource-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 0; }
-@media (max-width: 560px) {
-  .resource-row { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .resource-row > a.btn { align-self: flex-start; }
-}
+    function render(){
+      if (mode === 'login'){
+        container.innerHTML = `
+          <form id="ta-login-form" class="card" style="max-width:380px;">
+            <div class="serif" style="font-size:16px; font-weight:600; margin-bottom:14px;">შესვლა კომენტარისთვის</div>
+            <div style="margin-bottom:10px;"><label class="field-label">Email</label><input class="input" type="email" name="email" required/></div>
+            <div style="margin-bottom:14px;"><label class="field-label">პაროლი</label><input class="input" type="password" name="password" required/></div>
+            <div id="ta-auth-msg"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">შესვლა</button>
+            <div style="margin-top:12px; font-size:13px; color:var(--text3);">არ გაქვთ ანგარიში? <a href="#" id="ta-to-register" style="color:var(--accent);">დარეგისტრირდით</a></div>
+          </form>
+        `;
+        container.querySelector('#ta-login-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const msg = container.querySelector('#ta-auth-msg');
+          msg.innerHTML = '';
+          const { data, error } = await sb.auth.signInWithPassword({ email: fd.get('email'), password: fd.get('password') });
+          if (error){ msg.innerHTML = `<div class="status-msg status-error">${escapeHtml(error.message)}</div>`; return; }
+          await ensureProfile(data.user);
+          onAuthChange(data.user);
+        });
+        container.querySelector('#ta-to-register').onclick = (e) => { e.preventDefault(); mode = 'register'; render(); };
+      } else if (mode === 'register'){
+        container.innerHTML = `
+          <form id="ta-register-form" class="card" style="max-width:380px;">
+            <div class="serif" style="font-size:16px; font-weight:600; margin-bottom:14px;">რეგისტრაცია</div>
+            <div style="margin-bottom:10px;"><label class="field-label">სახელი</label><input class="input" type="text" name="name" required/></div>
+            <div style="margin-bottom:10px;"><label class="field-label">Email</label><input class="input" type="email" name="email" required/></div>
+            <div style="margin-bottom:14px;"><label class="field-label">პაროლი</label><input class="input" type="password" name="password" minlength="6" required/></div>
+            <div id="ta-auth-msg"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">რეგისტრაცია</button>
+            <div style="margin-top:12px; font-size:13px; color:var(--text3);">უკვე გაქვთ ანგარიში? <a href="#" id="ta-to-login" style="color:var(--accent);">შედით</a></div>
+          </form>
+        `;
+        container.querySelector('#ta-register-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const msg = container.querySelector('#ta-auth-msg');
+          msg.innerHTML = '';
+          const { data, error } = await sb.auth.signUp({ email: fd.get('email'), password: fd.get('password'), options: { data: { display_name: fd.get('name') } } });
+          if (error){ msg.innerHTML = `<div class="status-msg status-error">${escapeHtml(error.message)}</div>`; return; }
+          pendingEmail = fd.get('email');
+          mode = 'verify'; render();
+        });
+        container.querySelector('#ta-to-login').onclick = (e) => { e.preventDefault(); mode = 'login'; render(); };
+      } else if (mode === 'verify'){
+        container.innerHTML = `
+          <form id="ta-verify-form" class="card" style="max-width:380px;">
+            <div class="serif" style="font-size:16px; font-weight:600; margin-bottom:10px;">დაადასტურეთ Email</div>
+            <div style="font-size:13px; color:var(--text2); margin-bottom:14px;">კოდი გამოგზავნილია მისამართზე ${escapeHtml(pendingEmail)}</div>
+            <input class="input" type="text" name="token" placeholder="დამადასტურებელი კოდი" required style="margin-bottom:14px;"/>
+            <div id="ta-auth-msg"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">დადასტურება</button>
+          </form>
+        `;
+        container.querySelector('#ta-verify-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.target);
+          const msg = container.querySelector('#ta-auth-msg');
+          const { data, error } = await sb.auth.verifyOtp({ email: pendingEmail, token: fd.get('token'), type: 'signup' });
+          if (error){ msg.innerHTML = `<div class="status-msg status-error">${escapeHtml(error.message)}</div>`; return; }
+          await ensureProfile(data.user);
+          onAuthChange(data.user);
+        });
+      }
+    }
+    render();
+  }
 
-/* ===== ზოგადი მობილური დახვეწა ===== */
-@media (max-width: 560px) {
-  .card { padding: 20px !important; }
-  h1.serif { word-break: keep-all; }
-}
+  // სქროლზე გამოჩენადი ელემენტების ამამუშავებელი - ნებისმიერ გვერდზე
+  // საკმარისია `.io-reveal` კლასის დამატება ელემენტზე (და სურვილისამებრ
+  // `data-delay="120"` მილიწამებში), ეს ფუნქცია თავად ამატებს `.io-in`-ს,
+  // როცა ელემენტი ეკრანზე შემოდის.
+  function initScrollReveal(){
+    const els = document.querySelectorAll('.io-reveal');
+    if (!els.length) return;
+    if (!('IntersectionObserver' in window)){ els.forEach(el => el.classList.add('io-in')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting){
+          const delay = entry.target.dataset.delay ? Number(entry.target.dataset.delay) : 0;
+          setTimeout(() => entry.target.classList.add('io-in'), delay);
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(el => io.observe(el));
+  }
 
-/* ===== 1) ღილაკების "ცოცხალი" hover ===== */
-.btn { transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
-.btn:hover { transform: translateY(-2px); }
-.btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.35); }
+  // ფონური ambient-ნათების ინექცია (ერთხელ გვერდზე) - სუფთა დეკორაცია, კონტენტს არ ეხება
+  function mountAmbient(){
+    if (document.querySelector('.ambient-glow')) return;
+    const el = document.createElement('div');
+    el.className = 'ambient-glow';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    document.body.prepend(el);
+  }
 
-/* ===== 2) ნავიგაციის ბმულების ცოცხალი underline ===== */
-.nav-links a:not(.nav-cta) { position: relative; }
-.nav-links a:not(.nav-cta)::after {
-  content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 1px;
-  background: var(--accent); transition: width 0.25s ease;
-}
-.nav-links a:not(.nav-cta):hover::after, .nav-links a.active::after { width: 100%; }
+  // რიცხვების ეტაპობრივი "დათვლა" 0-დან target-მდე, სქროლზე გამოჩენისას.
+  // გამოყენება: <span class="count-up" data-target="100" data-suffix="+"></span>
+  function initCountUp(){
+    const els = document.querySelectorAll('.count-up[data-target]');
+    if (!els.length) return;
+    const animate = (el) => {
+      const target = Number(el.dataset.target) || 0;
+      const suffix = el.dataset.suffix || '';
+      const dur = 1400;
+      const start = performance.now();
+      function step(now){
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(eased * target) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    };
+    if (!('IntersectionObserver' in window)){ els.forEach(el => animate(el)); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting){ animate(entry.target); io.unobserve(entry.target); } });
+    }, { threshold: 0.4 });
+    els.forEach(el => io.observe(el));
+  }
 
-/* ===== 3) ტიკერის ზოლი - უწყვეტად მოძრავი, თემატური ===== */
-.ticker-wrap { overflow: hidden; border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border); background: var(--panel); padding: 12px 0; }
-.ticker-track { display: flex; gap: 48px; width: max-content; animation: ta-ticker 32s linear infinite; }
-.ticker-item { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text2); white-space: nowrap; }
-.ticker-item .up { color: var(--green); }
-.ticker-item .down { color: var(--red); }
-.ticker-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-@keyframes ta-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } }
+  // განმეორებადი reveal - ყოველ ჯერზე ცოცხლდება, როცა ელემენტი
+  // ეკრანზე შემოდის (მათ შორის ხელახლა, თუ სქროლით გავედით და დავბრუნდით)
+  function initScrollRevealRepeat(){
+    const els = document.querySelectorAll('.io-reveal-repeat');
+    if (!els.length) return;
+    if (!('IntersectionObserver' in window)){ els.forEach(el => el.classList.add('io-in')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const el = entry.target;
+        if (entry.isIntersecting){
+          const delay = el.dataset.delay ? Number(el.dataset.delay) : 0;
+          clearTimeout(el._taRevealTimer);
+          el._taRevealTimer = setTimeout(() => el.classList.add('io-in'), delay);
+        } else {
+          clearTimeout(el._taRevealTimer);
+          el.classList.remove('io-in');
+        }
+      });
+    }, { threshold: 0.2 });
+    els.forEach(el => io.observe(el));
+  }
 
-/* ===== 4) hero ფოტოს ნელი "სუნთქვის" ზუმი (Ken Burns) ===== */
-@keyframes ta-kenburns { 0% { transform: scale(1); } 50% { transform: scale(1.035); } 100% { transform: scale(1); } }
-.hero-photo img { animation: ta-kenburns 14s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .hero-photo img { animation: none; } }
+  // ვიდეოს ატვირთვა Supabase Storage-ში (testimonials bucket) და
+  // საჯარო ბმულის დაბრუნება. onProgress(pct) - სურვილისამებრ callback.
+  async function uploadVideoFile(file){
+    const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error } = await sb.storage.from('testimonials').upload(path, file, {
+      cacheControl: '3600', upsert: false, contentType: file.type || 'video/mp4'
+    });
+    if (error) throw error;
+    const { data } = sb.storage.from('testimonials').getPublicUrl(path);
+    return data.publicUrl;
+  }
 
-/* ===== 5) ფონური ამბიენტური ნათება - ნელა მოძრავი, დაბალი გამჭვირვალობით ===== */
-.ambient-glow { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.ambient-glow span {
-  position: absolute; width: 480px; height: 480px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, rgba(var(--accent-rgb),0) 70%);
-  filter: blur(10px); animation: ta-drift 26s ease-in-out infinite;
-}
-.ambient-glow span:nth-child(1) { top: -140px; left: -100px; animation-delay: 0s; }
-.ambient-glow span:nth-child(2) { top: 40%; right: -160px; animation-delay: -9s; }
-.ambient-glow span:nth-child(3) { bottom: -180px; left: 30%; animation-delay: -17s; }
-@keyframes ta-drift {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  50% { transform: translate(30px,-24px) scale(1.08); }
-}
-@media (prefers-reduced-motion: reduce) { .ambient-glow span { animation: none; } }
-
-/* ===== 6) რიცხვების count-up ===== */
-.count-up { font-variant-numeric: tabular-nums; }
-
-/* ===== ერთი, დისციპლინირებული motion-მომენტი - hero-ს გამოჩენისას ===== */
-@keyframes ta-fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-.reveal { opacity: 0; animation: ta-fade-up 0.7s ease forwards; }
-.reveal-1 { animation-delay: 0.05s; }
-.reveal-2 { animation-delay: 0.18s; }
-.reveal-3 { animation-delay: 0.31s; }
-.reveal-4 { animation-delay: 0.44s; }
-
-@keyframes ta-draw-line { to { stroke-dashoffset: 0; } }
-.draw-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: ta-draw-line 1.8s 0.3s ease forwards; }
-
-/* ===== სქროლზე გამოჩენადი ელემენტები (მთელს საიტზე გამოსაყენებელი) ===== */
-.io-reveal, .io-reveal-repeat { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
-.io-reveal.io-in, .io-reveal-repeat.io-in { opacity: 1; transform: translateY(0); }
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal, .draw-line, .io-reveal { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
-}
-
-/* ===== ოქროსფერი ჩარჩო ფოტოსთვის - ბუნებრივი პროპორციით, დაუჭრელად ===== */
-.gold-frame {
-  position: relative; border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45);
-  animation: ta-glow 5s ease-in-out infinite;
-}
-.gold-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.gold-frame .frame-fallback {
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  aspect-ratio: 16/9; background: var(--panel2); color: var(--text3); font-size: 13px; padding: 24px;
-}
-@keyframes ta-glow {
-  0%, 100% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45); }
-  50% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb),0.16), 0 24px 60px rgba(0,0,0,0.45); }
-}
-@media (prefers-reduced-motion: reduce) { .gold-frame { animation: none; } }
-
-/* ===== Hero - ფოტო მთელი ბლოკის ფონად, ტექსტი დაფენილია ===== */
-.hero-photo {
-  position: relative; border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.5);
-  aspect-ratio: 16/9;
-  animation: ta-glow 5s ease-in-out infinite;
-}
-.hero-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-.hero-photo .hero-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(100deg, rgba(20,18,14,0.72) 0%, rgba(20,18,14,0.5) 32%, rgba(20,18,14,0.12) 55%, rgba(20,18,14,0) 72%);
-}
-.hero-photo .hero-content { position: relative; z-index: 2; padding: 6% 5% 0; max-width: 54%; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; }
-.hero-photo .hero-content h1, .hero-photo .hero-content .hero-sub, .hero-photo .hero-content p, .hero-photo .hero-content .eyebrow {
-  text-shadow: 0 2px 14px rgba(0,0,0,0.55);
-}
-@media (max-width: 760px) {
-  .hero-photo { aspect-ratio: 3/4; }
-  .hero-photo .hero-overlay { background: linear-gradient(180deg, rgba(20,18,14,0.35) 0%, rgba(20,18,14,0.82) 55%, rgba(20,18,14,0.95) 100%); }
-  .hero-photo .hero-content { max-width: 100%; padding: 5% 6%; justify-content: flex-end; }
-}
-@media (prefers-reduced-motion: reduce) { .hero-photo { animation: none; } }
-.hero-photo.no-photo { background: var(--panel2); }
-.hero-photo.no-photo .hero-overlay { background: none; }
-
-/* ===== Hero grid - მობილურზე ერთ სვეტად იკეცება ===== */
-.hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
-@media (max-width: 760px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 32px; }
-  .hero-grid > div:last-child { order: -1; }
-}
-
-/* ===== ხელმისაწვდომობა: ხილული focus, skip-link, შეხების არე ===== */
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.skip-link {
-  position: absolute; left: 12px; top: -60px; z-index: 100;
-  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
-  padding: 10px 16px; border-radius: 8px; text-decoration: none; font-size: 14px;
-  transition: top 0.2s ease;
-}
-.skip-link:focus { top: 12px; }
-.nav-burger { min-width: 44px; min-height: 44px; }
-.nav-cta, .btn { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-}
+  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile };
+})();
