@@ -54,6 +54,7 @@ window.TA = (function(){
         <button type="button" class="nav-burger" id="ta-burger" aria-label="მენიუს გახსნა" aria-expanded="false" aria-controls="ta-nav-links">☰</button>
         <div class="nav-links" id="ta-nav-links">
           ${NAV_LINKS.map(([href, label]) => `<a href="${href}" ${activePath===href?'class="active" aria-current="page"':''}>${label}</a>`).join('')}
+          <a href="/account.html" ${activePath==='/account.html'?'class="active" aria-current="page"':''}>ანგარიში</a>
           <a href="/journal/" class="nav-cta">Trade Journal</a>
         </div>
       </nav>
