@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TODO: ეს sitemap ხელით არის შედგენილი მხოლოდ სტატიკური გვერდებისთვის.
+  ბლოგის ცალკეული სტატიები (/blog/post.html?slug=...) დინამიურად იქმნება
+  Supabase-დან და ავტომატურად ვერ ჩნდება აქ. სანამ ავტომატური sitemap-გენერაცია
+  არ დაემატება (მაგ. build-სკრიპტი publish-ის დროს, ან სერვერული ფუნქცია),
+  საჭიროა ამ ფაილის ხელით განახლება ახალი სტატიის დამატებისას, ან
+  ცალკე Server function-ის აწყობა, რომელიც sitemap.xml-ს დინამიურად გენერირებს.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tradersacademy.ge/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://tradersacademy.ge/about.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tradersacademy.ge/course.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://tradersacademy.ge/blog/</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tradersacademy.ge/referrals.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
