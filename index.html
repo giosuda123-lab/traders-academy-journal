@@ -177,8 +177,9 @@
 <section class="section-tight">
   <div class="wrap">
     <div class="eyebrow">სოციალური მტკიცებულება</div>
-    <div class="card" style="margin-top:16px; border-style:dashed;">
-      <p style="font-size:14px; color:var(--text3); margin:0;">[TODO: აქ დაემატება რეალური სტუდენტების შეფასებები/ვიდეორეკომენდაციები, როცა მოგვაწოდებთ. Placeholder - გამოგონილი ციტატები/სახელები არ არის გამოყენებული.]</p>
+    <h2 class="serif" style="font-size:22px; font-weight:600; margin:16px 0 20px;">მოსწავლეების გამოცდილება</h2>
+    <div id="testimonials-root" class="grid-3" style="gap:20px;">
+      <div style="color:var(--text3); font-size:14px;">იტვირთება…</div>
     </div>
   </div>
 </section>
@@ -268,6 +269,30 @@
       el.innerHTML = `<div class="status-msg status-error" style="margin:0;">სტატიების ჩატვირთვა ვერ მოხერხდა${e && e.message ? ': ' + TA.escapeHtml(e.message) : '.'} <button type="button" id="retry-posts" style="background:none; border:none; color:var(--accent); text-decoration:underline; cursor:pointer; padding:0; font:inherit;">სცადეთ თავიდან</button></div>`;
       const retryBtn = document.getElementById('retry-posts');
       if (retryBtn) retryBtn.onclick = loadLatestPosts;
+    }
+  })();
+
+  (async function loadTestimonials(){
+    const el = document.getElementById('testimonials-root');
+    el.setAttribute('aria-live', 'polite');
+    try {
+      const { data, error } = await TA.withTimeout(
+        TA.sb.from('testimonials').select('student_name,quote,video_url').eq('published', true).order('sort_order', { ascending: true })
+      );
+      if (error) throw error;
+      if (!data || !data.length){
+        el.innerHTML = '<div style="grid-column:1/-1; color:var(--text3); font-size:14px;">ვიდეო-რევიუები მალე დაემატება.</div>';
+        return;
+      }
+      el.innerHTML = data.map(t => `
+        <div class="card" style="padding:14px;">
+          <video src="${t.video_url}" controls preload="metadata" style="width:100%; border-radius:8px; background:#000; aspect-ratio:16/9;"></video>
+          <div class="serif" style="font-size:15px; font-weight:600; margin-top:12px;">${TA.escapeHtml(t.student_name)}</div>
+          ${t.quote ? `<p style="font-size:13.5px; color:var(--text2); margin:6px 0 0;">${TA.escapeHtml(t.quote)}</p>` : ''}
+        </div>
+      `).join('');
+    } catch(e){
+      el.innerHTML = `<div style="grid-column:1/-1;" class="status-msg status-error">ვიდეო-რევიუების ჩატვირთვა ვერ მოხერხდა.</div>`;
     }
   })();
 </script>
