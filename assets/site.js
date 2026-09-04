@@ -288,5 +288,18 @@ window.TA = (function(){
     els.forEach(el => io.observe(el));
   }
 
-  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp };
+  // ვიდეოს ატვირთვა Supabase Storage-ში (testimonials bucket) და
+  // საჯარო ბმულის დაბრუნება. onProgress(pct) - სურვილისამებრ callback.
+  async function uploadVideoFile(file){
+    const ext = (file.name.split('.').pop() || 'mp4').toLowerCase();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const { error } = await sb.storage.from('testimonials').upload(path, file, {
+      cacheControl: '3600', upsert: false, contentType: file.type || 'video/mp4'
+    });
+    if (error) throw error;
+    const { data } = sb.storage.from('testimonials').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile };
 })();
