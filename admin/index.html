@@ -37,6 +37,31 @@
   let posts = [];
   let editingPost = null; // null | {} | post-object
 
+  // სურათს canvas-ით ამცირებს/კუმშავს, JPEG data URL-ს აბრუნებს - Supabase-ის
+  // TEXT/JSONB ველებში ინახება პირდაპირ ცალკე storage-ის გარეშე.
+  function compressImageToDataUrl(file, maxW, quality){
+    maxW = maxW || 1000; quality = quality || 0.78;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('სურათის წაკითხვა ვერ მოხერხდა'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('ფაილის წაკითხვა ვერ მოხერხდა'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   function slugify(str){
     const map = { 'ა':'a','ბ':'b','გ':'g','დ':'d','ე':'e','ვ':'v','ზ':'z','თ':'t','ი':'i','კ':'k','ლ':'l','მ':'m','ნ':'n','ო':'o','პ':'p','ჟ':'zh','რ':'r','ს':'s','ტ':'t','უ':'u','ფ':'f','ქ':'q','ღ':'gh','ყ':'y','შ':'sh','ჩ':'ch','ც':'ts','ძ':'dz','წ':'w','ჭ':'ch','ხ':'x','ჯ':'j','ჰ':'h' };
     return str.toLowerCase().split('').map(ch => map[ch] !== undefined ? map[ch] : ch).join('')
@@ -85,7 +110,7 @@
         `).join('')}
       </div>
     `;
-    document.getElementById('new-post-btn').onclick = () => { editingPost = { title:'', slug:'', category:'market_analysis', excerpt:'', content:'', published:true }; renderEditor(); };
+    document.getElementById('new-post-btn').onclick = () => { editingPost = { title:'', slug:'', category:'market_analysis', excerpt:'', content:'', published:true, cover_image:null }; renderEditor(); };
     root.querySelectorAll('[data-edit]').forEach(b => { b.onclick = () => { editingPost = { ...posts.find(p=>p.id===b.dataset.edit) }; renderEditor(); }; });
     root.querySelectorAll('[data-del]').forEach(b => {
       b.onclick = async () => {
@@ -113,15 +138,33 @@
         </div>
         <div><label class="field-label">მოკლე აღწერა (excerpt)</label><textarea class="input" id="f-excerpt" rows="2">${TA.escapeHtml(p.excerpt||'')}</textarea></div>
         <div>
+          <label class="field-label">გარეკანის სურათი (cover image)</label>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <label class="btn btn-sm" style="cursor:pointer;">
+              სურათის არჩევა
+              <input type="file" accept="image/*" id="f-cover-input" style="display:none;"/>
+            </label>
+            <div id="f-cover-preview">
+              ${p.cover_image ? `<img src="${p.cover_image}" style="height:44px; border-radius:6px; border:0.5px solid var(--border);"/>` : `<span style="font-size:12px; color:var(--text3);">არ არის არჩეული</span>`}
+            </div>
+            ${p.cover_image ? `<button type="button" id="f-cover-remove" style="background:none; border:none; color:var(--red); font-size:12px; cursor:pointer;">წაშლა</button>` : ''}
+          </div>
+        </div>
+        <div>
           <label class="field-label">კონტენტი (HTML)</label>
-          <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <div style="display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm" data-wrap="h2">H2</button>
             <button type="button" class="btn btn-sm" data-wrap="h3">H3</button>
             <button type="button" class="btn btn-sm" data-wrap="strong">Bold</button>
             <button type="button" class="btn btn-sm" data-wrap="em">Italic</button>
             <button type="button" class="btn btn-sm" data-wrap="p">P</button>
+            <label class="btn btn-sm" style="cursor:pointer;">
+              + სურათის ჩასმა
+              <input type="file" accept="image/*" id="f-content-image-input" style="display:none;"/>
+            </label>
           </div>
           <textarea class="input" id="f-content" rows="16" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">${p.content||''}</textarea>
+          <p style="font-size:11.5px; color:var(--text3); margin-top:6px;">სურათი ჩაისმება კურსორის პოზიციაზე, ავტომატურად შეკუმშული ვერსიით.</p>
         </div>
         <div><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" id="f-published" ${p.published?'checked':''}/> გამოქვეყნებულია</label></div>
         <div id="editor-msg"></div>
@@ -134,6 +177,38 @@
     document.getElementById('f-title').addEventListener('input', (e) => {
       if (!p.id) document.getElementById('f-slug').value = slugify(e.target.value);
     });
+
+    // გარეკანის სურათის ატვირთვა
+    document.getElementById('f-cover-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        p.cover_image = await compressImageToDataUrl(file, 1200, 0.8);
+        renderEditor();
+      } catch (err) {
+        alert('სურათის დამუშავება ვერ მოხერხდა.');
+      }
+    });
+    const coverRemoveBtn = document.getElementById('f-cover-remove');
+    if (coverRemoveBtn) coverRemoveBtn.onclick = () => { p.cover_image = null; renderEditor(); };
+
+    // კონტენტში სურათის ჩასმა კურსორის პოზიციაზე
+    document.getElementById('f-content-image-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await compressImageToDataUrl(file, 1000, 0.75);
+        const ta = document.getElementById('f-content');
+        const start = ta.selectionStart, end = ta.selectionEnd;
+        const tag = `\n<img src="${dataUrl}" alt="" loading="lazy" decoding="async" style="border-radius:10px;"/>\n`;
+        ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
+        ta.focus();
+        e.target.value = '';
+      } catch (err) {
+        alert('სურათის დამუშავება ვერ მოხერხდა.');
+      }
+    });
+
     root.querySelectorAll('[data-wrap]').forEach(b => {
       b.onclick = () => {
         const ta = document.getElementById('f-content');
@@ -152,6 +227,7 @@
         excerpt: document.getElementById('f-excerpt').value.trim(),
         content: document.getElementById('f-content').value,
         published: document.getElementById('f-published').checked,
+        cover_image: p.cover_image || null,
         author_id: currentUser.id
       };
       const msg = document.getElementById('editor-msg');
