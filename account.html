@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ანგარიში - Traders Academy</title>
+<meta name="description" content="შედით ან დარეგისტრირდით Traders Academy-ის საიტზე - საჭიროა კომენტარების დასატოვებლად."/>
+<meta name="robots" content="noindex,follow"/>
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png"/>
+<link rel="icon" href="/assets/favicon-16.png" sizes="16x16" type="image/png"/>
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+<link rel="canonical" href="https://tradersacademy.ge/account.html"/>
+<link rel="stylesheet" href="/assets/site.css"/>
+</head>
+<body>
+<a href="#main-content" class="skip-link">კონტენტზე გადასვლა</a>
+<header id="ta-nav" class="nav"></header>
+<main id="main-content">
+
+<section class="section">
+  <div class="wrap-narrow">
+    <div class="eyebrow">ანგარიში</div>
+    <h1 class="serif" style="font-size:30px; font-weight:600; margin:0 0 24px;">შესვლა / რეგისტრაცია</h1>
+    <div id="account-root">
+      <div style="color:var(--text3); font-size:14px;">იტვირთება…</div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer id="ta-footer" class="site-footer"></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/site.js"></script>
+<script>
+  TA.mountNav('/account.html');
+  TA.mountFooter();
+
+  const root = document.getElementById('account-root');
+
+  function renderLoggedIn(user){
+    root.innerHTML = `
+      <div class="card" style="max-width:420px;">
+        <p style="font-size:13px; color:var(--text3); margin:0 0 4px;">შესული ხართ როგორც</p>
+        <p style="font-size:16px; color:var(--text); margin:0 0 20px; word-break:break-all;">${TA.escapeHtml(user.email)}</p>
+        <p style="font-size:14px; color:var(--text2); margin:0 0 20px;">ახლა შეგიძლიათ კომენტარების დატოვება <a href="/blog/" style="color:var(--accent);">სტატიებზე</a>.</p>
+        <button type="button" id="logout-btn" class="btn">გასვლა</button>
+      </div>
+    `;
+    document.getElementById('logout-btn').onclick = async () => {
+      await TA.sb.auth.signOut();
+      init();
+    };
+  }
+
+  function renderLoggedOut(){
+    root.innerHTML = `<div id="auth-widget"></div>`;
+    TA.renderAuthWidget(document.getElementById('auth-widget'), (user) => { renderLoggedIn(user); });
+  }
+
+  async function init(){
+    const user = await TA.getUser();
+    if (user) renderLoggedIn(user); else renderLoggedOut();
+  }
+  init();
+</script>
+</body>
+</html>
