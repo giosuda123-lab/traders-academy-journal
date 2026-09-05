@@ -253,6 +253,7 @@ textarea.input { resize: vertical; }
 }
 @media (max-width: 760px) {
   .hero-photo { aspect-ratio: 3/4; }
+  .hero-photo img { object-position: 78% 22%; }
   .hero-photo .hero-overlay { background: linear-gradient(180deg, rgba(20,18,14,0.35) 0%, rgba(20,18,14,0.82) 55%, rgba(20,18,14,0.95) 100%); }
   .hero-photo .hero-content { max-width: 100%; padding: 5% 6%; justify-content: flex-end; }
 }
