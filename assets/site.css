@@ -289,10 +289,8 @@ textarea.input { resize: vertical; }
   .about-hero-grid { grid-template-columns: 1fr; }
 }
 
-/* ===== course.html-ის Hero grid - ტექსტი დომინანტური, ფოტო მცირე ===== */
-.course-hero-grid { display: grid; grid-template-columns: 1.6fr 0.55fr; }
-.course-hero-grid picture { max-width: 260px; }
+/* ===== course.html-ის Hero grid - სრული ფოტო, ტექსტთან გვერდიგვერდ ===== */
+.course-hero-grid { display: grid; grid-template-columns: 1.3fr 0.7fr; }
 @media (max-width: 760px) {
   .course-hero-grid { grid-template-columns: 1fr; }
-  .course-hero-grid picture { max-width: 200px; }
 }
