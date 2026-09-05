@@ -105,9 +105,7 @@ window.TA = (function(){
       <div class="wrap" style="margin-top:14px; padding-top:14px; border-top:0.5px solid var(--border);">
         <div class="footer-links" style="font-size:12px;">
           <a href="/legal/risk-disclosure.html">რისკის განმარტება</a>
-          <a href="/legal/privacy-policy.html">კონფიდენციალურობა</a>
           <a href="/legal/terms.html">წესები და პირობები</a>
-          <a href="/legal/cookie-policy.html">Cookie პოლიტიკა</a>
           <a href="/legal/affiliate-disclosure.html">პარტნიორული ბმულები</a>
         </div>
       </div>
