@@ -294,3 +294,15 @@ textarea.input { resize: vertical; }
 @media (max-width: 760px) {
   .course-hero-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== დამფუძნებლის grid (about.html) - მობილურზე ერთ სვეტად ===== */
+.founder-grid { display: grid; grid-template-columns: 1.3fr 0.7fr; }
+@media (max-width: 760px) {
+  .founder-grid { grid-template-columns: 1fr; }
+  .founder-grid picture { display: block; max-width: 240px; margin: 0 auto; }
+}
+
+/* ===== course.html-ის hero-ფოტო მობილურზე - სიმაღლის შეზღუდვა ===== */
+@media (max-width: 760px) {
+  .course-hero-grid picture img { max-height: 320px; object-fit: cover; object-position: top center; }
+}
