@@ -78,11 +78,11 @@ a { color: inherit; }
   display: inline-block; padding: 11px 22px; border-radius: 9px; font-size: 14.5px;
   text-decoration: none; cursor: pointer; border: 0.5px solid var(--border);
   background: transparent; color: var(--text); font-family: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
-.btn:hover { border-color: var(--accent); transform: translateY(-2px); }
+.btn:hover { border-color: var(--accent); }
 .btn-primary { border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
-.btn-primary:hover { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent-deep); box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.35); }
+.btn-primary:hover { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent-deep); }
 .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
 
 /* ===== ფორმის ველები ===== */
@@ -150,7 +150,12 @@ textarea.input { resize: vertical; }
   h1.serif { word-break: keep-all; }
 }
 
-/* ===== ნავიგაციის ბმულების ცოცხალი underline ===== */
+/* ===== 1) ღილაკების "ცოცხალი" hover ===== */
+.btn { transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+.btn:hover { transform: translateY(-2px); }
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.35); }
+
+/* ===== 2) ნავიგაციის ბმულების ცოცხალი underline ===== */
 .nav-links a:not(.nav-cta) { position: relative; }
 .nav-links a:not(.nav-cta)::after {
   content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 1px;
@@ -158,7 +163,7 @@ textarea.input { resize: vertical; }
 }
 .nav-links a:not(.nav-cta):hover::after, .nav-links a.active::after { width: 100%; }
 
-/* ===== ტიკერის ზოლი ===== */
+/* ===== 3) ტიკერის ზოლი - უწყვეტად მოძრავი, თემატური ===== */
 .ticker-wrap { overflow: hidden; border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border); background: var(--panel); padding: 12px 0; }
 .ticker-track { display: flex; gap: 48px; width: max-content; animation: ta-ticker 32s linear infinite; }
 .ticker-item { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text2); white-space: nowrap; }
@@ -168,12 +173,12 @@ textarea.input { resize: vertical; }
 @keyframes ta-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } }
 
-/* ===== hero ფოტოს ნელი "სუნთქვის" ზუმი ===== */
+/* ===== 4) hero ფოტოს ნელი "სუნთქვის" ზუმი (Ken Burns) ===== */
 @keyframes ta-kenburns { 0% { transform: scale(1); } 50% { transform: scale(1.035); } 100% { transform: scale(1); } }
 .hero-photo img { animation: ta-kenburns 14s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .hero-photo img { animation: none; } }
 
-/* ===== ფონური ამბიენტური ნათება ===== */
+/* ===== 5) ფონური ამბიენტური ნათება - ნელა მოძრავი, დაბალი გამჭვირვალობით ===== */
 .ambient-glow { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .ambient-glow span {
   position: absolute; width: 480px; height: 480px; border-radius: 50%;
@@ -189,10 +194,10 @@ textarea.input { resize: vertical; }
 }
 @media (prefers-reduced-motion: reduce) { .ambient-glow span { animation: none; } }
 
-/* ===== count-up ===== */
+/* ===== 6) რიცხვების count-up ===== */
 .count-up { font-variant-numeric: tabular-nums; }
 
-/* ===== hero-ს page-load ანიმაცია ===== */
+/* ===== ერთი, დისციპლინირებული motion-მომენტი - hero-ს გამოჩენისას ===== */
 @keyframes ta-fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 .reveal { opacity: 0; animation: ta-fade-up 0.7s ease forwards; }
 .reveal-1 { animation-delay: 0.05s; }
@@ -203,7 +208,7 @@ textarea.input { resize: vertical; }
 @keyframes ta-draw-line { to { stroke-dashoffset: 0; } }
 .draw-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: ta-draw-line 1.8s 0.3s ease forwards; }
 
-/* ===== სქროლზე გამოჩენადი ელემენტები ===== */
+/* ===== სქროლზე გამოჩენადი ელემენტები (მთელს საიტზე გამოსაყენებელი) ===== */
 .io-reveal, .io-reveal-repeat { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
 .io-reveal.io-in, .io-reveal-repeat.io-in { opacity: 1; transform: translateY(0); }
 
@@ -211,7 +216,7 @@ textarea.input { resize: vertical; }
   .reveal, .draw-line, .io-reveal { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
 }
 
-/* ===== ოქროსფერი ჩარჩო ფოტოსთვის ===== */
+/* ===== ოქროსფერი ჩარჩო ფოტოსთვის - ბუნებრივი პროპორციით, დაუჭრელად ===== */
 .gold-frame {
   position: relative; border-radius: 14px; overflow: hidden;
   border: 1px solid var(--accent);
@@ -229,7 +234,7 @@ textarea.input { resize: vertical; }
 }
 @media (prefers-reduced-motion: reduce) { .gold-frame { animation: none; } }
 
-/* ===== Hero - ფოტო მთელი ბლოკის ფონად ===== */
+/* ===== Hero - ფოტო მთელი ბლოკის ფონად, ტექსტი დაფენილია ===== */
 .hero-photo {
   position: relative; border-radius: 16px; overflow: hidden;
   border: 1px solid var(--accent);
@@ -255,14 +260,14 @@ textarea.input { resize: vertical; }
 .hero-photo.no-photo { background: var(--panel2); }
 .hero-photo.no-photo .hero-overlay { background: none; }
 
-/* ===== Hero grid ===== */
+/* ===== Hero grid - მობილურზე ერთ სვეტად იკეცება ===== */
 .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
 @media (max-width: 760px) {
   .hero-grid { grid-template-columns: 1fr; gap: 32px; }
   .hero-grid > div:last-child { order: -1; }
 }
 
-/* ===== ხელმისაწვდომობა ===== */
+/* ===== ხელმისაწვდომობა: ხილული focus, skip-link, შეხების არე ===== */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .skip-link {
   position: absolute; left: 12px; top: -60px; z-index: 100;
@@ -276,4 +281,10 @@ textarea.input { resize: vertical; }
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ===== about.html-ის Hero grid (ფოტო მარცხნივ, ტექსტი მარჯვნივ) - მობილურზე ერთ სვეტად ===== */
+.about-hero-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; }
+@media (max-width: 760px) {
+  .about-hero-grid { grid-template-columns: 1fr; }
 }
