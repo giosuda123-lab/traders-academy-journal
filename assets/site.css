@@ -38,6 +38,7 @@ a { color: inherit; }
 
 .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
 .wrap-narrow { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+.wrap-article { max-width: 860px; margin: 0 auto; padding: 0 24px; }
 
 /* ===== ნავიგაცია ===== */
 .nav {
