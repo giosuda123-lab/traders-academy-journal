@@ -87,6 +87,72 @@ window.TA = (function(){
     links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => closeMenu(false)));
     // desktop-ზე ეკრანის გაფართოებისას მენიუს "ღია" მდგომარეობა არ უნდა ჩამორჩეს
     window.addEventListener('resize', () => { if (window.innerWidth > 760) closeMenu(false); });
+
+    initCookieConsent();
+    initAnalyticsClicks();
+  }
+
+  // ===== Google Analytics (GA4) - მხოლოდ cookie-თანხმობის შემდეგ იტვირთება =====
+  const GA_MEASUREMENT_ID = 'G-PQQ7BR83CL';
+
+  function loadGtag(){
+    if (window.__gaLoaded) return;
+    window.__gaLoaded = true;
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', GA_MEASUREMENT_ID);
+  }
+
+  // ღონისძიების გაზომვა (ღილაკზე დაჭერა, რეგისტრაცია, კომენტარი და ა.შ.)
+  // - თუ მომხმარებელმა cookies არ დაუშვა, უბრალოდ არაფერი ხდება.
+  function trackEvent(name, params){
+    if (window.gtag) window.gtag('event', name, params || {});
+  }
+
+  // ნებისმიერ ელემენტზე `data-ga-event="event_name"` ატრიბუტით - ავტომატურად
+  // იგზავნება event დაჭერისას, ცალკე კოდის გარეშე.
+  function initAnalyticsClicks(){
+    document.querySelectorAll('[data-ga-event]').forEach(el => {
+      if (el._gaBound) return;
+      el._gaBound = true;
+      el.addEventListener('click', () => {
+        trackEvent(el.dataset.gaEvent, { event_category: el.dataset.gaCategory || 'engagement', page: location.pathname });
+      });
+    });
+  }
+
+  function initCookieConsent(){
+    if (document.querySelector('.cookie-banner')) return; // ერთხელ გვერდზე
+    const stored = localStorage.getItem('ta_cookie_consent');
+    if (stored === 'accepted'){ loadGtag(); return; }
+    if (stored === 'declined') return;
+
+    const el = document.createElement('div');
+    el.className = 'cookie-banner';
+    el.innerHTML = `
+      <div class="cookie-banner-inner">
+        <span>საიტი იყენებს ანალიტიკურ cookie-ებს, რომ გავიგოთ, როგორ იყენებთ საიტს. პირადი მონაცემები არ იყიდება და არ გადაეცემა მესამე პირებს რეკლამისთვის.</span>
+        <div class="cookie-banner-actions">
+          <button type="button" id="cookie-decline" class="btn btn-sm">უარი</button>
+          <button type="button" id="cookie-accept" class="btn btn-primary btn-sm">დათანხმება</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(el);
+    document.getElementById('cookie-accept').onclick = () => {
+      localStorage.setItem('ta_cookie_consent', 'accepted');
+      el.remove();
+      loadGtag();
+    };
+    document.getElementById('cookie-decline').onclick = () => {
+      localStorage.setItem('ta_cookie_consent', 'declined');
+      el.remove();
+    };
   }
 
   function mountFooter(){
@@ -160,6 +226,7 @@ window.TA = (function(){
           const { data, error } = await sb.auth.signInWithPassword({ email: fd.get('email'), password: fd.get('password') });
           if (error){ msg.innerHTML = `<div class="status-msg status-error">${escapeHtml(error.message)}</div>`; return; }
           await ensureProfile(data.user);
+          trackEvent('login', { method: 'password' });
           onAuthChange(data.user);
         });
         container.querySelector('#ta-to-register').onclick = (e) => { e.preventDefault(); mode = 'register'; render(); };
@@ -203,6 +270,7 @@ window.TA = (function(){
           const { data, error } = await sb.auth.verifyOtp({ email: pendingEmail, token: fd.get('token'), type: 'signup' });
           if (error){ msg.innerHTML = `<div class="status-msg status-error">${escapeHtml(error.message)}</div>`; return; }
           await ensureProfile(data.user);
+          trackEvent('sign_up', { method: 'email' });
           onAuthChange(data.user);
         });
       }
@@ -299,5 +367,5 @@ window.TA = (function(){
     return data.publicUrl;
   }
 
-  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile };
+  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile, trackEvent };
 })();
