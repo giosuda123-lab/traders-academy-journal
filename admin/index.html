@@ -8,6 +8,27 @@
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png"/>
 <link rel="icon" href="/assets/favicon-16.png" sizes="16x16" type="image/png"/>
 <link rel="stylesheet" href="/assets/site.css"/>
+<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet"/>
+<style>
+  /* Quill რედაქტორის მუქ თემასთან მორგება */
+  #f-content-editor { background: var(--panel2); border-radius: 0 0 8px 8px; }
+  .ql-toolbar.ql-snow { background: var(--panel); border-color: var(--border) !important; border-radius: 8px 8px 0 0; }
+  .ql-container.ql-snow { border-color: var(--border) !important; font-family: 'Inter', sans-serif; font-size: 15px; min-height: 320px; }
+  .ql-editor { color: var(--text); min-height: 320px; }
+  .ql-editor.ql-blank::before { color: var(--text3); font-style: normal; }
+  .ql-snow .ql-stroke { stroke: var(--text2); }
+  .ql-snow .ql-fill { fill: var(--text2); }
+  .ql-snow .ql-picker { color: var(--text2); }
+  .ql-snow .ql-picker-options { background: var(--panel); border-color: var(--border) !important; }
+  .ql-snow .ql-picker-label { border-color: transparent; }
+  .ql-toolbar.ql-snow .ql-picker-label:hover, .ql-toolbar.ql-snow .ql-picker-label.ql-active,
+  .ql-toolbar.ql-snow button:hover, .ql-toolbar.ql-snow button.ql-active { color: var(--accent) !important; }
+  .ql-toolbar.ql-snow button:hover .ql-stroke, .ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: var(--accent) !important; }
+  .ql-toolbar.ql-snow button:hover .ql-fill, .ql-toolbar.ql-snow button.ql-active .ql-fill { fill: var(--accent) !important; }
+  .ql-editor h2, .ql-editor h3 { font-family: 'Source Serif 4', Georgia, serif; color: var(--text); }
+  .ql-editor img { border-radius: 10px; max-width: 100%; }
+  .ql-editor a { color: var(--accent); }
+</style>
 </head>
 <body>
 <a href="#main-content" class="skip-link">კონტენტზე გადასვლა</a>
@@ -26,6 +47,7 @@
 <footer id="ta-footer" class="site-footer"></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 <script src="/assets/site.js"></script>
 <script>
   TA.mountNav('');
@@ -39,6 +61,7 @@
   let testimonials = [];
   let editingTestimonial = null;
   let adminTab = 'posts'; // 'posts' | 'testimonials'
+  let quillEditor = null;
 
   // სურათს canvas-ით ამცირებს/კუმშავს, JPEG data URL-ს აბრუნებს - Supabase-ის
   // TEXT/JSONB ველებში ინახება პირდაპირ ცალკე storage-ის გარეშე.
@@ -174,20 +197,9 @@
           </div>
         </div>
         <div>
-          <label class="field-label">კონტენტი (HTML)</label>
-          <div style="display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-sm" data-wrap="h2">H2</button>
-            <button type="button" class="btn btn-sm" data-wrap="h3">H3</button>
-            <button type="button" class="btn btn-sm" data-wrap="strong">Bold</button>
-            <button type="button" class="btn btn-sm" data-wrap="em">Italic</button>
-            <button type="button" class="btn btn-sm" data-wrap="p">P</button>
-            <label class="btn btn-sm" style="cursor:pointer;">
-              + სურათის ჩასმა
-              <input type="file" accept="image/*" id="f-content-image-input" style="display:none;"/>
-            </label>
-          </div>
-          <textarea class="input" id="f-content" rows="16" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">${p.content||''}</textarea>
-          <p style="font-size:11.5px; color:var(--text3); margin-top:6px;">სურათი ჩაისმება კურსორის პოზიციაზე, ავტომატურად შეკუმშული ვერსიით.</p>
+          <label class="field-label">კონტენტი</label>
+          <div id="f-content-editor"></div>
+          <p style="font-size:11.5px; color:var(--text3); margin-top:8px;">მონიშნეთ ტექსტი ზომის/სტილის შესაცვლელად - ისე, როგორც ჩვეულებრივ ტექსტურედაქტორში. სურათის ღილაკი (🖼) კურსორის ადგილზე ჩასვამს ავტომატურად შეკუმშულ ვერსიას.</p>
         </div>
         <div><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" id="f-published" ${p.published?'checked':''}/> გამოქვეყნებულია</label></div>
         <div id="editor-msg"></div>
@@ -200,6 +212,44 @@
     document.getElementById('f-title').addEventListener('input', (e) => {
       if (!p.id) document.getElementById('f-slug').value = slugify(e.target.value);
     });
+
+    // Quill rich-text რედაქტორი - ვიზუალური, ისე როგორც ჩვეულებრივ ტექსტ-რედაქტორში
+    async function quillImageHandler(){
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*';
+      input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        try {
+          const dataUrl = await compressImageToDataUrl(file, 1000, 0.75);
+          const range = quillEditor.getSelection(true);
+          quillEditor.insertEmbed(range.index, 'image', dataUrl, 'user');
+          quillEditor.setSelection(range.index + 1);
+        } catch (err) {
+          alert('სურათის დამუშავება ვერ მოხერხდა.');
+        }
+      };
+      input.click();
+    }
+    quillEditor = new Quill('#f-content-editor', {
+      theme: 'snow',
+      placeholder: 'დაიწყეთ წერა...',
+      modules: {
+        toolbar: {
+          container: [
+            [{ header: [2, 3, false] }],
+            [{ size: ['small', false, 'large', 'huge'] }],
+            ['bold', 'italic', 'underline'],
+            [{ color: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['blockquote', 'link', 'image'],
+            ['clean']
+          ],
+          handlers: { image: quillImageHandler }
+        }
+      }
+    });
+    quillEditor.root.innerHTML = p.content || '';
 
     // გარეკანის სურათის ატვირთვა
     document.getElementById('f-cover-input').addEventListener('change', async (e) => {
@@ -215,40 +265,13 @@
     const coverRemoveBtn = document.getElementById('f-cover-remove');
     if (coverRemoveBtn) coverRemoveBtn.onclick = () => { p.cover_image = null; renderEditor(); };
 
-    // კონტენტში სურათის ჩასმა კურსორის პოზიციაზე
-    document.getElementById('f-content-image-input').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const dataUrl = await compressImageToDataUrl(file, 1000, 0.75);
-        const ta = document.getElementById('f-content');
-        const start = ta.selectionStart, end = ta.selectionEnd;
-        const tag = `\n<img src="${dataUrl}" alt="" loading="lazy" decoding="async" style="border-radius:10px;"/>\n`;
-        ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
-        ta.focus();
-        e.target.value = '';
-      } catch (err) {
-        alert('სურათის დამუშავება ვერ მოხერხდა.');
-      }
-    });
-
-    root.querySelectorAll('[data-wrap]').forEach(b => {
-      b.onclick = () => {
-        const ta = document.getElementById('f-content');
-        const tag = b.dataset.wrap;
-        const start = ta.selectionStart, end = ta.selectionEnd;
-        const sel = ta.value.slice(start, end) || 'ტექსტი';
-        ta.value = ta.value.slice(0, start) + `<${tag}>${sel}</${tag}>` + ta.value.slice(end);
-        ta.focus();
-      };
-    });
     document.getElementById('save-btn').onclick = async () => {
       const payload = {
         title: document.getElementById('f-title').value.trim(),
         slug: document.getElementById('f-slug').value.trim(),
         category: document.getElementById('f-category').value,
         excerpt: document.getElementById('f-excerpt').value.trim(),
-        content: document.getElementById('f-content').value,
+        content: quillEditor ? quillEditor.root.innerHTML : '',
         published: document.getElementById('f-published').checked,
         cover_image: p.cover_image || null,
         author_id: currentUser.id
