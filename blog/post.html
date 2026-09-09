@@ -176,6 +176,7 @@
         });
         const msg = area.querySelector('#comment-msg');
         if (error){ msg.innerHTML = `<div class="status-msg status-error">${TA.escapeHtml(error.message)}</div>`; return; }
+        TA.trackEvent('comment_posted', { post_slug: slug });
         loadComments();
       });
     } else {
