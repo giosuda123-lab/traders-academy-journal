@@ -327,3 +327,20 @@ textarea.input { resize: vertical; }
   .featured-grid { grid-template-columns: 1fr; }
   .featured-grid img { order: -1; margin-bottom: 16px; }
 }
+
+/* ===== Cookie-თანხმობის ბანერი ===== */
+.cookie-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+  background: var(--panel); border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.4);
+  padding: 16px 20px;
+}
+.cookie-banner-inner {
+  max-width: var(--maxw); margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+}
+.cookie-banner-inner span { font-size: 13px; color: var(--text2); max-width: 640px; }
+.cookie-banner-actions { display: flex; gap: 10px; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .cookie-banner-inner { flex-direction: column; align-items: flex-start; }
+}
