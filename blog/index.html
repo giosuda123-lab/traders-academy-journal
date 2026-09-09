@@ -75,11 +75,17 @@
       return;
     }
     const [featured, ...rest] = list;
+    const featuredHasImage = !!featured.cover_image;
     el.innerHTML = `
       <a href="/blog/post.html?slug=${encodeURIComponent(featured.slug)}" style="display:block; text-decoration:none; color:inherit; padding-bottom:32px; margin-bottom:28px; border-bottom:0.5px solid var(--border);">
-        <div class="mono" style="font-size:11.5px; color:var(--text3); margin-bottom:10px;">${TA.CATEGORY_LABELS[featured.category]||featured.category} · ${TA.fmtDate(featured.created_at)}</div>
-        <div class="serif" style="font-size:26px; font-weight:600; margin-bottom:10px; max-width:32ch;">${TA.escapeHtml(featured.title)}</div>
-        <div style="font-size:15px; color:var(--text2); max-width:64ch;">${TA.escapeHtml(featured.excerpt||'')}</div>
+        <div class="${featuredHasImage ? 'featured-grid' : ''}" style="${featuredHasImage ? 'gap:32px; align-items:center;' : ''}">
+          <div>
+            <div class="mono" style="font-size:11.5px; color:var(--text3); margin-bottom:10px;">${TA.CATEGORY_LABELS[featured.category]||featured.category} · ${TA.fmtDate(featured.created_at)}</div>
+            <div class="serif" style="font-size:26px; font-weight:600; margin-bottom:10px; max-width:32ch;">${TA.escapeHtml(featured.title)}</div>
+            <div style="font-size:15px; color:var(--text2); max-width:64ch;">${TA.escapeHtml(featured.excerpt||'')}</div>
+          </div>
+          ${featuredHasImage ? `<img src="${featured.cover_image}" alt="" loading="lazy" decoding="async" style="width:100%; height:auto; border-radius:12px; border:1px solid var(--border);"/>` : ''}
+        </div>
       </a>
       ${rest.map(p => `
         <a href="/blog/post.html?slug=${encodeURIComponent(p.slug)}" style="display:block; text-decoration:none; color:inherit; padding:20px 0; border-bottom:0.5px solid var(--border);">
@@ -96,7 +102,7 @@
     containerEl.setAttribute('aria-live', 'polite');
     try {
       const { data, error } = await TA.withTimeout(
-        TA.sb.from('posts').select('slug,title,category,excerpt,created_at').eq('published', true).order('created_at', { ascending: false })
+        TA.sb.from('posts').select('slug,title,category,excerpt,created_at,cover_image').eq('published', true).order('created_at', { ascending: false })
       );
       if (error) throw error;
       allPosts = data || [];
