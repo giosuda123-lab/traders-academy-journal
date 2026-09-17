@@ -344,3 +344,15 @@ textarea.input { resize: vertical; }
 @media (max-width: 640px) {
   .cookie-banner-inner { flex-direction: column; align-items: flex-start; }
 }
+
+/* ===== სტატიის სურათების "sticky" ეფექტი (blog/post.html) ===== */
+.img-sticky-section { display: grid; grid-template-columns: 38% 1fr; gap: 28px; margin: 36px 0; align-items: start; }
+.img-sticky-media { position: sticky; top: 84px; align-self: start; }
+.img-sticky-media-inner img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); display: block; }
+.img-sticky-caption { font-size: 12.5px; color: var(--text3); margin-top: 8px; font-style: italic; line-height: 1.5; }
+.img-sticky-text { min-width: 0; }
+.img-sticky-text p:first-child { margin-top: 0; }
+@media (max-width: 760px) {
+  .img-sticky-section { grid-template-columns: 1fr; gap: 16px; }
+  .img-sticky-media { position: static; }
+}
