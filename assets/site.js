@@ -34,7 +34,8 @@ window.TA = (function(){
   const CATEGORY_LABELS = {
     market_analysis: 'ბაზრის ანალიზი',
     price_action_tips: 'Price Action Tips',
-    psychology: 'ფსიქოლოგია'
+    psychology: 'ფსიქოლოგია',
+    trade_review: 'თრეიდის გარჩევა'
   };
 
   const NAV_LINKS = [
