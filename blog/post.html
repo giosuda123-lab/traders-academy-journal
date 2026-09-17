@@ -91,12 +91,77 @@
       // შენიშვნა: content ინახება მხოლოდ ადმინის მიერ დაწერილი - ნდობით რენდერდება HTML-ად.
       // მომხმარებლის შემოტანილი კონტენტი (კომენტარები) ყოველთვის escapeHtml-ით გადის.
       document.getElementById('post-body').innerHTML = data.content || '';
+      applyStickyImages();
       injectArticleSchema(data);
     } catch(e){
       document.getElementById('post-header').innerHTML = `<div class="status-msg status-error">${e && e.message ? TA.escapeHtml(e.message) : 'სტატია ვერ მოიძებნა.'} <button type="button" id="retry-post" style="background:none; border:none; color:var(--accent); text-decoration:underline; cursor:pointer; padding:0; font:inherit;">სცადეთ თავიდან</button></div>`;
       const retryBtn = document.getElementById('retry-post');
       if (retryBtn) retryBtn.onclick = loadPost;
     }
+  }
+
+  // სურათების "sticky" ეფექტი - თითო სურათი "ეკვრება" ეკრანს, სანამ მასთან
+  // დაკავშირებული ტექსტი სქროლავს; მომდევნო სურათთან ავტომატურად იცვლება.
+  function applyStickyImages(){
+    const container = document.getElementById('post-body');
+    const nodes = Array.from(container.childNodes).filter(n => n.nodeType === 1);
+
+    const isImageNode = (n) => n.tagName === 'IMG' || (n.tagName === 'P' && n.children.length === 1 && n.children[0].tagName === 'IMG' && n.textContent.trim() === '');
+    const getImgEl = (n) => n.tagName === 'IMG' ? n : n.querySelector('img');
+    const isCaptionNode = (n) => n.tagName === 'P' && n.children.length === 1 && n.children[0].tagName === 'EM';
+
+    const imgIdx = [];
+    nodes.forEach((n, i) => { if (isImageNode(n)) imgIdx.push(i); });
+    if (!imgIdx.length) return; // ჩვეულებრივი ტექსტი (სურათების გარეშე) - არაფერი იცვლება
+
+    const frag = document.createDocumentFragment();
+
+    if (imgIdx[0] > 0){
+      const intro = document.createElement('div');
+      for (let i = 0; i < imgIdx[0]; i++) intro.appendChild(nodes[i]);
+      frag.appendChild(intro);
+    }
+
+    for (let k = 0; k < imgIdx.length; k++){
+      const start = imgIdx[k];
+      const end = k + 1 < imgIdx.length ? imgIdx[k+1] : nodes.length;
+      const imgEl = getImgEl(nodes[start]);
+      if (!imgEl) continue;
+
+      let textStart = start + 1;
+      let captionText = '';
+      if (textStart < end && isCaptionNode(nodes[textStart])){
+        captionText = nodes[textStart].textContent;
+        textStart++;
+      }
+
+      const section = document.createElement('div');
+      section.className = 'img-sticky-section';
+
+      const media = document.createElement('div');
+      media.className = 'img-sticky-media';
+      const mediaInner = document.createElement('div');
+      mediaInner.className = 'img-sticky-media-inner';
+      mediaInner.appendChild(imgEl.cloneNode(true));
+      if (captionText){
+        const cap = document.createElement('div');
+        cap.className = 'img-sticky-caption';
+        cap.textContent = captionText;
+        mediaInner.appendChild(cap);
+      }
+      media.appendChild(mediaInner);
+
+      const textCol = document.createElement('div');
+      textCol.className = 'img-sticky-text';
+      for (let i = textStart; i < end; i++) textCol.appendChild(nodes[i]);
+
+      section.appendChild(media);
+      section.appendChild(textCol);
+      frag.appendChild(section);
+    }
+
+    container.innerHTML = '';
+    container.appendChild(frag);
   }
 
   function injectArticleSchema(post){
