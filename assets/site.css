@@ -1,4 +1,4 @@
-/* ===== Traders Academy - საერთო დიზაინის სისტემა =====
+=/* ===== Traders Academy - საერთო დიზაინის სისტემა =====
    იგივე პალიტრა, რაც Trade Journal-ში - შენარჩუნებული ვიზუალური იდენტობა. */
 
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -345,14 +345,19 @@ textarea.input { resize: vertical; }
   .cookie-banner-inner { flex-direction: column; align-items: flex-start; }
 }
 
-/* ===== სტატიის სურათების "sticky" ეფექტი (blog/post.html) ===== */
-.img-sticky-section { display: grid; grid-template-columns: 58% 1fr; gap: 32px; margin: 36px 0; align-items: start; }
-.img-sticky-media { position: sticky; top: 84px; align-self: start; }
-.img-sticky-media-inner img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); display: block; }
-.img-sticky-caption { font-size: 12.5px; color: var(--text3); margin-top: 8px; font-style: italic; line-height: 1.5; }
-.img-sticky-text { min-width: 0; }
-.img-sticky-text p:first-child { margin-top: 0; }
+/* ===== სტატიის სურათების "გაყინვის" ეფექტი (blog/post.html) =====
+   სრული სიგანის ფოტო, ზუსტად იმ ადგილას, სადაც ჩვეულებრივ იქნებოდა -
+   უბრალოდ სქროლვისას ცოტა ხნით ჩერდება ზედა კიდეში, სანამ საბოლოოდ
+   არ გაუშვებს და ტექსტი ჩვეულებრივად არ გაგრძელდება. */
+.img-freeze-wrap { position: relative; margin: 36px 0 0; }
+.img-freeze-wrap img { position: sticky; top: 84px; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); display: block; z-index: 1; }
+.img-freeze-spacer { height: 200px; }
+.img-freeze-caption { font-size: 12.5px; color: var(--text3); margin: 10px 0 0; font-style: italic; line-height: 1.5; }
 @media (max-width: 760px) {
-  .img-sticky-section { grid-template-columns: 1fr; gap: 16px; }
-  .img-sticky-media { position: static; }
+  .img-freeze-wrap img { position: static; }
+  .img-freeze-spacer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-freeze-wrap img { position: static; }
+  .img-freeze-spacer { display: none; }
 }
