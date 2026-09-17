@@ -38,7 +38,7 @@ a { color: inherit; }
 
 .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
 .wrap-narrow { max-width: 720px; margin: 0 auto; padding: 0 24px; }
-.wrap-article { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+.wrap-article { max-width: 980px; margin: 0 auto; padding: 0 24px; }
 
 /* ===== ნავიგაცია ===== */
 .nav {
@@ -346,7 +346,7 @@ textarea.input { resize: vertical; }
 }
 
 /* ===== სტატიის სურათების "sticky" ეფექტი (blog/post.html) ===== */
-.img-sticky-section { display: grid; grid-template-columns: 38% 1fr; gap: 28px; margin: 36px 0; align-items: start; }
+.img-sticky-section { display: grid; grid-template-columns: 58% 1fr; gap: 32px; margin: 36px 0; align-items: start; }
 .img-sticky-media { position: sticky; top: 84px; align-self: start; }
 .img-sticky-media-inner img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--border); display: block; }
 .img-sticky-caption { font-size: 12.5px; color: var(--text3); margin-top: 8px; font-style: italic; line-height: 1.5; }
