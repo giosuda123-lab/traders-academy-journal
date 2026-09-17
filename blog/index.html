@@ -3,41 +3,41 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Admin - Traders Academy</title>
-<meta name="robots" content="noindex,nofollow"/>
+<title>სტატიები - Traders Academy</title>
+<meta name="description" content="ყოველდღიური ბაზრის ანალიზი, Price Action Tips და თრეიდერის ფსიქოლოგია - Traders Academy-ის ბლოგი."/>
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png"/>
 <link rel="icon" href="/assets/favicon-16.png" sizes="16x16" type="image/png"/>
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+<link rel="canonical" href="https://tradersacademy.ge/blog/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Traders Academy"/>
+<meta property="og:locale" content="ka_GE"/>
+<meta property="og:url" content="https://tradersacademy.ge/blog/" id="og-url"/>
+<meta property="og:title" content="სტატიები - Traders Academy" id="og-title"/>
+<meta property="og:description" content="ყოველდღიური ბაზრის ანალიზი, Price Action Tips და თრეიდერის ფსიქოლოგია - Traders Academy-ის ბლოგი." id="og-desc"/>
+<meta property="og:image" content="https://tradersacademy.ge/assets/og-image.jpg" id="og-image"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="სტატიები - Traders Academy" id="tw-title"/>
+<meta name="twitter:description" content="ყოველდღიური ბაზრის ანალიზი, Price Action Tips და თრეიდერის ფსიქოლოგია - Traders Academy-ის ბლოგი." id="tw-desc"/>
+<meta name="twitter:image" content="https://tradersacademy.ge/assets/og-image.jpg" id="tw-image"/>
 <link rel="stylesheet" href="/assets/site.css"/>
-<link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet"/>
-<style>
-  /* Quill რედაქტორის მუქ თემასთან მორგება */
-  #f-content-editor { background: var(--panel2); border-radius: 0 0 8px 8px; }
-  .ql-toolbar.ql-snow { background: var(--panel); border-color: var(--border) !important; border-radius: 8px 8px 0 0; }
-  .ql-container.ql-snow { border-color: var(--border) !important; font-family: 'Inter', sans-serif; font-size: 15px; min-height: 320px; }
-  .ql-editor { color: var(--text); min-height: 320px; }
-  .ql-editor.ql-blank::before { color: var(--text3); font-style: normal; }
-  .ql-snow .ql-stroke { stroke: var(--text2); }
-  .ql-snow .ql-fill { fill: var(--text2); }
-  .ql-snow .ql-picker { color: var(--text2); }
-  .ql-snow .ql-picker-options { background: var(--panel); border-color: var(--border) !important; }
-  .ql-snow .ql-picker-label { border-color: transparent; }
-  .ql-toolbar.ql-snow .ql-picker-label:hover, .ql-toolbar.ql-snow .ql-picker-label.ql-active,
-  .ql-toolbar.ql-snow button:hover, .ql-toolbar.ql-snow button.ql-active { color: var(--accent) !important; }
-  .ql-toolbar.ql-snow button:hover .ql-stroke, .ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: var(--accent) !important; }
-  .ql-toolbar.ql-snow button:hover .ql-fill, .ql-toolbar.ql-snow button.ql-active .ql-fill { fill: var(--accent) !important; }
-  .ql-editor h2, .ql-editor h3 { font-family: 'Source Serif 4', Georgia, serif; color: var(--text); }
-  .ql-editor img { border-radius: 10px; max-width: 100%; }
-  .ql-editor a { color: var(--accent); }
-</style>
 </head>
 <body>
 <a href="#main-content" class="skip-link">კონტენტზე გადასვლა</a>
 <header id="ta-nav" class="nav"></header>
 <main id="main-content">
 
-<section class="section">
+<section class="section" style="padding-bottom:28px;">
   <div class="wrap">
-    <div id="admin-root">
+    <div class="eyebrow">სტატიები</div>
+    <h1 class="serif" style="font-size:34px; font-weight:600; margin:0 0 24px;">ბაზრის ანალიზი და Price Action</h1>
+    <div id="cat-filters" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <div id="posts-container">
       <div style="color:var(--text3); font-size:14px;">იტვირთება…</div>
     </div>
   </div>
@@ -47,395 +47,77 @@
 <footer id="ta-footer" class="site-footer"></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 <script src="/assets/site.js"></script>
 <script>
-  TA.mountNav('');
+  TA.mountNav('/blog/');
   TA.mountFooter();
   TA.mountAmbient();
 
-  const root = document.getElementById('admin-root');
-  let currentUser = null;
-  let posts = [];
-  let editingPost = null; // null | {} | post-object
-  let testimonials = [];
-  let editingTestimonial = null;
-  let adminTab = 'posts'; // 'posts' | 'testimonials'
-  let quillEditor = null;
+  const CATS = [['', 'ყველა'], ['market_analysis', 'ბაზრის ანალიზი'], ['price_action_tips', 'Price Action Tips'], ['psychology', 'ფსიქოლოგია'], ['trade_review', 'თრეიდის გარჩევა']];
+  let activeCat = new URLSearchParams(location.search).get('category') || '';
+  let allPosts = [];
 
-  // სურათს canvas-ით ამცირებს/კუმშავს, JPEG data URL-ს აბრუნებს - Supabase-ის
-  // TEXT/JSONB ველებში ინახება პირდაპირ ცალკე storage-ის გარეშე.
-  function compressImageToDataUrl(file, maxW, quality){
-    maxW = maxW || 1000; quality = quality || 0.78;
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxW / img.width);
-          const w = Math.max(1, Math.round(img.width * scale));
-          const h = Math.max(1, Math.round(img.height * scale));
-          const canvas = document.createElement('canvas');
-          canvas.width = w; canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = () => reject(new Error('სურათის წაკითხვა ვერ მოხერხდა'));
-        img.src = reader.result;
-      };
-      reader.onerror = () => reject(new Error('ფაილის წაკითხვა ვერ მოხერხდა'));
-      reader.readAsDataURL(file);
+  function renderFilters(){
+    const el = document.getElementById('cat-filters');
+    el.innerHTML = CATS.map(([val, label]) => `
+      <button data-cat="${val}" class="btn btn-sm" style="${activeCat===val ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">${label}</button>
+    `).join('');
+    el.querySelectorAll('[data-cat]').forEach(b => {
+      b.onclick = () => { activeCat = b.dataset.cat; renderFilters(); renderPosts(); };
     });
   }
 
-  function slugify(str){
-    const map = { 'ა':'a','ბ':'b','გ':'g','დ':'d','ე':'e','ვ':'v','ზ':'z','თ':'t','ი':'i','კ':'k','ლ':'l','მ':'m','ნ':'n','ო':'o','პ':'p','ჟ':'zh','რ':'r','ს':'s','ტ':'t','უ':'u','ფ':'f','ქ':'q','ღ':'gh','ყ':'y','შ':'sh','ჩ':'ch','ც':'ts','ძ':'dz','წ':'w','ჭ':'ch','ხ':'x','ჯ':'j','ჰ':'h' };
-    return str.toLowerCase().split('').map(ch => map[ch] !== undefined ? map[ch] : ch).join('')
-      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-');
-  }
-
-  async function boot(){
-    currentUser = await TA.getUser();
-    if (!currentUser){
-      root.innerHTML = `<div class="card" style="max-width:400px;"><div class="serif" style="font-size:17px; font-weight:600; margin-bottom:14px;">ადმინის შესვლა</div><div id="admin-auth"></div></div>`;
-      TA.renderAuthWidget(document.getElementById('admin-auth'), async (user) => { currentUser = user; boot(); });
+  function renderPosts(){
+    const el = document.getElementById('posts-container');
+    const list = activeCat ? allPosts.filter(p => p.category === activeCat) : allPosts;
+    if (!list.length){
+      el.innerHTML = '<div style="color:var(--text3); font-size:14px; padding:40px 0;">ამ კატეგორიაში სტატიები ჯერ არ არის.</div>';
       return;
     }
-    const isAdmin = await TA.isAdmin(currentUser.id);
-    if (!isAdmin){
-      root.innerHTML = `<div style="font-size:14px; color:var(--text2);">ეს ანგარიშს ადმინის უფლება არ აქვს. თუ ეს შენი ანგარიშია, გაააქტიურე is_admin ველი Supabase-ის profiles ცხრილში.</div>`;
-      return;
+    const [featured, ...rest] = list;
+    const featuredHasImage = !!featured.cover_image;
+    el.innerHTML = `
+      <a href="/blog/post.html?slug=${encodeURIComponent(featured.slug)}" style="display:block; text-decoration:none; color:inherit; padding-bottom:32px; margin-bottom:28px; border-bottom:0.5px solid var(--border);">
+        <div class="${featuredHasImage ? 'featured-grid' : ''}" style="${featuredHasImage ? 'gap:32px; align-items:center;' : ''}">
+          <div>
+            <div class="mono" style="font-size:11.5px; color:var(--text3); margin-bottom:10px;">${TA.CATEGORY_LABELS[featured.category]||featured.category} · ${TA.fmtDate(featured.created_at)}</div>
+            <div class="serif" style="font-size:26px; font-weight:600; margin-bottom:10px; max-width:32ch;">${TA.escapeHtml(featured.title)}</div>
+            <div style="font-size:15px; color:var(--text2); max-width:64ch;">${TA.escapeHtml(featured.excerpt||'')}</div>
+          </div>
+          ${featuredHasImage ? `<img src="${featured.cover_image}" alt="" loading="lazy" decoding="async" style="width:100%; height:auto; border-radius:12px; border:1px solid var(--border);"/>` : ''}
+        </div>
+      </a>
+      ${rest.map(p => `
+        <a href="/blog/post.html?slug=${encodeURIComponent(p.slug)}" style="display:${p.cover_image?'flex':'block'}; gap:16px; align-items:center; text-decoration:none; color:inherit; padding:20px 0; border-bottom:0.5px solid var(--border);">
+          ${p.cover_image ? `<img src="${p.cover_image}" alt="" loading="lazy" decoding="async" style="width:90px; height:68px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex-shrink:0;"/>` : ''}
+          <div>
+            <div class="mono" style="font-size:11px; color:var(--text3); margin-bottom:6px;">${TA.CATEGORY_LABELS[p.category]||p.category} · ${TA.fmtDate(p.created_at)}</div>
+            <div class="serif" style="font-size:18px; font-weight:600; margin-bottom:4px;">${TA.escapeHtml(p.title)}</div>
+            <div style="font-size:13.5px; color:var(--text2);">${TA.escapeHtml(p.excerpt||'')}</div>
+          </div>
+        </a>
+      `).join('')}
+    `;
+  }
+
+  (async function load(){
+    const containerEl = document.getElementById('posts-container');
+    containerEl.setAttribute('aria-live', 'polite');
+    try {
+      const { data, error } = await TA.withTimeout(
+        TA.sb.from('posts').select('slug,title,category,excerpt,created_at,cover_image').eq('published', true).order('created_at', { ascending: false })
+      );
+      if (error) throw error;
+      allPosts = data || [];
+      renderFilters();
+      renderPosts();
+      TA.initScrollRevealRepeat();
+    } catch(e){
+      containerEl.innerHTML = `<div class="status-msg status-error">სტატიების ჩატვირთვა ვერ მოხერხდა${e && e.message ? ': ' + TA.escapeHtml(e.message) : '.'} <button type="button" id="retry-load" style="background:none; border:none; color:var(--accent); text-decoration:underline; cursor:pointer; padding:0; font:inherit;">სცადეთ თავიდან</button></div>`;
+      const retryBtn = document.getElementById('retry-load');
+      if (retryBtn) retryBtn.onclick = load;
     }
-    await loadPosts();
-    await loadTestimonials();
-    renderList();
-  }
-
-  async function loadPosts(){
-    const { data, error } = await TA.sb.from('posts').select('*').order('created_at', { ascending: false });
-    posts = error ? [] : (data || []);
-  }
-
-  async function loadTestimonials(){
-    const { data, error } = await TA.sb.from('testimonials').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false });
-    testimonials = error ? [] : (data || []);
-  }
-
-  function renderList(){
-    root.innerHTML = `
-      <div style="display:flex; gap:8px; margin-bottom:24px;">
-        <button id="tab-posts" class="btn btn-sm" style="${adminTab==='posts' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">სტატიები</button>
-        <button id="tab-testimonials" class="btn btn-sm" style="${adminTab==='testimonials' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეო-რევიუები</button>
-      </div>
-      <div id="tab-content"></div>
-    `;
-    document.getElementById('tab-posts').onclick = () => { adminTab = 'posts'; renderList(); };
-    document.getElementById('tab-testimonials').onclick = () => { adminTab = 'testimonials'; renderList(); };
-    if (adminTab === 'posts') renderPostsList(); else renderTestimonialsList();
-  }
-
-  function renderPostsList(){
-    const tc = document.getElementById('tab-content');
-    tc.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div class="serif" style="font-size:22px; font-weight:600;">სტატიების მართვა</div>
-        <button id="new-post-btn" class="btn btn-primary">+ ახალი სტატია</button>
-      </div>
-      <div style="display:flex; flex-direction:column;">
-        ${posts.length === 0 ? '<div style="color:var(--text3); font-size:14px;">ჯერ არცერთი სტატია არ არის.</div>' : posts.map(p => `
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; padding:16px 0; border-bottom:0.5px solid var(--border);">
-            <div>
-              <div style="font-size:15px; font-weight:600;">${TA.escapeHtml(p.title)} ${!p.published ? '<span class="badge" style="margin-left:8px;">დრაფტი</span>' : ''}</div>
-              <div class="mono" style="font-size:11.5px; color:var(--text3); margin-top:4px;">${TA.CATEGORY_LABELS[p.category]||p.category} · ${TA.fmtDate(p.created_at)} · /blog/post.html?slug=${p.slug}</div>
-            </div>
-            <div style="display:flex; gap:8px; flex-shrink:0;">
-              <button class="btn btn-sm" data-edit="${p.id}">რედაქტირება</button>
-              <button class="btn btn-sm" data-del="${p.id}" style="color:var(--red);">წაშლა</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    document.getElementById('new-post-btn').onclick = () => { editingPost = { title:'', slug:'', category:'market_analysis', excerpt:'', content:'', published:true, cover_image:null }; renderEditor(); };
-    tc.querySelectorAll('[data-edit]').forEach(b => { b.onclick = () => { editingPost = { ...posts.find(p=>p.id===b.dataset.edit) }; renderEditor(); }; });
-    tc.querySelectorAll('[data-del]').forEach(b => {
-      b.onclick = async () => {
-        if (!confirm('წავშალო ეს სტატია?')) return;
-        await TA.sb.from('posts').delete().eq('id', b.dataset.del);
-        await loadPosts(); renderPostsList();
-      };
-    });
-  }
-
-  function renderEditor(){
-    const p = editingPost;
-    root.innerHTML = `
-      <button id="back-btn" class="btn btn-sm" style="margin-bottom:20px;">← სია</button>
-      <div class="serif" style="font-size:20px; font-weight:600; margin-bottom:20px;">${p.id ? 'სტატიის რედაქტირება' : 'ახალი სტატია'}</div>
-      <div style="display:grid; gap:14px; max-width:760px;">
-        <div><label class="field-label">სათაური</label><input class="input" id="f-title" value="${TA.escapeHtml(p.title)}"/></div>
-        <div><label class="field-label">Slug (URL)</label><input class="input" id="f-slug" value="${TA.escapeHtml(p.slug)}"/></div>
-        <div><label class="field-label">კატეგორია</label>
-          <select class="input" id="f-category">
-            <option value="market_analysis" ${p.category==='market_analysis'?'selected':''}>ბაზრის ანალიზი</option>
-            <option value="price_action_tips" ${p.category==='price_action_tips'?'selected':''}>Price Action Tips</option>
-            <option value="psychology" ${p.category==='psychology'?'selected':''}>ფსიქოლოგია</option>
-            <option value="trade_review" ${p.category==='trade_review'?'selected':''}>თრეიდის გარჩევა</option>
-          </select>
-        </div>
-        <div><label class="field-label">მოკლე აღწერა (excerpt)</label><textarea class="input" id="f-excerpt" rows="2">${TA.escapeHtml(p.excerpt||'')}</textarea></div>
-        <div>
-          <label class="field-label">გარეკანის სურათი (cover image)</label>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <label class="btn btn-sm" style="cursor:pointer;">
-              სურათის არჩევა
-              <input type="file" accept="image/*" id="f-cover-input" style="display:none;"/>
-            </label>
-            <div id="f-cover-preview">
-              ${p.cover_image ? `<img src="${p.cover_image}" style="height:44px; border-radius:6px; border:0.5px solid var(--border);"/>` : `<span style="font-size:12px; color:var(--text3);">არ არის არჩეული</span>`}
-            </div>
-            ${p.cover_image ? `<button type="button" id="f-cover-remove" style="background:none; border:none; color:var(--red); font-size:12px; cursor:pointer;">წაშლა</button>` : ''}
-          </div>
-        </div>
-        <div>
-          <label class="field-label">კონტენტი</label>
-          <div id="f-content-editor"></div>
-          <p style="font-size:11.5px; color:var(--text3); margin-top:8px;">მონიშნეთ ტექსტი ზომის/სტილის შესაცვლელად - ისე, როგორც ჩვეულებრივ ტექსტურედაქტორში. სურათის ღილაკი (🖼) კურსორის ადგილზე ჩასვამს ავტომატურად შეკუმშულ ვერსიას.</p>
-        </div>
-        <div><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" id="f-published" ${p.published?'checked':''}/> გამოქვეყნებულია</label></div>
-        <div id="editor-msg"></div>
-        <div style="display:flex; gap:10px;">
-          <button id="save-btn" class="btn btn-primary">შენახვა</button>
-        </div>
-      </div>
-    `;
-    document.getElementById('back-btn').onclick = () => { editingPost = null; renderList(); };
-    document.getElementById('f-title').addEventListener('input', (e) => {
-      if (!p.id) document.getElementById('f-slug').value = slugify(e.target.value);
-    });
-
-    // Quill rich-text რედაქტორი - ვიზუალური, ისე როგორც ჩვეულებრივ ტექსტ-რედაქტორში
-    async function quillImageHandler(){
-      const input = document.createElement('input');
-      input.type = 'file'; input.accept = 'image/*';
-      input.onchange = async () => {
-        const file = input.files[0];
-        if (!file) return;
-        try {
-          const dataUrl = await compressImageToDataUrl(file, 1000, 0.75);
-          const caption = prompt('ფოტოს აღწერა (არასავალდებულო - ცარიელი დატოვეთ, თუ არ გინდათ):', '') || '';
-          const range = quillEditor.getSelection(true);
-          const safeCaption = caption.trim()
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-          const html = '<p><img src="' + dataUrl + '"/></p>' +
-            (safeCaption ? '<p><em>' + safeCaption + '</em></p>' : '');
-          quillEditor.clipboard.dangerouslyPasteHTML(range.index, html, 'user');
-        } catch (err) {
-          alert('სურათის დამუშავება ვერ მოხერხდა.');
-        }
-      };
-      input.click();
-    }
-    quillEditor = new Quill('#f-content-editor', {
-      theme: 'snow',
-      placeholder: 'დაიწყეთ წერა...',
-      modules: {
-        toolbar: {
-          container: [
-            [{ header: [2, 3, false] }],
-            [{ size: ['small', false, 'large', 'huge'] }],
-            ['bold', 'italic', 'underline'],
-            [{ color: [] }],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['blockquote', 'link', 'image'],
-            ['clean']
-          ],
-          handlers: { image: quillImageHandler }
-        }
-      }
-    });
-    quillEditor.root.innerHTML = p.content || '';
-
-    // renderEditor() ხელახლა აგებს მთელ ფორმას `p`-ობიექტიდან - ამიტომ, სანამ
-    // ამას გავუშვებთ (მაგ. cover-image ცვლილებისას), აუცილებლად უნდა შევინახოთ
-    // ეკრანზე უკვე ჩაწერილი მონაცემები `p`-ში, თორემ დაიკარგება.
-    function syncFormToP(){
-      const t = document.getElementById('f-title');
-      const s = document.getElementById('f-slug');
-      const c = document.getElementById('f-category');
-      const ex = document.getElementById('f-excerpt');
-      const pub = document.getElementById('f-published');
-      if (t) p.title = t.value;
-      if (s) p.slug = s.value;
-      if (c) p.category = c.value;
-      if (ex) p.excerpt = ex.value;
-      if (pub) p.published = pub.checked;
-      if (quillEditor) p.content = quillEditor.root.innerHTML;
-    }
-
-    // გარეკანის სურათის ატვირთვა
-    document.getElementById('f-cover-input').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const dataUrl = await compressImageToDataUrl(file, 1200, 0.8);
-        syncFormToP();
-        p.cover_image = dataUrl;
-        renderEditor();
-      } catch (err) {
-        alert('სურათის დამუშავება ვერ მოხერხდა.');
-      }
-    });
-    const coverRemoveBtn = document.getElementById('f-cover-remove');
-    if (coverRemoveBtn) coverRemoveBtn.onclick = () => { syncFormToP(); p.cover_image = null; renderEditor(); };
-
-    document.getElementById('save-btn').onclick = async () => {
-      const payload = {
-        title: document.getElementById('f-title').value.trim(),
-        slug: document.getElementById('f-slug').value.trim(),
-        category: document.getElementById('f-category').value,
-        excerpt: document.getElementById('f-excerpt').value.trim(),
-        content: quillEditor ? quillEditor.root.innerHTML : '',
-        published: document.getElementById('f-published').checked,
-        cover_image: p.cover_image || null,
-        author_id: currentUser.id
-      };
-      const msg = document.getElementById('editor-msg');
-      if (!payload.title || !payload.slug){ msg.innerHTML = '<div class="status-msg status-error">სათაური და Slug სავალდებულოა.</div>'; return; }
-      let error;
-      if (p.id){
-        ({ error } = await TA.sb.from('posts').update(payload).eq('id', p.id));
-      } else {
-        ({ error } = await TA.sb.from('posts').insert(payload));
-      }
-      if (error){ msg.innerHTML = `<div class="status-msg status-error">${TA.escapeHtml(error.message)}</div>`; return; }
-      msg.innerHTML = '<div class="status-msg status-ok">შენახულია.</div>';
-      await loadPosts();
-      setTimeout(() => { editingPost = null; renderList(); }, 600);
-    };
-  }
-
-  function renderTestimonialsList(){
-    const tc = document.getElementById('tab-content');
-    tc.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <div class="serif" style="font-size:22px; font-weight:600;">ვიდეო-რევიუების მართვა</div>
-        <button id="new-testimonial-btn" class="btn btn-primary">+ ახალი რევიუ</button>
-      </div>
-      <div style="display:flex; flex-direction:column;">
-        ${testimonials.length === 0 ? '<div style="color:var(--text3); font-size:14px;">ჯერ არცერთი რევიუ არ არის.</div>' : testimonials.map(t => `
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; padding:16px 0; border-bottom:0.5px solid var(--border);">
-            <div style="display:flex; align-items:center; gap:14px;">
-              <video src="${t.video_url}" style="width:80px; height:60px; object-fit:cover; border-radius:6px; background:var(--panel2);" muted preload="metadata"></video>
-              <div>
-                <div style="font-size:15px; font-weight:600;">${TA.escapeHtml(t.student_name)} ${!t.published ? '<span class="badge" style="margin-left:8px;">დამალული</span>' : ''}</div>
-                <div class="mono" style="font-size:11.5px; color:var(--text3); margin-top:4px;">რიგითობა: ${t.sort_order}</div>
-              </div>
-            </div>
-            <div style="display:flex; gap:8px; flex-shrink:0;">
-              <button class="btn btn-sm" data-tedit="${t.id}">რედაქტირება</button>
-              <button class="btn btn-sm" data-tdel="${t.id}" style="color:var(--red);">წაშლა</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    document.getElementById('new-testimonial-btn').onclick = () => { editingTestimonial = { student_name:'', quote:'', video_url:null, published:true, sort_order: testimonials.length }; renderTestimonialEditor(); };
-    tc.querySelectorAll('[data-tedit]').forEach(b => { b.onclick = () => { editingTestimonial = { ...testimonials.find(t=>t.id===b.dataset.tedit) }; renderTestimonialEditor(); }; });
-    tc.querySelectorAll('[data-tdel]').forEach(b => {
-      b.onclick = async () => {
-        if (!confirm('წავშალო ეს ვიდეო-რევიუ? ვიდეო-ფაილიც წაიშლება.')) return;
-        const t = testimonials.find(x => x.id === b.dataset.tdel);
-        await TA.sb.from('testimonials').delete().eq('id', b.dataset.tdel);
-        if (t && t.video_url){
-          try {
-            const path = t.video_url.split('/testimonials/')[1];
-            if (path) await TA.sb.storage.from('testimonials').remove([path]);
-          } catch(e){ /* ფაილის წაშლა ჩავარდა - ცხრილიდან მაინც წაშლილია */ }
-        }
-        await loadTestimonials(); renderTestimonialsList();
-      };
-    });
-  }
-
-  function renderTestimonialEditor(){
-    const t = editingTestimonial;
-    const tc = document.getElementById('tab-content');
-    tc.innerHTML = `
-      <button id="tback-btn" class="btn btn-sm" style="margin-bottom:20px;">← სია</button>
-      <div class="serif" style="font-size:20px; font-weight:600; margin-bottom:20px;">${t.id ? 'რევიუს რედაქტირება' : 'ახალი ვიდეო-რევიუ'}</div>
-      <div style="display:grid; gap:14px; max-width:520px;">
-        <div><label class="field-label">მოსწავლის სახელი</label><input class="input" id="tf-name" value="${TA.escapeHtml(t.student_name||'')}"/></div>
-        <div><label class="field-label">ციტატა (სურვილისამებრ)</label><textarea class="input" id="tf-quote" rows="3">${TA.escapeHtml(t.quote||'')}</textarea></div>
-        <div>
-          <label class="field-label">ვიდეო ფაილი</label>
-          <div id="tf-video-area">
-            ${t.video_url ? `<video src="${t.video_url}" controls style="width:100%; max-width:320px; border-radius:10px; background:#000;"></video>` : `<span style="font-size:12px; color:var(--text3);">ჯერ არ არის ატვირთული</span>`}
-          </div>
-          <label class="btn btn-sm" style="cursor:pointer; margin-top:10px; display:inline-block;">
-            ${t.video_url ? 'ვიდეოს შეცვლა' : 'ვიდეოს ატვირთვა'}
-            <input type="file" accept="video/*" id="tf-video-input" style="display:none;"/>
-          </label>
-          <span id="tf-video-status" style="font-size:12px; color:var(--text3); margin-left:10px;"></span>
-          <p style="font-size:11.5px; color:var(--text3); margin-top:8px;">რეკომენდებულია მოკლე, შეკუმშული ვიდეო (მაქს. ~80MB) - გვერდის ჩატვირთვის სისწრაფისთვის.</p>
-        </div>
-        <div><label class="field-label">რიგითობა (რაც უფრო პატარა რიცხვი, მით უფრო ადრე ჩანს)</label><input class="input" type="number" id="tf-sort" value="${t.sort_order||0}"/></div>
-        <div><label style="display:flex; align-items:center; gap:8px; font-size:14px;"><input type="checkbox" id="tf-published" ${t.published?'checked':''}/> გამოქვეყნებულია</label></div>
-        <div id="teditor-msg"></div>
-        <div style="display:flex; gap:10px;">
-          <button id="tsave-btn" class="btn btn-primary">შენახვა</button>
-        </div>
-      </div>
-    `;
-    document.getElementById('tback-btn').onclick = () => { editingTestimonial = null; renderList(); };
-
-    document.getElementById('tf-video-input').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const statusEl = document.getElementById('tf-video-status');
-      const maxBytes = 90 * 1024 * 1024;
-      if (file.size > maxBytes){
-        statusEl.textContent = 'ფაილი ძალიან დიდია (მაქს. ~90MB).';
-        statusEl.style.color = 'var(--red)';
-        return;
-      }
-      statusEl.textContent = 'იტვირთება…';
-      statusEl.style.color = 'var(--text3)';
-      try {
-        const url = await TA.uploadVideoFile(file);
-        t.video_url = url;
-        renderTestimonialEditor();
-      } catch (err) {
-        statusEl.textContent = 'ატვირთვა ვერ მოხერხდა: ' + (err && err.message ? err.message : 'უცნობი შეცდომა');
-        statusEl.style.color = 'var(--red)';
-      }
-    });
-
-    document.getElementById('tsave-btn').onclick = async () => {
-      const payload = {
-        student_name: document.getElementById('tf-name').value.trim(),
-        quote: document.getElementById('tf-quote').value.trim() || null,
-        video_url: t.video_url,
-        sort_order: Number(document.getElementById('tf-sort').value) || 0,
-        published: document.getElementById('tf-published').checked
-      };
-      const msg = document.getElementById('teditor-msg');
-      if (!payload.student_name){ msg.innerHTML = '<div class="status-msg status-error">მოსწავლის სახელი სავალდებულოა.</div>'; return; }
-      if (!payload.video_url){ msg.innerHTML = '<div class="status-msg status-error">ვიდეოს ატვირთვა სავალდებულოა.</div>'; return; }
-      let error;
-      if (t.id){
-        ({ error } = await TA.sb.from('testimonials').update(payload).eq('id', t.id));
-      } else {
-        ({ error } = await TA.sb.from('testimonials').insert(payload));
-      }
-      if (error){ msg.innerHTML = `<div class="status-msg status-error">${TA.escapeHtml(error.message)}</div>`; return; }
-      msg.innerHTML = '<div class="status-msg status-ok">შენახულია.</div>';
-      await loadTestimonials();
-      setTimeout(() => { editingTestimonial = null; renderList(); }, 600);
-    };
-  }
-
-  boot();
+  })();
 </script>
 </body>
 </html>
