@@ -135,29 +135,25 @@
         textStart++;
       }
 
-      const section = document.createElement('div');
-      section.className = 'img-sticky-section';
+      // სრული სიგანის ფოტო, ზუსტად თავის ადგილას - სქროლვისას ცოტა
+      // ხნით "ჩერდება" ზედა კიდეში, მერე გაუშვებს და ტექსტი
+      // ჩვეულებრივად, სრული სიგანით გრძელდება (2 სვეტი აღარაა).
+      const wrap = document.createElement('div');
+      wrap.className = 'img-freeze-wrap';
+      wrap.appendChild(imgEl.cloneNode(true));
+      const spacer = document.createElement('div');
+      spacer.className = 'img-freeze-spacer';
+      wrap.appendChild(spacer);
+      frag.appendChild(wrap);
 
-      const media = document.createElement('div');
-      media.className = 'img-sticky-media';
-      const mediaInner = document.createElement('div');
-      mediaInner.className = 'img-sticky-media-inner';
-      mediaInner.appendChild(imgEl.cloneNode(true));
       if (captionText){
         const cap = document.createElement('div');
-        cap.className = 'img-sticky-caption';
+        cap.className = 'img-freeze-caption';
         cap.textContent = captionText;
-        mediaInner.appendChild(cap);
+        frag.appendChild(cap);
       }
-      media.appendChild(mediaInner);
 
-      const textCol = document.createElement('div');
-      textCol.className = 'img-sticky-text';
-      for (let i = textStart; i < end; i++) textCol.appendChild(nodes[i]);
-
-      section.appendChild(media);
-      section.appendChild(textCol);
-      frag.appendChild(section);
+      for (let i = textStart; i < end; i++) frag.appendChild(nodes[i]);
     }
 
     container.innerHTML = '';
