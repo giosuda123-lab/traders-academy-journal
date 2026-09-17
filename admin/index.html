@@ -180,6 +180,7 @@
             <option value="market_analysis" ${p.category==='market_analysis'?'selected':''}>ბაზრის ანალიზი</option>
             <option value="price_action_tips" ${p.category==='price_action_tips'?'selected':''}>Price Action Tips</option>
             <option value="psychology" ${p.category==='psychology'?'selected':''}>ფსიქოლოგია</option>
+            <option value="trade_review" ${p.category==='trade_review'?'selected':''}>თრეიდის გარჩევა</option>
           </select>
         </div>
         <div><label class="field-label">მოკლე აღწერა (excerpt)</label><textarea class="input" id="f-excerpt" rows="2">${TA.escapeHtml(p.excerpt||'')}</textarea></div>
@@ -222,9 +223,13 @@
         if (!file) return;
         try {
           const dataUrl = await compressImageToDataUrl(file, 1000, 0.75);
+          const caption = prompt('ფოტოს აღწერა (არასავალდებულო - ცარიელი დატოვეთ, თუ არ გინდათ):', '') || '';
           const range = quillEditor.getSelection(true);
-          quillEditor.insertEmbed(range.index, 'image', dataUrl, 'user');
-          quillEditor.setSelection(range.index + 1);
+          const safeCaption = caption.trim()
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+          const html = '<p><img src="' + dataUrl + '"/></p>' +
+            (safeCaption ? '<p><em>' + safeCaption + '</em></p>' : '');
+          quillEditor.clipboard.dangerouslyPasteHTML(range.index, html, 'user');
         } catch (err) {
           alert('სურათის დამუშავება ვერ მოხერხდა.');
         }
@@ -251,19 +256,38 @@
     });
     quillEditor.root.innerHTML = p.content || '';
 
+    // renderEditor() ხელახლა აგებს მთელ ფორმას `p`-ობიექტიდან - ამიტომ, სანამ
+    // ამას გავუშვებთ (მაგ. cover-image ცვლილებისას), აუცილებლად უნდა შევინახოთ
+    // ეკრანზე უკვე ჩაწერილი მონაცემები `p`-ში, თორემ დაიკარგება.
+    function syncFormToP(){
+      const t = document.getElementById('f-title');
+      const s = document.getElementById('f-slug');
+      const c = document.getElementById('f-category');
+      const ex = document.getElementById('f-excerpt');
+      const pub = document.getElementById('f-published');
+      if (t) p.title = t.value;
+      if (s) p.slug = s.value;
+      if (c) p.category = c.value;
+      if (ex) p.excerpt = ex.value;
+      if (pub) p.published = pub.checked;
+      if (quillEditor) p.content = quillEditor.root.innerHTML;
+    }
+
     // გარეკანის სურათის ატვირთვა
     document.getElementById('f-cover-input').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        p.cover_image = await compressImageToDataUrl(file, 1200, 0.8);
+        const dataUrl = await compressImageToDataUrl(file, 1200, 0.8);
+        syncFormToP();
+        p.cover_image = dataUrl;
         renderEditor();
       } catch (err) {
         alert('სურათის დამუშავება ვერ მოხერხდა.');
       }
     });
     const coverRemoveBtn = document.getElementById('f-cover-remove');
-    if (coverRemoveBtn) coverRemoveBtn.onclick = () => { p.cover_image = null; renderEditor(); };
+    if (coverRemoveBtn) coverRemoveBtn.onclick = () => { syncFormToP(); p.cover_image = null; renderEditor(); };
 
     document.getElementById('save-btn').onclick = async () => {
       const payload = {
