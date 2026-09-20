@@ -22,6 +22,12 @@
   --red: #BD5A4C;
   --amber: #C99A50;
   --maxw: 1080px;
+  /* ===== პრემიუმ motion-სისტემა - გამოიყენება მთელს საიტზე ===== */
+  --ta-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ta-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ta-fast: 160ms;
+  --ta-standard: 320ms;
+  --ta-slow: 480ms;
 }
 
 * { box-sizing: border-box; }
@@ -50,7 +56,9 @@ a { color: inherit; }
   background: rgba(20,23,27,0.92);
   backdrop-filter: blur(10px);
   border-bottom: 0.5px solid var(--border);
+  transition: box-shadow 0.3s var(--ta-ease), border-color 0.3s var(--ta-ease);
 }
+.nav.scrolled { box-shadow: 0 10px 28px rgba(0,0,0,0.35); border-bottom-color: rgba(var(--accent-rgb),0.18); }
 .nav-inner {
   max-width: var(--maxw); margin: 0 auto; padding: 16px 24px;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
@@ -70,11 +78,18 @@ a { color: inherit; }
   background: rgba(var(--accent-rgb),0.14); color: var(--text) !important; font-size: 13.5px;
   text-decoration: none; white-space: nowrap;
 }
-.nav-burger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; }
+.nav-burger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; transition: transform 0.2s var(--ta-ease); }
+.nav-burger[aria-expanded="true"] { transform: rotate(90deg); }
 
 @media (max-width: 760px) {
-  .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border-bottom: 0.5px solid var(--border); flex-direction: column; align-items: flex-start; padding: 16px 24px; gap: 14px; }
-  .nav-links.open { display: flex; }
+  .nav-links {
+    position: absolute; top: 100%; left: 0; right: 0; background: var(--panel);
+    border-bottom: 0.5px solid var(--border); flex-direction: column; align-items: flex-start;
+    padding: 16px 24px; gap: 14px;
+    opacity: 0; transform: translateY(-8px); visibility: hidden; pointer-events: none;
+    transition: opacity 0.22s var(--ta-ease), transform 0.22s var(--ta-ease), visibility 0.22s;
+  }
+  .nav-links.open { opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; }
   .nav-burger { display: block; }
 }
 
@@ -83,11 +98,19 @@ a { color: inherit; }
   display: inline-block; padding: 11px 22px; border-radius: 9px; font-size: 14.5px;
   text-decoration: none; cursor: pointer; border: 0.5px solid var(--border);
   background: transparent; color: var(--text); font-family: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color var(--ta-standard) var(--ta-ease), background var(--ta-standard) var(--ta-ease), transform var(--ta-fast) var(--ta-ease), box-shadow var(--ta-standard) var(--ta-ease);
 }
 .btn:hover { border-color: var(--accent); }
-.btn-primary { border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
+.btn:active { transform: scale(0.96); transition-duration: var(--ta-fast); }
+.btn-primary { position: relative; overflow: hidden; border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
 .btn-primary:hover { background: rgba(var(--accent-rgb),0.24); border-color: var(--accent-deep); }
+.btn-primary::after {
+  content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent);
+  transform: skewX(-20deg); transition: left 0.6s var(--ta-ease);
+  pointer-events: none;
+}
+.btn-primary:hover::after { left: 130%; }
 .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
 
 /* ===== ფორმის ველები ===== */
@@ -104,8 +127,8 @@ textarea.input { resize: vertical; }
 .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--text3); margin-bottom: 14px; }
 .hr { border: none; border-top: 0.5px solid var(--border); margin: 0; }
 
-.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color 0.2s ease, transform 0.2s ease; }
-.card:hover { border-color: var(--accent-soft); transform: translateY(-2px); }
+.card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color var(--ta-standard) var(--ta-ease), transform var(--ta-standard) var(--ta-ease), box-shadow var(--ta-standard) var(--ta-ease); }
+.card:hover { border-color: var(--accent-soft); transform: translateY(-4px); box-shadow: 0 16px 36px rgba(0,0,0,0.32), 0 0 0 1px rgba(var(--accent-rgb),0.06); }
 
 /* ===== სტატიის prose ===== */
 .prose { font-size: 17px; line-height: 1.75; color: var(--text); }
@@ -156,15 +179,14 @@ textarea.input { resize: vertical; }
 }
 
 /* ===== 1) ღილაკების "ცოცხალი" hover ===== */
-.btn { transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
-.btn:hover { transform: translateY(-2px); }
-.btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--accent-light-rgb),0.28); }
+.btn:hover { transform: translateY(-3px); }
+.btn-primary:hover { box-shadow: 0 8px 24px rgba(var(--accent-light-rgb),0.3); }
 
 /* ===== 2) ნავიგაციის ბმულების ცოცხალი underline ===== */
 .nav-links a:not(.nav-cta) { position: relative; }
 .nav-links a:not(.nav-cta)::after {
   content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 1px;
-  background: var(--accent); transition: width 0.25s ease;
+  background: var(--accent); transition: width 0.3s var(--ta-ease);
 }
 .nav-links a:not(.nav-cta):hover::after, .nav-links a.active::after { width: 100%; }
 
@@ -214,11 +236,25 @@ textarea.input { resize: vertical; }
 .draw-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: ta-draw-line 1.8s 0.3s ease forwards; }
 
 /* ===== სქროლზე გამოჩენადი ელემენტები (მთელს საიტზე გამოსაყენებელი) ===== */
-.io-reveal, .io-reveal-repeat { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.io-reveal, .io-reveal-repeat { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ta-ease), transform 0.7s var(--ta-ease); }
 .io-reveal.io-in, .io-reveal-repeat.io-in { opacity: 1; transform: translateY(0); }
 
+/* ===== გვერდის შემოსვლის ეფექტი - სუფთა CSS, JS-ზე დამოკიდებულების გარეშე ===== */
+@keyframes ta-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+#main-content { animation: ta-page-in 0.55s var(--ta-ease) both; }
+
+/* ===== სქროლის პროგრესის ზოლი (ზედა კიდეზე) ===== */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; height: 3px; z-index: 300; width: 0%;
+  background: linear-gradient(90deg, var(--accent-soft), var(--accent), var(--accent-light));
+  transition: width 0.1s linear;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal, .draw-line, .io-reveal { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important; }
+  .reveal, .draw-line, .io-reveal, #main-content, .btn, .btn-primary::after, .card, .nav, .nav-burger, .nav-links a:not(.nav-cta)::after {
+    animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important;
+  }
+  .scroll-progress { transition: none !important; }
 }
 
 /* ===== ოქროსფერი ჩარჩო ფოტოსთვის - ბუნებრივი პროპორციით, დაუჭრელად ===== */
