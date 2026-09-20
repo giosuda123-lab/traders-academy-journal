@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trade Journal — Traders Academy</title>
+<title>Trade Journal - Traders Academy</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/IBM-Plex/1.0.0/IBM-Plex-Mono/css/ibm-plex-mono.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -38,7 +38,7 @@
   }
   .tj-ai-card { background: var(--tj-panel); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 28px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
   .tj-ai-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 0.5px solid var(--tj-border); }
-  .tj-ai-card-header .tj-ai-icon { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--tj-accent), #8fc4e8); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+  .tj-ai-card-header .tj-ai-icon { width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg, var(--tj-accent), #F4D98A); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
   .tj-ai-card-header .tj-ai-title { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; color: var(--tj-text); font-weight: 600; }
   .tj-ai-card-header .tj-ai-sub { font-size: 11px; color: var(--tj-text3); margin-top: 1px; }
   .tj-ai-content { font-size: 13.5px; line-height: 1.8; color: var(--tj-text2); }
@@ -63,13 +63,32 @@
   .tj-ai-content > *:last-child { margin-bottom: 0; }
   .tj-chip { padding: 7px 13px; border-radius: 999px; font-size: 12.5px; cursor: pointer; border: 0.5px solid var(--tj-border); background: transparent; color: var(--tj-text2); transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease; display:inline-flex; align-items:center; gap:6px; }
   .tj-chip:hover { border-color: var(--tj-accent); color: var(--tj-text); }
-  .tj-chip.sel { border-color: var(--tj-accent); background: rgba(110,147,176,0.16); color: var(--tj-text); }
+  .tj-chip.sel { border-color: var(--tj-accent); background: rgba(230,185,77,0.16); color: var(--tj-text); }
   .tj-chip.veto.sel { border-color: var(--tj-red); background: rgba(189,90,76,0.14); color: var(--tj-text); }
   .tj-chip-del { opacity:0.5; font-size:11px; }
   .tj-chip-del:hover { opacity:1; color: var(--tj-red); }
   .tj-rate { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:12.5px; cursor:pointer; font-family:'IBM Plex Mono',monospace; }
-  .tj-rate.sel { border-color: var(--tj-accent); background: rgba(110,147,176,0.18); color: var(--tj-text); }
-  .tj-drc-strip-day { width:16px; height:16px; border-radius:4px; flex-shrink:0; }
+  .tj-rate.sel { border-color: var(--tj-accent); background: rgba(230,185,77,0.18); color: var(--tj-text); }
+  .tj-drc-strip-day { width:16px; height:16px; border-radius:4px; flex-shrink:0; transition: transform 0.18s ease; }
+  .tj-drc-strip-day:hover { transform: scale(1.25); }
+
+  /* ===== premium motion layer ===== */
+  @keyframes tjFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes tjShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+  @keyframes tjGlow { 0%,100% { opacity:0.55; } 50% { opacity:1; } }
+  #tj-body.tj-fadein { animation: tjFadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+  .tj-serif { background: linear-gradient(100deg, var(--tj-text) 30%, var(--tj-accent) 45%, var(--tj-text) 60%); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #tj-header-row .tj-serif { animation: tjShimmer 7s linear infinite; }
+  #tj tj-tabs button, #tj-tabs button { transition: all 0.18s ease; }
+  #tj-tabs button:hover { transform: translateY(-1px); }
+  .tj button, .tj input, .tj select, .tj textarea { transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease; }
+  .tj button:active { transform: scale(0.97); }
+  .tj-ai-card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+  .tj-ai-card:hover { box-shadow: 0 14px 40px rgba(0,0,0,0.35); transform: translateY(-2px); }
+  .tj-panelcard { transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease; }
+  .tj-panelcard:hover { box-shadow: 0 8px 22px rgba(0,0,0,0.28); transform: translateY(-2px); border-color: var(--tj-accent) !important; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--tj-accent) !important; box-shadow: 0 0 0 3px rgba(230,185,77,0.12); }
+  ::selection { background: rgba(230,185,77,0.3); }
 </style>
 </head>
 <body>
@@ -83,17 +102,17 @@
 </script>
 
 <div class="tj" style="
-  --tj-bg: #14171B;
-  --tj-panel: #1B1F24;
-  --tj-panel2: #21262D;
-  --tj-border: #2E343B;
-  --tj-text: #E7E5DE;
-  --tj-text2: #9B9993;
-  --tj-text3: #6E6C67;
-  --tj-accent: #6E93B0;
-  --tj-green: #4F9E76;
-  --tj-red: #BD5A4C;
-  --tj-amber: #C99A50;
+  --tj-bg: #14120E;
+  --tj-panel: #1C1913;
+  --tj-panel2: #241F17;
+  --tj-border: #342C1F;
+  --tj-text: #EDE7D9;
+  --tj-text2: #A79C86;
+  --tj-text3: #766B58;
+  --tj-accent: #E6B94D;
+  --tj-green: #5FA876;
+  --tj-red: #C15D4C;
+  --tj-amber: #CE8A4A;
   background: var(--tj-bg); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 0; overflow: hidden;
 ">
 
@@ -143,7 +162,7 @@
   let editingTradeId = null;
   let drcDate = todayStr();
 
-  let settings = { setups: [], vetoes: [], marketTags: [], instruments: [] };
+  let settings = { setups: [], vetoes: [], marketTags: [], srTags: [], instruments: [] };
 
   let accounts = (function(){
     try { return JSON.parse(window.localStorage.getItem('tj_accounts_v3')) || []; }
@@ -174,7 +193,7 @@
     return days[dt.getDay()];
   }
   function fmtR(v){
-    if (v===null || v===undefined || isNaN(v)) return '—';
+    if (v===null || v===undefined || isNaN(v)) return '-';
     return (v>0?'+':'') + v.toFixed(2) + 'R';
   }
   function sleepHoursBetween(bed, wake){
@@ -238,7 +257,7 @@
   const logoutBtn = root.querySelector('#tj-logout-btn');
 
   function authBtnStyle(active){
-    return `padding:6px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(110,147,176,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
+    return `padding:6px 16px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(230,185,77,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
   }
   function authMsgBox(){ return `<div id="tj-auth-msg" style="font-size:12px; margin-top:10px; min-height:16px; text-align:center;"></div>`; }
   function renderAuthTabs(){
@@ -260,7 +279,7 @@
       <form id="tj-login-form">
         <div style="margin-bottom:12px;">${fieldLabel('ელფოსტა')}<input type="email" name="email" required style="${inputStyle()}"/></div>
         <div style="margin-bottom:6px;">${fieldLabel('პაროლი')}<input type="password" name="password" required style="${inputStyle()}"/></div>
-        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">შესვლა</button>
+        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">შესვლა</button>
         ${authMsgBox()}
       </form>`;
     const form = authBodyEl.querySelector('#tj-login-form');
@@ -285,7 +304,7 @@
         </div>
         <div style="margin-bottom:12px;">${fieldLabel('ელფოსტა')}<input type="email" name="email" required style="${inputStyle()}"/></div>
         <div style="margin-bottom:6px;">${fieldLabel('პაროლი (მინ. 6 სიმბოლო)')}<input type="password" name="password" minlength="6" required style="${inputStyle()}"/></div>
-        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">რეგისტრაცია</button>
+        <button type="submit" style="width:100%; margin-top:14px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">რეგისტრაცია</button>
         ${authMsgBox()}
       </form>`;
     const form = authBodyEl.querySelector('#tj-register-form');
@@ -307,7 +326,7 @@
       <div style="text-align:center; font-size:13px; color:var(--tj-text2); margin-bottom:16px;">კოდი გამოგზავნილია მისამართზე<br/><span style="color:var(--tj-text); font-weight:500;">${escapeHtml(email)}</span></div>
       <form id="tj-verify-form">
         <div style="margin-bottom:12px;">${fieldLabel('დაადასტურეთ კოდი')}<input type="text" name="token" inputmode="numeric" maxlength="8" required style="${inputStyle()}; text-align:center; letter-spacing:4px; font-size:18px;" placeholder="00000000"/></div>
-        <button type="submit" style="width:100%; margin-top:6px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">დადასტურება</button>
+        <button type="submit" style="width:100%; margin-top:6px; padding:10px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">დადასტურება</button>
         ${authMsgBox()}
       </form>
       <button id="tj-resend-btn" type="button" style="margin-top:10px; width:100%; padding:8px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:12px; cursor:pointer;">კოდის ხელახლა გაგზავნა</button>`;
@@ -327,7 +346,7 @@
       const btn = authBodyEl.querySelector('#tj-resend-btn');
       btn.disabled = true; btn.textContent = 'იგზავნება…';
       try { await supabase.auth.resend({ type: 'signup', email }); btn.textContent = 'კოდი ხელახლა გაიგზავნა ✓'; }
-      catch(ex){ btn.textContent = 'ვერ გაიგზავნა — სცადეთ თავიდან'; }
+      catch(ex){ btn.textContent = 'ვერ გაიგზავნა - სცადეთ თავიდან'; }
       setTimeout(()=>{ btn.disabled=false; btn.textContent='კოდის ხელახლა გაგზავნა'; }, 5000);
     };
   }
@@ -348,7 +367,7 @@
 
   // ===================== UI HELPERS =====================
   function btnStyle(active){
-    return `padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(110,147,176,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
+    return `padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; border:0.5px solid ${active? 'var(--tj-accent)':'var(--tj-border)'}; background:${active? 'rgba(230,185,77,0.15)':'transparent'}; color:${active? 'var(--tj-text)':'var(--tj-text2)'};`;
   }
   function renderTabs(){
     const tabs = [['new','ახალი ტრეიდი'],['drc','დღის რეპორტი'],['log','ჟურნალი'],['stats','ანალიტიკა'],['ai','AI ანალიზი'],['settings','პარამეტრები'],['accounts','ანგარიშები'],['guide','ინსტრუქცია']];
@@ -358,7 +377,7 @@
   function fieldLabel(txt){ return `<div style="font-size:11px; color:var(--tj-text2); margin-bottom:5px; letter-spacing:0.2px;">${txt}</div>`; }
   function inputStyle(){ return `width:100%; padding:8px 10px; border-radius:8px; border:0.5px solid var(--tj-border); background:var(--tj-panel2); color:var(--tj-text); font-size:13px;`; }
   function metricCard(label, value, color){
-    return `<div style="background:var(--tj-panel); border-radius:10px; padding:14px 16px;">
+    return `<div class="tj-panelcard" style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px;">
       <div style="font-size:11px; color:var(--tj-text2); margin-bottom:6px;">${label}</div>
       <div class="tj-mono" style="font-size:19px; font-weight:600; color:${color||'var(--tj-text)'};">${value}</div>
     </div>`;
@@ -370,7 +389,7 @@
   }
   function sampleBadge(n){
     const color = n>=30 ? 'var(--tj-green)' : 'var(--tj-amber)';
-    const label = n>=30 ? 'საკმარისი მონაცემი' : 'მცირე მონაცემი — სავარაუდო შედეგი';
+    const label = n>=30 ? 'საკმარისი მონაცემი' : 'მცირე მონაცემი - სავარაუდო შედეგი';
     return `<span style="font-size:10.5px; padding:2px 9px; border-radius:999px; border:0.5px solid ${color}; color:${color};">${label} (n=${n})</span>`;
   }
 
@@ -432,7 +451,8 @@
   function defaultDraftTrade(prefill){
     return Object.assign({
       date: todayStr(), instrument: '', direction: 'long', accountId: '',
-      setups: [], vetoes: [], marketTags: [], marketNote: '', srNote: '',
+      setups: [], vetoes: [], marketTags: [], srTags: [], marketNote: '',
+      tradeContext: '', tradeContextOther: '',
       riskPct: '', resultR: '', resultPoints: '', outcome: '',
       planAdherence: 'yes', screenshot: null, notes: ''
     }, prefill || {});
@@ -458,7 +478,7 @@
 
     bodyEl.innerHTML = `
       <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">${editingTradeId ? 'ტრეიდის რედაქტირება' : 'ახალი ტრეიდი'}</div>
-      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">ჩაწერეთ საკუთარი მეთოდოლოგიის ტერმინებში — Setup-ები და Veto პირობები თავად განსაზღვრეთ "პარამეტრებში" ან პირდაპირ აქ, დამატებით ველში.</div>
+      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">ჩაწერეთ საკუთარი მეთოდოლოგიის ტერმინებში - Setup-ები და Veto პირობები თავად განსაზღვრეთ "პარამეტრებში" ან პირდაპირ აქ, დამატებით ველში.</div>
 
       <form id="tj-trade-form">
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:16px;">
@@ -467,7 +487,7 @@
             <datalist id="tj-instr-list">${instrumentOptions.map(i=>`<option value="${escapeHtml(i)}">`).join('')}</datalist>
           </div>
           <div>${fieldLabel('ანგარიში')}<select name="accountId" style="${inputStyle()}">
-            <option value="">—</option>
+            <option value="">-</option>
             ${accounts.map(a=>`<option value="${a.id}" ${d.accountId===a.id?'selected':''}>${escapeHtml(a.label)}</option>`).join('')}
           </select></div>
         </div>
@@ -478,6 +498,23 @@
             <button type="button" data-dir="long" style="${d.direction==='long'?btnStyle(true):btnStyle(false)}">Long</button>
             <button type="button" data-dir="short" style="${d.direction==='short'?btnStyle(true):btnStyle(false)}">Short</button>
           </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          ${fieldLabel('ტრენდი / ბაზრის ზოგადი სიტუაცია')}
+          <div id="tj-market-wrap" style="margin-bottom:8px;">${tagPickerHtml('marketTags', d.marketTags)}</div>
+          <textarea name="marketNote" rows="2" placeholder="თავისუფალი შენიშვნა ტრენდზე/ბაზრის კონტექსტზე..." style="${inputStyle()}; resize:vertical;">${escapeHtml(d.marketNote)}</textarea>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          ${fieldLabel('ბაზრის სიტუაციის ტიპი')}
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <button type="button" data-ctx="with_trend" style="${btnStyle(d.tradeContext==='with_trend')}">ტრენდული ვაჭრობაა</button>
+            <button type="button" data-ctx="counter_trend" style="${btnStyle(d.tradeContext==='counter_trend')}">ტრენდსაწინააღმდეგო</button>
+            <button type="button" data-ctx="range_reversal" style="${btnStyle(d.tradeContext==='range_reversal')}">რეინჯის ექსტრემიდან მობრუნება</button>
+            <button type="button" data-ctx="other" style="${btnStyle(d.tradeContext==='other')}">სხვა</button>
+          </div>
+          ${d.tradeContext==='other' ? `<input type="text" name="tradeContextOther" value="${escapeHtml(d.tradeContextOther||'')}" placeholder="აღწერეთ სიტუაცია..." style="${inputStyle()}; max-width:340px;"/>` : ''}
         </div>
 
         <div style="margin-bottom:16px;">
@@ -493,14 +530,8 @@
         </div>
 
         <div style="margin-bottom:16px;">
-          ${fieldLabel('ტრენდი / ბაზრის ზოგადი სიტუაცია')}
-          <div id="tj-market-wrap" style="margin-bottom:8px;">${tagPickerHtml('marketTags', d.marketTags)}</div>
-          <textarea name="marketNote" rows="2" placeholder="თავისუფალი შენიშვნა ტრენდზე/ბაზრის კონტექსტზე..." style="${inputStyle()}; resize:vertical;">${escapeHtml(d.marketNote)}</textarea>
-        </div>
-
-        <div style="margin-bottom:16px;">
           ${fieldLabel('მხარდაჭერა / წინააღმდეგობის დონეები')}
-          <textarea name="srNote" rows="2" placeholder="მაგ. წინა დღის High-თან წინააღმდეგობა..." style="${inputStyle()}; resize:vertical;">${escapeHtml(d.srNote)}</textarea>
+          <div id="tj-sr-wrap">${tagPickerHtml('srTags', d.srTags)}</div>
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-bottom:16px;">
@@ -541,7 +572,7 @@
           <textarea name="notes" rows="3" style="${inputStyle()}; resize:vertical;">${escapeHtml(d.notes)}</textarea>
         </div>
 
-        <button type="submit" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${editingTradeId ? 'შენახვა' : 'დამატება ჟურნალში'}</button>
+        <button type="submit" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">${editingTradeId ? 'შენახვა' : 'დამატება ჟურნალში'}</button>
         ${editingTradeId ? `<button type="button" id="tj-cancel-edit" style="margin-left:8px; padding:10px 18px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:13px; cursor:pointer;">გაუქმება</button>` : ''}
         <div id="tj-trade-msg" style="margin-top:10px; font-size:12px;"></div>
       </form>
@@ -550,6 +581,7 @@
     const form = bodyEl.querySelector('#tj-trade-form');
 
     form.querySelectorAll('[data-dir]').forEach(b=>{ b.onclick = () => { d.direction = b.dataset.dir; renderNewTrade(); }; });
+    form.querySelectorAll('[data-ctx]').forEach(b=>{ b.onclick = () => { d.tradeContext = b.dataset.ctx; renderNewTrade(); }; });
     form.querySelectorAll('[data-outcome]').forEach(b=>{ b.onclick = () => { d.outcome = b.dataset.outcome; renderNewTrade(); }; });
 
     function refreshHistBoxes(){
@@ -561,7 +593,11 @@
     wireTagPicker(bodyEl.querySelector('#tj-setup-wrap'), d.setups, refreshHistBoxes);
     wireTagPicker(bodyEl.querySelector('#tj-veto-wrap'), d.vetoes, refreshHistBoxes);
     wireTagPicker(bodyEl.querySelector('#tj-market-wrap'), d.marketTags);
+    wireTagPicker(bodyEl.querySelector('#tj-sr-wrap'), d.srTags);
     refreshHistBoxes();
+
+    const ctxOtherInput = form.querySelector('[name="tradeContextOther"]');
+    if (ctxOtherInput) ctxOtherInput.oninput = () => { d.tradeContextOther = ctxOtherInput.value; };
 
     const shotInput = bodyEl.querySelector('#tj-screenshot-input');
     shotInput.onchange = async () => {
@@ -587,8 +623,9 @@
         instrument: (fd.get('instrument')||'').trim(),
         direction: d.direction,
         accountId: fd.get('accountId') || '',
-        setups: d.setups.slice(), vetoes: d.vetoes.slice(), marketTags: d.marketTags.slice(),
-        marketNote: fd.get('marketNote')||'', srNote: fd.get('srNote')||'',
+        setups: d.setups.slice(), vetoes: d.vetoes.slice(), marketTags: d.marketTags.slice(), srTags: d.srTags.slice(),
+        marketNote: fd.get('marketNote')||'',
+        tradeContext: d.tradeContext||'', tradeContextOther: d.tradeContext==='other' ? (fd.get('tradeContextOther')||'') : '',
         riskPct: fd.get('riskPct')||'', resultR: fd.get('resultR')||'', resultPoints: fd.get('resultPoints')||'',
         outcome: d.outcome || '', planAdherence: fd.get('planAdherence')||'yes',
         screenshot: d.screenshot || null, notes: fd.get('notes')||''
@@ -682,7 +719,14 @@
   }
 
   function outcomeColor(o){ return o==='win' ? 'var(--tj-green)' : o==='loss' ? 'var(--tj-red)' : 'var(--tj-text2)'; }
-  function outcomeLabel(o){ return o==='win' ? 'Win' : o==='loss' ? 'Loss' : o==='be' ? 'BE' : '—'; }
+  function outcomeLabel(o){ return o==='win' ? 'Win' : o==='loss' ? 'Loss' : o==='be' ? 'BE' : '-'; }
+  function tradeContextLabel(t){
+    if (t.tradeContext==='with_trend') return 'ტრენდული ვაჭრობაა';
+    if (t.tradeContext==='counter_trend') return 'ტრენდსაწინააღმდეგო';
+    if (t.tradeContext==='range_reversal') return 'რეინჯის ექსტრემიდან მობრუნება';
+    if (t.tradeContext==='other') return t.tradeContextOther || 'სხვა';
+    return '';
+  }
 
   function renderLog(){
     const filtered = getFilteredTrades();
@@ -694,7 +738,7 @@
     listEl.innerHTML = filtered.map(t => {
       const acc = accounts.find(a=>a.id===t.accountId);
       return `
-      <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px;">
+      <div class="tj-panelcard" style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px;">
         <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <span class="tj-mono" style="font-size:12px; color:var(--tj-text3);">${fmtDate(t.date)}</span>
@@ -704,15 +748,16 @@
             ${t.planAdherence==='no' ? `<span style="font-size:10.5px; padding:2px 8px; border-radius:999px; border:0.5px solid var(--tj-amber); color:var(--tj-amber);">გეგმის დარღვევა</span>` : ''}
           </div>
           <div style="display:flex; align-items:center; gap:14px;">
-            <span class="tj-mono" style="font-size:14px; font-weight:600; color:${outcomeColor(t.outcome)};">${t.outcome ? fmtR(num(t.resultR)) : '—'}</span>
+            <span class="tj-mono" style="font-size:14px; font-weight:600; color:${outcomeColor(t.outcome)};">${t.outcome ? fmtR(num(t.resultR)) : '-'}</span>
             ${t.resultPoints ? `<span class="tj-mono" style="font-size:12px; color:var(--tj-text2);">${num(t.resultPoints)>0?'+':''}${t.resultPoints} pts</span>` : ''}
             ${t.riskPct ? `<span style="font-size:11px; color:var(--tj-text3);">რისკი ${t.riskPct}%</span>` : ''}
           </div>
         </div>
-        ${(t.setups&&t.setups.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.setups.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(110,147,176,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+        ${(t.marketTags&&t.marketTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.marketTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}${t.tradeContext ? `<span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span>` : ''}</div>` : (t.tradeContext ? `<div style="margin-bottom:6px;"><span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span></div>` : '')}
+        ${(t.setups&&t.setups.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.setups.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
         ${(t.vetoes&&t.vetoes.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.vetoes.map(v=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(189,90,76,0.12); color:var(--tj-red);">${escapeHtml(v)}</span>`).join('')}</div>` : ''}
+        ${(t.srTags&&t.srTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.srTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--tj-text2);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
         ${t.marketNote ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;"><strong style="color:var(--tj-text3);">ბაზარი:</strong> ${escapeHtml(t.marketNote)}</div>` : ''}
-        ${t.srNote ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;"><strong style="color:var(--tj-text3);">S/R:</strong> ${escapeHtml(t.srNote)}</div>` : ''}
         ${t.notes ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;">${escapeHtml(t.notes)}</div>` : ''}
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
           <div>${t.screenshot ? `<img src="${t.screenshot}" data-view-shot="${t.id}" style="height:36px; border-radius:6px; border:0.5px solid var(--tj-border); cursor:pointer;"/>` : ''}</div>
@@ -745,7 +790,7 @@
   // ===================== DAILY REPORT CARD =====================
   function getReport(date){ return dailyReports.find(r=>r.date===date) || null; }
   function defaultReport(date){
-    return { date, bedtime:'', wakeTime:'', sleepQuality:'', processGoal:'', goalResult:'', energy:'', stress:'', tradedToday:'', whatWorked:'', toImprove:'', tomorrowFocus:'' };
+    return { date, bedtime:'', wakeTime:'', sleepQuality:'', processGoal:'', goalResult:'', energy:'', stress:'', tradedToday:'', easiestMoney:'', whatWorked:'', toImprove:'', tomorrowFocus:'' };
   }
 
   function rateChips(name, value, max, colorFn){
@@ -771,7 +816,7 @@
         <div class="tj-serif" style="font-size:17px; font-weight:600;">დღის რეპორტი</div>
         <input type="date" id="tj-drc-date" value="${drcDate}" style="${selectStyle()}"/>
       </div>
-      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:18px; line-height:1.6;">ავსებთ ყოველდღე — ტრეიდის გარეშეც. მიზანი არ არის მოგება, არამედ პროცესის დისციპლინა. (Lance Breitstein-ის Daily Report Card მეთოდოლოგიაზე დაფუძნებული.)</div>
+      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:18px; line-height:1.6;">ავსებთ ყოველდღე - ტრეიდის გარეშეც. მიზანი არ არის მოგება, არამედ პროცესის დისციპლინა.</div>
 
       <div style="display:flex; gap:4px; margin-bottom:24px; overflow-x:auto; padding-bottom:4px;">
         ${recentDays.map(dt=>{
@@ -783,19 +828,20 @@
       </div>
 
       <form id="tj-drc-form">
-        <div style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div class="tj-panelcard" style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">ძილი</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:10px;">
             <div>${fieldLabel('დაძინების დრო')}<input type="time" name="bedtime" value="${rep.bedtime}" style="${inputStyle()}"/></div>
             <div>${fieldLabel('გაღვიძების დრო')}<input type="time" name="wakeTime" value="${rep.wakeTime}" style="${inputStyle()}"/></div>
-            <div>${fieldLabel('ძილის ხანგრძლივობა')}<div style="padding:8px 0; font-size:15px;" class="tj-mono">${sleepHours!==null ? sleepHours+' სთ' : '—'}</div></div>
+            <div>${fieldLabel('ძილის ხანგრძლივობა')}<div style="padding:8px 0; font-size:15px;" class="tj-mono">${sleepHours!==null ? sleepHours+' სთ' : '-'}</div></div>
+            <div>${fieldLabel('რეკომენდირებული ხანგრძლივობა')}<div style="padding:8px 0; font-size:15px; color:var(--tj-text2);" class="tj-mono">7-9 სთ</div></div>
           </div>
           <div style="font-size:11.5px; color:var(--tj-text3); background:var(--tj-panel2); border-radius:8px; padding:10px 12px; line-height:1.6;">
-            ზოგადი რეკომენდაცია: 7–9 საათი ძილი და მუდმივი დაძინება/გაღვიძების დრო აუმჯობესებს კონცენტრაციასა და დისციპლინას სავაჭრო დღეს. თქვენი პერსონალური "საუკეთესო ძილის ფანჯარა" გამოითვლება ავტომატურად ანალიტიკის გვერდზე, როგორც კი მინიმუმ 10 სავაჭრო დღის მონაცემი დაგროვდება.
+            ზოგადი რეკომენდაცია: 7-9 საათი ძილი და მუდმივი დაძინება/გაღვიძების დრო აუმჯობესებს კონცენტრაციასა და დისციპლინას სავაჭრო დღეს. თქვენი პერსონალური "საუკეთესო ძილის ფანჯარა" გამოითვლება ავტომატურად ანალიტიკის გვერდზე, როგორც კი მინიმუმ 10 სავაჭრო დღის მონაცემი დაგროვდება.
           </div>
         </div>
 
-        <div style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div class="tj-panelcard" style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">დღის ერთადერთი ფოკუსი (Process Goal)</div>
           <textarea name="processGoal" rows="2" placeholder="მაგ. „არ გავხსნა 3-ზე მეტი ტრეიდი" ან „ავიცილო შესვლა Setup-ის დადასტურებამდე"" style="${inputStyle()}; resize:vertical; margin-bottom:12px;">${escapeHtml(rep.processGoal)}</textarea>
           ${fieldLabel('შედეგი დღის ბოლოს')}
@@ -806,7 +852,7 @@
           </div>
         </div>
 
-        <div style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div class="tj-panelcard" style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">მდგომარეობა დღის დასაწყისში</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px;">
             <div>${fieldLabel('ენერგია (1 = დაბალი, 5 = მაღალი)')}<div id="tj-energy-wrap">${rateChips('energy', rep.energy, 5)}</div></div>
@@ -814,7 +860,7 @@
           </div>
         </div>
 
-        <div style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+        <div class="tj-panelcard" style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">დღის შეჯამება</div>
           <div style="margin-bottom:12px;">
             ${fieldLabel('ივაჭრეთ დღეს?')}
@@ -823,12 +869,13 @@
               <button type="button" data-traded="no" style="${btnStyle(rep.tradedToday==='no')}">არა</button>
             </div>
           </div>
+          <div style="margin-bottom:12px;">${fieldLabel('რომელი ტრეიდი იყო დღეს ყველაზე მარტივი ფული?')}<textarea name="easiestMoney" rows="2" placeholder="მაგ. 10:15-ის Long ES-ზე - Setup იმდენად სუფთა იყო, რომ არ დამჭირვებია ყოყმანი" style="${inputStyle()}; resize:vertical;">${escapeHtml(rep.easiestMoney||'')}</textarea></div>
           <div style="margin-bottom:12px;">${fieldLabel('რა გამოვიდა კარგად?')}<textarea name="whatWorked" rows="2" style="${inputStyle()}; resize:vertical;">${escapeHtml(rep.whatWorked)}</textarea></div>
           <div style="margin-bottom:12px;">${fieldLabel('რა უნდა გამოვასწორო?')}<textarea name="toImprove" rows="2" style="${inputStyle()}; resize:vertical;">${escapeHtml(rep.toImprove)}</textarea></div>
           <div>${fieldLabel('ხვალინდელი ფოკუსი')}<textarea name="tomorrowFocus" rows="2" style="${inputStyle()}; resize:vertical;">${escapeHtml(rep.tomorrowFocus)}</textarea></div>
         </div>
 
-        <button type="submit" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">შენახვა</button>
+        <button type="submit" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;">შენახვა</button>
         <div id="tj-drc-msg" style="margin-top:10px; font-size:12px;"></div>
       </form>
     `;
@@ -848,7 +895,7 @@
       // keep textual inputs already typed, just re-render toggle sections
       const form = bodyEl.querySelector('#tj-drc-form');
       const fd = new FormData(form);
-      ['bedtime','wakeTime','processGoal','whatWorked','toImprove','tomorrowFocus'].forEach(k=>{ r[k] = fd.get(k) || r[k] || ''; });
+      ['bedtime','wakeTime','processGoal','easiestMoney','whatWorked','toImprove','tomorrowFocus'].forEach(k=>{ r[k] = fd.get(k) || r[k] || ''; });
       dailyReports = dailyReports.filter(x=>x.date!==r.date);
       dailyReports.push(r);
       renderDRC();
@@ -866,7 +913,7 @@
         processGoal: fd.get('processGoal')||'', goalResult: rep.goalResult||'',
         energy: rep.energy||'', stress: rep.stress||'',
         tradedToday: rep.tradedToday||'',
-        whatWorked: fd.get('whatWorked')||'', toImprove: fd.get('toImprove')||'', tomorrowFocus: fd.get('tomorrowFocus')||''
+        easiestMoney: fd.get('easiestMoney')||'', whatWorked: fd.get('whatWorked')||'', toImprove: fd.get('toImprove')||'', tomorrowFocus: fd.get('tomorrowFocus')||''
       };
       msg.style.color = 'var(--tj-text2)'; msg.textContent = 'ინახება…';
       const ok = await saveDailyReport(full);
@@ -878,7 +925,7 @@
   // ===================== SETTINGS =====================
   function settingsListEditor(kind, title, hint){
     return `
-      <div style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
+      <div class="tj-panelcard" style="background:var(--tj-panel); border-radius:12px; padding:16px 18px; margin-bottom:16px;">
         <div style="font-size:13px; font-weight:600; margin-bottom:4px;">${title}</div>
         <div style="font-size:11.5px; color:var(--tj-text3); margin-bottom:12px;">${hint}</div>
         <div id="tj-settings-${kind}" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
@@ -894,13 +941,14 @@
   function renderSettings(){
     bodyEl.innerHTML = `
       <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">პარამეტრები</div>
-      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">განსაზღვრეთ საკუთარი მეთოდოლოგიის ლექსიკონი — ეს გამოჩნდება "ახალი ტრეიდის" ფორმაში და გამოყენებული იქნება ანალიტიკაში.</div>
+      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">განსაზღვრეთ საკუთარი მეთოდოლოგიის ლექსიკონი - ეს გამოჩნდება "ახალი ტრეიდის" ფორმაში და გამოყენებული იქნება ანალიტიკაში.</div>
       ${settingsListEditor('setups', 'Setup-ები', 'თქვენი საკუთარი შესვლის პატერნები/სტრატეგიები.')}
       ${settingsListEditor('vetoes', 'Veto პირობები', 'პირობები, რომლებიც არ უნდა შეგხვდეთ, სანამ ტრეიდს გახსნით.')}
       ${settingsListEditor('marketTags', 'ტრენდი / ბაზრის სიტუაციის ტეგები', 'მაგ. „ტრენდული დღე", „ვიწრო რეინჯი", „მაღალი ვოლატილობა" და ა.შ.')}
-      ${settingsListEditor('instruments', 'ინსტრუმენტები', 'ინსტრუმენტები, რომლებზეც ვაჭრობთ — გამოჩნდება ჩამონათვალში ტრეიდის დამატებისას.')}
+      ${settingsListEditor('srTags', 'მხარდაჭერა / წინააღმდეგობის დონეები', 'მაგ. „წინა დღის High", „Weekly Open", „Round number" და ა.შ.')}
+      ${settingsListEditor('instruments', 'ინსტრუმენტები', 'ინსტრუმენტები, რომლებზეც ვაჭრობთ - გამოჩნდება ჩამონათვალში ტრეიდის დამატებისას.')}
     `;
-    ['setups','vetoes','marketTags','instruments'].forEach(kind=>{
+    ['setups','vetoes','marketTags','srTags','instruments'].forEach(kind=>{
       bodyEl.querySelectorAll(`[data-delkind="${kind}"]`).forEach(x=>{
         x.onclick = async () => {
           settings[kind] = settings[kind].filter(v=>v!==x.dataset.delval);
@@ -934,7 +982,7 @@
           <div>${fieldLabel('სახელი')}<input type="text" name="label" required placeholder="მაგ. Live #1" style="${inputStyle()}" value="${editing ? escapeHtml(editing.label) : ''}"/></div>
           <div>${fieldLabel('საწყისი ბალანსი (არასავალდებულო)')}<input type="number" step="0.01" name="startBalance" style="${inputStyle()}" value="${editing ? editing.startBalance : ''}"/></div>
         </div>
-        <button type="submit" style="padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.15); color:var(--tj-text); font-size:13px; cursor:pointer;">${editing ? 'შენახვა' : 'დამატება'}</button>
+        <button type="submit" style="padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.15); color:var(--tj-text); font-size:13px; cursor:pointer;">${editing ? 'შენახვა' : 'დამატება'}</button>
         ${editing ? `<button type="button" id="tj-account-cancel" style="margin-left:8px; padding:8px 18px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:13px; cursor:pointer;">გაუქმება</button>` : ''}
         <input type="hidden" name="id" value="${editing ? editing.id : ''}"/>
       </form>
@@ -956,7 +1004,7 @@
     const listEl = bodyEl.querySelector('#tj-accounts-list');
     if (accounts.length === 0){ listEl.innerHTML = `<div style="font-size:12.5px; color:var(--tj-text3); padding:20px 0;">ჯერ არცერთი ანგარიში არ დამატებულა.</div>`; return; }
     listEl.innerHTML = accounts.map(a => `
-      <div style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div class="tj-panelcard" style="background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:10px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
         <div><span style="font-size:14px; font-weight:600;">${escapeHtml(a.label)}</span>${a.startBalance ? `<span style="font-size:12px; color:var(--tj-text2); margin-left:10px;">$${Number(a.startBalance).toLocaleString()}</span>` : ''}</div>
         <div style="display:flex; gap:8px;">
           <button data-edit="${a.id}" style="padding:5px 12px; border-radius:7px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:11.5px; cursor:pointer;">რედაქტირება</button>
@@ -1030,10 +1078,10 @@
     const html = [];
     html.push(`
       <div style="font-size:11.5px; color:var(--tj-text3); background:var(--tj-panel2); border-radius:8px; padding:10px 12px; line-height:1.6; margin-bottom:14px;">
-        ზოგადი რეკომენდაცია: 7–9 საათი ძილი და მუდმივი გრაფიკი აუმჯობესებს კონცენტრაციასა და დისციპლინას. ქვემოთ — თქვენი პირადი მონაცემებზე დაფუძნებული ანალიზი, როცა საკმარისი ისტორია დაგროვდება.
+        ზოგადი რეკომენდაცია: 7–9 საათი ძილი და მუდმივი გრაფიკი აუმჯობესებს კონცენტრაციასა და დისციპლინას. ქვემოთ - თქვენი პირადი მონაცემებზე დაფუძნებული ანალიზი, როცა საკმარისი ისტორია დაგროვდება.
       </div>`);
     if (qualifyingDays.length < 10){
-      html.push(`<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">მონაცემები არასაკმარისია პერსონალიზებული ანალიზისთვის — შეავსეთ "დღის რეპორტი" (ძილის დროებით) მინიმუმ 10 დღეზე. ამჟამად: ${qualifyingDays.length}/10.</div>`);
+      html.push(`<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">მონაცემები არასაკმარისია პერსონალიზებული ანალიზისთვის - შეავსეთ "დღის რეპორტი" (ძილის დროებით) მინიმუმ 10 დღეზე. ამჟამად: ${qualifyingDays.length}/10.</div>`);
       return html.join('');
     }
     const byDate = {};
@@ -1162,7 +1210,7 @@
         ${metricCard('საშ. რისკი/ტრეიდი', avgRiskPct.toFixed(2)+'%')}
       </div>
 
-      ${outlierDropPct ? `<div style="background:rgba(201,154,80,0.1); border:0.5px solid var(--tj-amber); border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2);">⚠ Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე — მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით. საჭიროა მეტი მონაცემი საიმედო დასკვნისთვის.</div>` : ''}
+      ${outlierDropPct ? `<div style="background:rgba(201,154,80,0.1); border:0.5px solid var(--tj-amber); border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2);">⚠ Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით. საჭიროა მეტი მონაცემი საიმედო დასკვნისთვის.</div>` : ''}
 
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;">
         ${statChip('საშ. Win R', '+'+avgWinR.toFixed(2)+'R', 'var(--tj-green)')}
@@ -1212,16 +1260,16 @@
     } else drawCharts();
 
     function drawCharts(){
-      const gridColor = '#2E343B', textColor = '#9B9993';
+      const gridColor = '#342C1F', textColor = '#A79C86';
       function mkChart(id, config){ const el = document.getElementById(id); if (!el) return; new Chart(el, config); }
       mkChart('tj-equity', {
         type:'line',
-        data:{ labels: equitySeries.map((_,i)=>i+1), datasets:[{ data: equitySeries, borderColor:'#6E93B0', backgroundColor:'rgba(110,147,176,0.12)', fill:true, tension:0.15, pointRadius:2, borderWidth:2 }] },
+        data:{ labels: equitySeries.map((_,i)=>i+1), datasets:[{ data: equitySeries, borderColor:'#E6B94D', backgroundColor:'rgba(230,185,77,0.12)', fill:true, tension:0.15, pointRadius:2, borderWidth:2 }] },
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}} } }
       });
       mkChart('tj-histogram', {
         type:'bar',
-        data:{ labels: histLabels, datasets:[{ data: histData, backgroundColor:'#6E93B0' }] },
+        data:{ labels: histLabels, datasets:[{ data: histData, backgroundColor:'#E6B94D' }] },
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{color:textColor,font:{size:10}}}, y:{grid:{color:gridColor},ticks:{color:textColor,font:{size:10}}} } }
       });
     }
@@ -1233,8 +1281,8 @@
     const closed = trades.filter(t=>t.outcome);
     bodyEl.innerHTML = `
       <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:6px;">AI ანალიზი</div>
-      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px; line-height:1.6;">AI აანალიზებს თქვენს საკუთარ ტრეიდებს, Setup/Veto ტეგებს და დღის რეპორტებს (ძილი, პროცესის მიზნები) და პოულობს პატერნებს — მეთოდოლოგიის ცოდნის გარეშე, მხოლოდ თქვენს მონაცემებზე დაყრდნობით.</div>
-      <button id="tj-ai-run" type="button" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(110,147,176,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;" ${closed.length<10?'disabled':''}>${aiLoading ? 'მუშავდება…' : 'ანალიზის გაშვება'}</button>
+      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px; line-height:1.6;">AI აანალიზებს თქვენს საკუთარ ტრეიდებს, Setup/Veto ტეგებს და დღის რეპორტებს (ძილი, პროცესის მიზნები) და პოულობს პატერნებს - მეთოდოლოგიის ცოდნის გარეშე, მხოლოდ თქვენს მონაცემებზე დაყრდნობით.</div>
+      <button id="tj-ai-run" type="button" style="padding:10px 22px; border-radius:8px; border:0.5px solid var(--tj-accent); background:rgba(230,185,77,0.18); color:var(--tj-text); font-size:13px; cursor:pointer;" ${closed.length<10?'disabled':''}>${aiLoading ? 'მუშავდება…' : 'ანალიზის გაშვება'}</button>
       ${closed.length<10 ? `<div style="margin-top:10px; font-size:12px; color:var(--tj-text3);">საჭიროა მინიმუმ 10 დახურული ტრეიდი (ამჟამად: ${closed.length}).</div>` : ''}
       <div id="tj-ai-out" style="margin-top:20px;"></div>
     `;
@@ -1278,15 +1326,15 @@
       <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:14px;">ინსტრუქცია</div>
       <div class="tj-ai-content" style="font-size:13.5px;">
         <h2>უნივერსალური ჟურნალი</h2>
-        <p>ეს ჟურნალი არ არის მიბმული კონკრეტულ მეთოდოლოგიაზე. "პარამეტრებში" თავად განსაზღვრეთ თქვენი Setup-ები, Veto პირობები, ბაზრის სიტუაციის ტეგები და ინსტრუმენტები — ისინი შემდეგ გამოჩნდება ტრეიდის დამატებისას და ანალიტიკაში.</p>
-        <h2>ფასების ნაცვლად — R და პოინტები</h2>
-        <p>ჟურნალში აღარ ინახება კონკრეტული ფასები (Entry/Stop/Target). შედეგი ფიქსირდება მხოლოდ R მულტიპლში (თქვენს რისკთან შეფარდებით) და პოინტებში, ხოლო რისკი — ანგარიშის ბალანსის პროცენტულ წილად. ეს ჟურნალს ინსტრუმენტისგან დამოუკიდებელს და უნივერსალურს ხდის.</p>
+        <p>ეს ჟურნალი არ არის მიბმული კონკრეტულ მეთოდოლოგიაზე. "პარამეტრებში" თავად განსაზღვრეთ თქვენი Setup-ები, Veto პირობები, ბაზრის სიტუაციის ტეგები და ინსტრუმენტები - ისინი შემდეგ გამოჩნდება ტრეიდის დამატებისას და ანალიტიკაში.</p>
+        <h2>ფასების ნაცვლად - R და პოინტები</h2>
+        <p>ჟურნალში აღარ ინახება კონკრეტული ფასები (Entry/Stop/Target). შედეგი ფიქსირდება მხოლოდ R მულტიპლში (თქვენს რისკთან შეფარდებით) და პოინტებში, ხოლო რისკი - ანგარიშის ბალანსის პროცენტულ წილად. ეს ჟურნალს ინსტრუმენტისგან დამოუკიდებელს და უნივერსალურს ხდის.</p>
         <h2>დღის რეპორტი (Daily Report Card)</h2>
-        <p>Lance Breitstein-ის მეთოდოლოგიის საფუძველზე — ავსეთ ყოველდღე, ტრეიდის არსებობის მიუხედავად. მთავარი აქცენტი არის ერთი, კონკრეტული პროცესის მიზანი დღეში (არა შედეგი/მოგება) და მისი პატიოსანი თვითშეფასება დღის ბოლოს.</p>
+        <p>ავსეთ ყოველდღე, ტრეიდის არსებობის მიუხედავად. მთავარი აქცენტი არის ერთი, კონკრეტული პროცესის მიზანი დღეში (არა შედეგი/მოგება) და მისი პატიოსანი თვითშეფასება დღის ბოლოს.</p>
         <h2>ძილის კონტროლი</h2>
         <p>მიუთითეთ დაძინების და გაღვიძების დრო ყოველდღე. მინიმუმ 10 დღის მონაცემის დაგროვების შემდეგ, ანალიტიკის გვერდზე ავტომატურად გამოჩნდება, ძილის რომელ ხანგრძლივობაზე გაქვთ საუკეთესო სავაჭრო შედეგები.</p>
         <h2>AI ანალიზი</h2>
-        <p>AI აანალიზებს მხოლოდ თქვენს საკუთარ მონაცემებს (Setup/Veto ტეგები, R შედეგები, ძილი, Process Goal-ები) — მას არ აქვს ჩაშენებული არცერთი კონკრეტული სავაჭრო მეთოდოლოგია.</p>
+        <p>AI აანალიზებს მხოლოდ თქვენს საკუთარ მონაცემებს (Setup/Veto ტეგები, R შედეგები, ძილი, Process Goal-ები) - მას არ აქვს ჩაშენებული არცერთი კონკრეტული სავაჭრო მეთოდოლოგია.</p>
       </div>
     `;
   }
@@ -1301,6 +1349,9 @@
     else if (tab === 'settings') renderSettings();
     else if (tab === 'accounts') renderAccounts();
     else renderGuide();
+    bodyEl.classList.remove('tj-fadein');
+    void bodyEl.offsetWidth;
+    bodyEl.classList.add('tj-fadein');
   }
 
   // ===================== DATA (Supabase) =====================
@@ -1377,7 +1428,7 @@
     try {
       const { data, error } = await supabase.from('journal_settings').select('data').eq('user_id', currentUser.id).maybeSingle();
       if (error) throw error;
-      if (data && data.data) settings = Object.assign({ setups:[], vetoes:[], marketTags:[], instruments:[] }, data.data);
+      if (data && data.data) settings = Object.assign({ setups:[], vetoes:[], marketTags:[], srTags:[], instruments:[] }, data.data);
     } catch(e){ /* keep defaults */ }
   }
   async function saveSettings(){
