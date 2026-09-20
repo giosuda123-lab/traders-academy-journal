@@ -64,7 +64,7 @@
   .tj-chip { padding: 7px 13px; border-radius: 999px; font-size: 12.5px; cursor: pointer; border: 0.5px solid var(--tj-border); background: transparent; color: var(--tj-text2); transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease; display:inline-flex; align-items:center; gap:6px; }
   .tj-chip:hover { border-color: var(--tj-accent); color: var(--tj-text); }
   .tj-chip.sel { border-color: var(--tj-accent); background: rgba(230,185,77,0.16); color: var(--tj-text); }
-  .tj-chip.veto.sel { border-color: var(--tj-red); background: rgba(189,90,76,0.14); color: var(--tj-text); }
+  .tj-chip.veto.sel { border-color: var(--tj-red); background: rgba(193,93,76,0.14); color: var(--tj-text); }
   .tj-chip-del { opacity:0.5; font-size:11px; }
   .tj-chip-del:hover { opacity:1; color: var(--tj-red); }
   .tj-rate { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:0.5px solid var(--tj-border); background:transparent; color:var(--tj-text2); font-size:12.5px; cursor:pointer; font-family:'IBM Plex Mono',monospace; }
@@ -72,23 +72,19 @@
   .tj-drc-strip-day { width:16px; height:16px; border-radius:4px; flex-shrink:0; transition: transform 0.18s ease; }
   .tj-drc-strip-day:hover { transform: scale(1.25); }
 
-  /* ===== premium motion layer ===== */
-  @keyframes tjFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes tjShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-  @keyframes tjGlow { 0%,100% { opacity:0.55; } 50% { opacity:1; } }
-  #tj-body.tj-fadein { animation: tjFadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-  .tj-serif { background: linear-gradient(100deg, var(--tj-text) 30%, var(--tj-accent) 45%, var(--tj-text) 60%); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent; }
-  #tj-header-row .tj-serif { animation: tjShimmer 7s linear infinite; }
-  #tj tj-tabs button, #tj-tabs button { transition: all 0.18s ease; }
-  #tj-tabs button:hover { transform: translateY(-1px); }
-  .tj button, .tj input, .tj select, .tj textarea { transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease; }
-  .tj button:active { transform: scale(0.97); }
-  .tj-ai-card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
-  .tj-ai-card:hover { box-shadow: 0 14px 40px rgba(0,0,0,0.35); transform: translateY(-2px); }
-  .tj-panelcard { transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease; }
-  .tj-panelcard:hover { box-shadow: 0 8px 22px rgba(0,0,0,0.28); transform: translateY(-2px); border-color: var(--tj-accent) !important; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--tj-accent) !important; box-shadow: 0 0 0 3px rgba(230,185,77,0.12); }
-  ::selection { background: rgba(230,185,77,0.3); }
+  /* ===== premium motion layer (restrained) ===== */
+  @keyframes tjFadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  #tj-body.tj-fadein { animation: tjFadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+  #tj-header-row .tj-serif { position:relative; padding-bottom:4px; }
+  #tj-header-row .tj-serif::after { content:''; position:absolute; left:0; bottom:-2px; width:34px; height:2px; border-radius:2px; background:var(--tj-accent); }
+  #tj-tabs button { transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease; }
+  .tj button, .tj input, .tj select, .tj textarea { transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease; }
+  .tj-ai-card { transition: box-shadow 0.2s ease; }
+  .tj-ai-card:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.3); }
+  .tj-panelcard { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+  .tj-panelcard:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.22); border-color: rgba(230,185,77,0.45); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--tj-accent) !important; box-shadow: 0 0 0 2px rgba(230,185,77,0.14); }
+  ::selection { background: rgba(230,185,77,0.28); }
 </style>
 </head>
 <body>
@@ -104,15 +100,15 @@
 <div class="tj" style="
   --tj-bg: #14120E;
   --tj-panel: #1C1913;
-  --tj-panel2: #241F17;
-  --tj-border: #342C1F;
-  --tj-text: #EDE7D9;
-  --tj-text2: #A79C86;
-  --tj-text3: #766B58;
+  --tj-panel2: #221D16;
+  --tj-border: #302A1F;
+  --tj-text: #F2EEE4;
+  --tj-text2: #B4AB9A;
+  --tj-text3: #8A8170;
   --tj-accent: #E6B94D;
   --tj-green: #5FA876;
   --tj-red: #C15D4C;
-  --tj-amber: #CE8A4A;
+  --tj-amber: #D97D3D;
   background: var(--tj-bg); border: 0.5px solid var(--tj-border); border-radius: 14px; padding: 0; overflow: hidden;
 ">
 
@@ -698,7 +694,7 @@
         ${filterDefs().map(d=>multiFilterControl(d, openFilterKey)).join('')}
         <input type="date" data-f="dateFrom" style="${selectStyle()}" value="${filters.dateFrom}" title="თარიღიდან"/>
         <input type="date" data-f="dateTo" style="${selectStyle()}" value="${filters.dateTo}" title="თარიღამდე"/>
-        ${filtersActive() ? `<button id="tj-clear-filters" type="button" style="padding:6px 10px; border-radius:7px; border:0.5px solid var(--tj-amber); background:rgba(201,154,80,0.12); color:var(--tj-text); font-size:12px; cursor:pointer;">გასუფთავება</button>` : ''}
+        ${filtersActive() ? `<button id="tj-clear-filters" type="button" style="padding:6px 10px; border-radius:7px; border:0.5px solid var(--tj-amber); background:rgba(217,125,61,0.12); color:var(--tj-text); font-size:12px; cursor:pointer;">გასუფთავება</button>` : ''}
         <span style="font-size:11px; color:var(--tj-text3); margin-left:auto;">${getFilteredTrades().length} / ${trades.length} ტრეიდი</span>
       </div>`;
   }
@@ -755,7 +751,7 @@
         </div>
         ${(t.marketTags&&t.marketTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.marketTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}${t.tradeContext ? `<span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span>` : ''}</div>` : (t.tradeContext ? `<div style="margin-bottom:6px;"><span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span></div>` : '')}
         ${(t.setups&&t.setups.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.setups.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
-        ${(t.vetoes&&t.vetoes.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.vetoes.map(v=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(189,90,76,0.12); color:var(--tj-red);">${escapeHtml(v)}</span>`).join('')}</div>` : ''}
+        ${(t.vetoes&&t.vetoes.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.vetoes.map(v=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(193,93,76,0.12); color:var(--tj-red);">${escapeHtml(v)}</span>`).join('')}</div>` : ''}
         ${(t.srTags&&t.srTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.srTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--tj-text2);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
         ${t.marketNote ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;"><strong style="color:var(--tj-text3);">ბაზარი:</strong> ${escapeHtml(t.marketNote)}</div>` : ''}
         ${t.notes ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;">${escapeHtml(t.notes)}</div>` : ''}
@@ -1210,7 +1206,7 @@
         ${metricCard('საშ. რისკი/ტრეიდი', avgRiskPct.toFixed(2)+'%')}
       </div>
 
-      ${outlierDropPct ? `<div style="background:rgba(201,154,80,0.1); border:0.5px solid var(--tj-amber); border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2);">⚠ Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით. საჭიროა მეტი მონაცემი საიმედო დასკვნისთვის.</div>` : ''}
+      ${outlierDropPct ? `<div style="background:rgba(217,125,61,0.1); border:0.5px solid var(--tj-amber); border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2);">⚠ Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით. საჭიროა მეტი მონაცემი საიმედო დასკვნისთვის.</div>` : ''}
 
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px;">
         ${statChip('საშ. Win R', '+'+avgWinR.toFixed(2)+'R', 'var(--tj-green)')}
