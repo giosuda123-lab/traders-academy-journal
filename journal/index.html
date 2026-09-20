@@ -105,11 +105,29 @@
 
   /* ---- kpi cards ---- */
   .tj-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-  .tj-kpi { padding:16px 18px; }
-  .tj-kpi-label { font-size:11px; color:var(--tj-text2); margin-bottom:8px; letter-spacing:0.02em; }
+  .tj-kpi { padding:16px 18px; position:relative; overflow:hidden; }
+  .tj-kpi-label { font-size:11px; color:var(--tj-text2); margin-bottom:8px; letter-spacing:0.02em; display:flex; align-items:center; gap:7px; }
   .tj-kpi-value { font-size:22px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
   .tj-kpi-sub { font-size:11px; color:var(--tj-text3); margin-top:4px; }
+  .tj-kpi-sub.up { color:var(--tj-green); }
+  .tj-kpi-sub.down { color:var(--tj-red); }
   .tj-kpi-spark { height:28px; margin-top:8px; }
+
+  /* ---- category color system: each analytics category gets its own restrained accent
+     (soft tinted background + colored icon chip + accent line), on top of the gold brand ---- */
+  .tj-cat-green  { --cat: 95,168,118;  --cat-solid: var(--tj-green); }
+  .tj-cat-red    { --cat: 193,93,76;   --cat-solid: var(--tj-red); }
+  .tj-cat-blue   { --cat: 90,140,205;  --cat-solid: #5A8CCD; }
+  .tj-cat-violet { --cat: 150,120,210; --cat-solid: #9678D2; }
+  .tj-cat-orange { --cat: 217,125,61;  --cat-solid: var(--tj-amber); }
+  .tj-cat-cyan   { --cat: 80,175,185;  --cat-solid: #50AFB9; }
+  .tj-cat-pink   { --cat: 205,110,150; --cat-solid: #CD6E96; }
+  .tj-cat-indigo { --cat: 110,120,210; --cat-solid: #6E78D2; }
+  .tj-cat-gold   { --cat: 230,185,77;  --cat-solid: var(--tj-accent); }
+  [class*="tj-cat-"].tj-panelcard { background: linear-gradient(180deg, rgba(var(--cat),0.07), rgba(var(--cat),0.02) 60%), var(--tj-panel); border-color: rgba(var(--cat),0.28); }
+  [class*="tj-cat-"].tj-panelcard:hover { border-color: rgba(var(--cat),0.55); }
+  [class*="tj-cat-"].tj-panelcard::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:rgba(var(--cat),0.7); }
+  .tj-cat-icon { width:26px; height:26px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-size:13px; background:rgba(var(--cat),0.16); color:var(--cat-solid); flex-shrink:0; }
 
   /* ---- ring ---- */
   .tj-ring { transform:rotate(-90deg); }
@@ -571,12 +589,17 @@
     });
   }
 
-  function metricCard(label, value, sub, color, delayIdx){
+  function metricCard(label, value, sub, color, delayIdx, opts){
+    opts = opts || {};
     const delay = (delayIdx||0) * 45;
-    return `<div class="tj-panelcard tj-kpi tj-rise" style="--tj-delay:${delay}ms;">
-      <div class="tj-kpi-label">${label}</div>
+    const catClass = opts.cat ? `tj-cat-${opts.cat}` : '';
+    const icon = opts.icon ? `<span class="tj-cat-icon">${opts.icon}</span>` : '';
+    const subClass = opts.subDir ? ` ${opts.subDir}` : '';
+    return `<div class="tj-panelcard tj-kpi tj-rise ${catClass}" style="--tj-delay:${delay}ms;">
+      <div class="tj-kpi-label">${icon}${label}</div>
       <div class="tj-kpi-value" style="color:${color||'var(--tj-text)'};">${value}</div>
-      ${sub ? `<div class="tj-kpi-sub">${sub}</div>` : ''}
+      ${sub ? `<div class="tj-kpi-sub${subClass}">${sub}</div>` : ''}
+      ${opts.mini || ''}
     </div>`;
   }
   function statChip(label, value, color){
@@ -634,6 +657,7 @@
       entryPrice:'', exitPrice:'', stopPrice:'', targetPrice:'',
       riskPct:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
       planAdherence:'yes', confidence:'', discipline:'', execution:'',
+      emotionalState:'', qEntry:'', qRisk:'', qExit:'', qDiscipline:'',
       screenshots:{before:null, entry:null, after:null}, notes:''
     }, prefill || {});
   }
@@ -733,10 +757,27 @@
 
         <div class="tj-panelcard" style="padding:18px 20px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">ფსიქოლოგია (1-10)</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:14px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:14px; margin-bottom:14px;">
             <div>${fieldLabel('თავდაჯერებულობა')}<input type="range" min="1" max="10" name="confidence" value="${d.confidence||5}"/></div>
             <div>${fieldLabel('დისციპლინა')}<input type="range" min="1" max="10" name="discipline" value="${d.discipline||5}"/></div>
             <div>${fieldLabel('შესრულების ხარისხი')}<input type="range" min="1" max="10" name="execution" value="${d.execution||5}"/></div>
+          </div>
+          <div>
+            ${fieldLabel('ემოციური მდგომარეობა ტრეიდის დროს')}
+            <div style="display:flex; flex-wrap:wrap; gap:8px;" id="tj-emostate-wrap">
+              ${[['calm','მშვიდი'],['confident','თავდაჯერებული'],['neutral','ნეიტრალური'],['frustrated','გაღიზიანებული']].map(([v,l])=>`<button type="button" data-emostate="${v}" class="tj-btn ${d.emotionalState===v?'active':''}">${l}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div class="tj-panelcard" style="padding:18px 20px; margin-bottom:16px;">
+          <div style="font-size:13px; font-weight:600; margin-bottom:4px;">ტრეიდის ხარისხის შეფასება (1-10)</div>
+          <div style="font-size:11.5px; color:var(--tj-text3); margin-bottom:12px;">რამდენად ხარისხიანად შესრულდა თავად ტრეიდი - შედეგისგან დამოუკიდებლად.</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px;">
+            <div>${fieldLabel('შესვლა (Entry)')}<div id="tj-qEntry-wrap">${rateChips('qEntry', d.qEntry, 10)}</div></div>
+            <div>${fieldLabel('რისკის მართვა')}<div id="tj-qRisk-wrap">${rateChips('qRisk', d.qRisk, 10)}</div></div>
+            <div>${fieldLabel('გამოსვლა (Exit)')}<div id="tj-qExit-wrap">${rateChips('qExit', d.qExit, 10)}</div></div>
+            <div>${fieldLabel('დისციპლინა')}<div id="tj-qDiscipline-wrap">${rateChips('qDiscipline', d.qDiscipline, 10)}</div></div>
           </div>
         </div>
 
@@ -767,6 +808,17 @@
     form.querySelectorAll('[data-dir]').forEach(b=>{ b.onclick = () => { d.direction = b.dataset.dir; renderNewTrade(); }; });
     form.querySelectorAll('[data-outcome]').forEach(b=>{ b.onclick = () => { d.outcome = b.dataset.outcome; renderNewTrade(); }; });
     form.querySelectorAll('[data-ctx]').forEach(b=>{ b.onclick = () => { d.tradeContext = b.dataset.ctx; renderNewTrade(); }; });
+    form.querySelectorAll('[data-emostate]').forEach(b=>{ b.onclick = () => { d.emotionalState = b.dataset.emostate; renderNewTrade(); }; });
+    ['qEntry','qRisk','qExit','qDiscipline'].forEach(key => {
+      const wrap = form.querySelector(`#tj-${key}-wrap`);
+      if (!wrap) return;
+      wrap.querySelectorAll('.tj-rate').forEach(btn => {
+        btn.onclick = () => {
+          d[key] = Number(btn.dataset.val);
+          wrap.querySelectorAll('.tj-rate').forEach(r=>r.classList.toggle('sel', r.dataset.val===btn.dataset.val));
+        };
+      });
+    });
 
     function refreshHistBoxes(){
       const sh = historicalStatFor('setups', d.setups);
@@ -815,6 +867,7 @@
         riskPct: fd.get('riskPct')||'', resultR: fd.get('resultR')||'', resultPoints: fd.get('resultPoints')||'', pnlUsd: fd.get('pnlUsd')||'',
         outcome: d.outcome||'', planAdherence: fd.get('planAdherence')||'yes',
         confidence: fd.get('confidence')||'', discipline: fd.get('discipline')||'', execution: fd.get('execution')||'',
+        emotionalState: d.emotionalState||'', qEntry: d.qEntry||'', qRisk: d.qRisk||'', qExit: d.qExit||'', qDiscipline: d.qDiscipline||'',
         screenshots: Object.assign({}, d.screenshots), notes: fd.get('notes')||''
       };
       if (!tradeData.instrument){ msg.style.color='var(--tj-red)'; msg.textContent='ინსტრუმენტის ველი აუცილებელია.'; return; }
@@ -1253,14 +1306,14 @@
     const dashEl = bodyEl.querySelector('#tj-dash-content');
     dashEl.innerHTML = `
       <div class="tj-kpi-grid" style="margin-bottom:24px;" id="tj-kpi-grid">
-        ${metricCard('NET P&L', usdTrades.length ? '<span data-cnt="pnl">$0</span>' : '-', usdTrades.length?'':'P&L $ არ არის შევსებული', null, 0)}
-        ${metricCard('WIN RATE', '<span data-cnt="wr">0%</span>', '', null, 1)}
-        ${metricCard('PROFIT FACTOR', isFinite(profitFactor)?profitFactor.toFixed(2):'∞', '', null, 2)}
-        ${metricCard('AVERAGE R', fmtR(avgR), '', avgR>=0?'var(--tj-green)':'var(--tj-red)', 3)}
-        ${metricCard('TOTAL TRADES', n, '', null, 4)}
-        ${metricCard('MAX DRAWDOWN', usdTrades.length?fmtUsd(maxDD):'-', '', 'var(--tj-red)', 5)}
-        ${metricCard('AVERAGE TRADE', avgUsd!==null?fmtUsd(avgUsd):'-', '', avgUsd>=0?'var(--tj-green)':'var(--tj-red)', 6)}
-        ${metricCard('EXPECTANCY', fmtR(avgR)+' / ტრეიდი', '', null, 7)}
+        ${metricCard('NET P&L', usdTrades.length ? '<span data-cnt="pnl">$0</span>' : '-', usdTrades.length?'':'P&L $ არ არის შევსებული', null, 0, {cat: netUsd>=0?'green':'red', icon:'↗'})}
+        ${metricCard('WIN RATE', '<span data-cnt="wr">0%</span>', `${wins.length}W / ${losses.length}L`, null, 1, {cat:'violet', icon:'◎'})}
+        ${metricCard('PROFIT FACTOR', isFinite(profitFactor)?profitFactor.toFixed(2):'∞', profitFactor>=1.5?'ძლიერი':'საშუალო', null, 2, {cat:'blue', icon:'▣', subDir: profitFactor>=1.5?'up':''})}
+        ${metricCard('AVERAGE R', fmtR(avgR), 'ტრეიდზე საშუალოდ', avgR>=0?'var(--tj-green)':'var(--tj-red)', 3, {cat:'cyan', icon:'≈'})}
+        ${metricCard('TOTAL TRADES', n, `${n} ჩანაწერი`, null, 4, {cat:'indigo', icon:'▤'})}
+        ${metricCard('MAX DRAWDOWN', usdTrades.length?fmtUsd(maxDD):'-', 'პიკიდან', 'var(--tj-red)', 5, {cat:'orange', icon:'▽', subDir:'down'})}
+        ${metricCard('AVERAGE TRADE', avgUsd!==null?fmtUsd(avgUsd):'-', 'ტრეიდზე საშუალოდ', avgUsd>=0?'var(--tj-green)':'var(--tj-red)', 6, {cat: avgUsd>=0?'green':'red', icon:'$'})}
+        ${metricCard('EXPECTANCY', fmtR(avgR)+' / ტრეიდი', 'გრძელვადიანი მოლოდინი', null, 7, {cat:'gold', icon:'✦'})}
       </div>
       <div class="tj-rise" style="display:grid; grid-template-columns:2fr 1fr; gap:20px; margin-bottom:24px; --tj-delay:120ms;" id="tj-dash-charts-grid">
         <div class="tj-panelcard" style="padding:18px 20px;">
@@ -1404,57 +1457,394 @@
     }
     return html.join('');
   }
+  function tradeQualityScore(t){
+    const vals = [t.qEntry,t.qRisk,t.qExit,t.qDiscipline].map(num).filter(v=>v>0);
+    if (!vals.length) return null;
+    return vals.reduce((a,b)=>a+b,0)/vals.length;
+  }
+  const EMO_STATES = [['calm','მშვიდი','green'],['confident','თავდაჯერებული','blue'],['neutral','ნეიტრალური','indigo'],['frustrated','გაღიზიანებული','red']];
   function renderPsychology(closed){
     const withPsych = closed.filter(t=>t.confidence||t.discipline||t.execution);
-    if (withPsych.length < 5) return `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">ფსიქოლოგიური კორელაციისთვის საჭიროა მინიმუმ 5 ტრეიდი შევსებული Confidence/Discipline/Execution მაჩვენებლებით.</div>`;
+    const withQuality = closed.map(t=>({t, q:tradeQualityScore(t)})).filter(x=>x.q!==null);
+    const withEmo = closed.filter(t=>t.emotionalState);
+    if (withPsych.length < 5 && withQuality.length < 3 && withEmo.length < 3){
+      return `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px;">ფსიქოლოგიური ანალიზისთვის საჭიროა რამდენიმე ტრეიდი შევსებული ფსიქოლოგიის/ხარისხის/ემოციური მდგომარეობის ველებით.</div>`;
+    }
     const avg = (key) => { const vals = withPsych.filter(t=>t[key]).map(t=>num(t[key])); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null; };
     const avgConf = avg('confidence'), avgDisc = avg('discipline'), avgExec = avg('execution');
+    const avgQuality = withQuality.length ? withQuality.reduce((s,x)=>s+x.q,0)/withQuality.length : null;
     const highConf = withPsych.filter(t=>num(t.confidence)>=8);
     const lowConf = withPsych.filter(t=>num(t.confidence)>0 && num(t.confidence)<6);
     function grpStats(arr){ if (!arr.length) return null; const wins=arr.filter(t=>t.outcome==='win').length; return { winRate: Math.round(100*wins/arr.length), avgR: arr.reduce((s,t)=>s+num(t.resultR),0)/arr.length, n: arr.length }; }
     const hc = grpStats(highConf), lc = grpStats(lowConf);
-    return `
-      <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:20px;">
-        ${avgConf?`<div style="text-align:center;">${ring(avgConf*10,72)}<div style="font-size:11px; color:var(--tj-text3); margin-top:6px;">Confidence</div><div class="tj-mono" style="font-size:13px;">${avgConf.toFixed(1)}/10</div></div>`:''}
-        ${avgDisc?`<div style="text-align:center;">${ring(avgDisc*10,72,'var(--tj-green)')}<div style="font-size:11px; color:var(--tj-text3); margin-top:6px;">Discipline</div><div class="tj-mono" style="font-size:13px;">${avgDisc.toFixed(1)}/10</div></div>`:''}
-        ${avgExec?`<div style="text-align:center;">${ring(avgExec*10,72,'var(--tj-amber)')}<div style="font-size:11px; color:var(--tj-text3); margin-top:6px;">Execution</div><div class="tj-mono" style="font-size:13px;">${avgExec.toFixed(1)}/10</div></div>`:''}
+    const emoRows = EMO_STATES.map(([v,l,cat])=>{
+      const arr = withEmo.filter(t=>t.emotionalState===v);
+      if (!arr.length) return null;
+      const usdArr = arr.filter(hasUsd);
+      const sumUsd = usdArr.reduce((s,t)=>s+num(t.pnlUsd),0);
+      const avgR = arr.reduce((s,t)=>s+num(t.resultR),0)/arr.length;
+      return { v, l, cat, n:arr.length, sumUsd, hasUsd: usdArr.length>0, avgR };
+    }).filter(Boolean);
+    const qEntryAvg = withQuality.length ? closed.filter(t=>t.qEntry).reduce((s,t)=>s+num(t.qEntry),0)/(closed.filter(t=>t.qEntry).length||1) : 0;
+    const qRiskAvg = closed.filter(t=>t.qRisk).length ? closed.filter(t=>t.qRisk).reduce((s,t)=>s+num(t.qRisk),0)/closed.filter(t=>t.qRisk).length : 0;
+    const qExitAvg = closed.filter(t=>t.qExit).length ? closed.filter(t=>t.qExit).reduce((s,t)=>s+num(t.qExit),0)/closed.filter(t=>t.qExit).length : 0;
+    const qDiscAvg = closed.filter(t=>t.qDiscipline).length ? closed.filter(t=>t.qDiscipline).reduce((s,t)=>s+num(t.qDiscipline),0)/closed.filter(t=>t.qDiscipline).length : 0;
+
+    let html = `<div class="tj-panelcard tj-cat-pink tj-rise" style="display:grid; grid-template-columns:auto 1fr; gap:24px; margin-bottom:24px; align-items:center; padding:20px 22px;">`;
+    html += `<div style="text-align:center;">${avgQuality?ring(avgQuality*10,90,'#CD6E96'):ring(0,90,'#CD6E96')}<div class="tj-mono" style="font-size:20px; font-weight:600; margin-top:-58px;">${avgQuality?Math.round(avgQuality*10):'-'}</div><div style="font-size:11px; color:var(--tj-text3); margin-top:44px;">TRADE QUALITY</div></div>`;
+    html += `<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:10px;">
+      <div style="text-align:center;">${ring(qEntryAvg*10,56)}<div style="font-size:10px; color:var(--tj-text3); margin-top:2px;">Entry</div></div>
+      <div style="text-align:center;">${ring(qRiskAvg*10,56,'var(--tj-amber)')}<div style="font-size:10px; color:var(--tj-text3); margin-top:2px;">Risk Mgmt</div></div>
+      <div style="text-align:center;">${ring(qExitAvg*10,56,'var(--tj-green)')}<div style="font-size:10px; color:var(--tj-text3); margin-top:2px;">Exit</div></div>
+      <div style="text-align:center;">${ring(qDiscAvg*10,56,'#6E78D2')}<div style="font-size:10px; color:var(--tj-text3); margin-top:2px;">Discipline</div></div>
+    </div></div>`;
+
+    html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+      <div class="tj-panelcard" style="padding:18px 20px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:14px;">ფსიქოლოგიური პროფილი</div>
+        <div style="position:relative; height:220px;"><canvas id="tj-psych-radar"></canvas></div>
       </div>
-      ${(hc||lc) ? `<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:20px;">
-        ${hc?`<div class="tj-panelcard" style="padding:14px 16px;"><div style="font-size:11.5px; color:var(--tj-text3); margin-bottom:8px;">Confidence ≥ 8</div><div class="tj-mono" style="font-size:18px; font-weight:600;">${hc.winRate}%</div><div style="font-size:11px; color:var(--tj-text3);">Win rate · ${fmtR(hc.avgR)} · n=${hc.n}</div></div>`:''}
-        ${lc?`<div class="tj-panelcard" style="padding:14px 16px;"><div style="font-size:11.5px; color:var(--tj-text3); margin-bottom:8px;">Confidence < 6</div><div class="tj-mono" style="font-size:18px; font-weight:600;">${lc.winRate}%</div><div style="font-size:11px; color:var(--tj-text3);">Win rate · ${fmtR(lc.avgR)} · n=${lc.n}</div></div>`:''}
-      </div>` : ''}
-    `;
+      <div class="tj-panelcard" style="padding:18px 20px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:14px;">საშუალო რეიტინგები</div>
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:16px;">
+          ${avgConf?`<div style="text-align:center;">${ring(avgConf*10,64)}<div style="font-size:10.5px; color:var(--tj-text3); margin-top:4px;">Confidence</div></div>`:''}
+          ${avgDisc?`<div style="text-align:center;">${ring(avgDisc*10,64,'var(--tj-green)')}<div style="font-size:10.5px; color:var(--tj-text3); margin-top:4px;">Discipline</div></div>`:''}
+          ${avgExec?`<div style="text-align:center;">${ring(avgExec*10,64,'var(--tj-amber)')}<div style="font-size:10.5px; color:var(--tj-text3); margin-top:4px;">Execution</div></div>`:''}
+        </div>
+        ${(hc||lc) ? `<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          ${hc?`<div style="background:var(--tj-panel2); border-radius:8px; padding:10px 12px;"><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">Confidence ≥ 8</div><div class="tj-mono" style="font-size:15px; font-weight:600;">${hc.winRate}%</div><div style="font-size:10.5px; color:var(--tj-text3);">${fmtR(hc.avgR)} · n=${hc.n}</div></div>`:''}
+          ${lc?`<div style="background:var(--tj-panel2); border-radius:8px; padding:10px 12px;"><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">Confidence < 6</div><div class="tj-mono" style="font-size:15px; font-weight:600;">${lc.winRate}%</div><div style="font-size:10.5px; color:var(--tj-text3);">${fmtR(lc.avgR)} · n=${lc.n}</div></div>`:''}
+        </div>` : ''}
+      </div>
+    </div>`;
+
+    if (emoRows.length){
+      html += `<div style="font-size:13px; font-weight:500; margin-bottom:12px;">შედეგი ემოციური მდგომარეობის მიხედვით</div>
+      <div class="tj-kpi-grid" style="margin-bottom:8px;">
+        ${emoRows.map(r=>`<div class="tj-panelcard tj-cat-${r.cat}" style="padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><span class="tj-cat-icon">◐</span><div style="font-size:12px; color:var(--tj-text2);">${r.l}</div></div>
+          <div class="tj-mono" style="font-size:17px; font-weight:600; color:${r.hasUsd?(r.sumUsd>=0?'var(--tj-green)':'var(--tj-red)'):(r.avgR>=0?'var(--tj-green)':'var(--tj-red)')};">${r.hasUsd?fmtUsd(r.sumUsd):fmtR(r.avgR)}</div>
+          <div style="font-size:10.5px; color:var(--tj-text3); margin-top:2px;">n=${r.n}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+    setTimeout(() => mountPsychRadar(avgConf, avgDisc, avgExec, qEntryAvg, qRiskAvg, qExitAvg), 0);
+    return html;
   }
+  function mountPsychRadar(conf, disc, exec, qEntry, qRisk, qExit){
+    const canvas = document.getElementById('tj-psych-radar');
+    if (!canvas) return;
+    ensureChartJs(() => {
+      new Chart(canvas, {
+        type:'radar',
+        data:{
+          labels:['Confidence','Discipline','Execution','Entry','Risk Mgmt','Exit'],
+          datasets:[{ data:[conf||0,disc||0,exec||0,qEntry||0,qRisk||0,qExit||0], backgroundColor:'rgba(205,110,150,0.18)', borderColor:'#CD6E96', pointBackgroundColor:'#CD6E96', borderWidth:2 }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, animation:{duration:900}, plugins:{legend:{display:false}},
+          scales:{ r:{ min:0, max:10, ticks:{display:false, stepSize:2}, grid:{color:'#302A1F'}, angleLines:{color:'#302A1F'}, pointLabels:{color:'#B4AB9A', font:{size:10}} } } }
+      });
+    });
+  }
+  const MISTAKE_ICONS = ['⚠','⟲','◈','⏵','↺','✕'];
   function renderMistakeAnalysis(closed){
     const groups = {};
-    closed.forEach(t=>{ (t.vetoes||[]).forEach(v=>{ groups[v] = groups[v] || {n:0, usdImpact:0, usdN:0}; groups[v].n++; if (hasUsd(t)){ groups[v].usdImpact += num(t.pnlUsd); groups[v].usdN++; } }); });
+    let totalMistakes = 0;
+    closed.forEach(t=>{ (t.vetoes||[]).forEach(v=>{ groups[v] = groups[v] || {n:0, usdImpact:0, usdN:0}; groups[v].n++; totalMistakes++; if (hasUsd(t)){ groups[v].usdImpact += num(t.pnlUsd); groups[v].usdN++; } }); });
     const rows = Object.entries(groups).map(([k,v])=>({key:k, n:v.n, usdImpact:v.usdImpact, usdN:v.usdN})).sort((a,b)=>b.n-a.n);
     if (!rows.length) return `<div style="font-size:12.5px; color:var(--tj-text2);">Veto/შეცდომების მონაცემი არ არის ჯერ. დაამატეთ ტიპური შეცდომები "პარამეტრები → Veto პირობები"-ში (მაგ. Overtrading, Revenge Trade, FOMO).</div>`;
-    return `<div class="tj-table-wrap"><table class="tj-table"><thead><tr><th>შეცდომა</th><th>სიხშირე</th><th>P&L გავლენა</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr style="cursor:default;"><td>${escapeHtml(r.key)}</td><td class="tj-mono">${r.n}</td><td class="tj-mono" style="color:${r.usdN?(r.usdImpact<0?'var(--tj-red)':'var(--tj-green)'):'var(--tj-text3)'};">${r.usdN?fmtUsd(r.usdImpact):'-'}</td></tr>`).join('')}
-    </tbody></table></div>`;
-  }
-  function renderSetupCards(closed){
-    const rows = groupWinRate(closed, t=>t.setups, true).filter(r=>r.n>=1).sort((a,b)=>b.avgR-a.avgR);
-    if (!rows.length) return '';
-    return `<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:24px;">
-      ${rows.map(r=>{
-        const rTrades = closed.filter(t=>(t.setups||[]).includes(r.key));
-        const sumPos = rTrades.filter(t=>num(t.resultR)>0).reduce((s,t)=>s+num(t.resultR),0);
-        const sumNeg = rTrades.filter(t=>num(t.resultR)<0).reduce((s,t)=>s+num(t.resultR),0);
-        const pf = sumNeg!==0 ? sumPos/Math.abs(sumNeg) : (sumPos>0?Infinity:0);
-        return `<div class="tj-panelcard" style="padding:16px 18px;">
-          <div style="font-size:13px; font-weight:600; margin-bottom:10px;">${escapeHtml(r.key)}</div>
-          <div style="font-size:11.5px; color:var(--tj-text3); line-height:2;">
-            Trades: <span class="tj-mono" style="color:var(--tj-text);">${r.n}</span><br/>
-            Win Rate: <span class="tj-mono" style="color:${r.winRate>=55?'var(--tj-green)':'var(--tj-text)'};">${r.winRate}%</span><br/>
-            Profit Factor: <span class="tj-mono" style="color:var(--tj-text);">${isFinite(pf)?pf.toFixed(2):'∞'}</span><br/>
-            Average R: <span class="tj-mono" style="color:${r.avgR>=0?'var(--tj-green)':'var(--tj-red)'};">${fmtR(r.avgR)}</span>${r.usdN?`<br/>Net P&L: <span class="tj-mono" style="color:${r.sumUsd>=0?'var(--tj-green)':'var(--tj-red)'};">${fmtUsd(r.sumUsd)}</span>`:''}
+    const maxN = Math.max(...rows.map(r=>r.n));
+    return `<div style="display:flex; flex-direction:column; gap:10px;">
+      ${rows.map((r,i)=>{
+        const pct = totalMistakes ? Math.round(100*r.n/totalMistakes) : 0;
+        const barPct = Math.round(100*r.n/maxN);
+        return `<div class="tj-panelcard tj-cat-red tj-rise" style="padding:12px 16px; --tj-delay:${i*40}ms;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <span class="tj-cat-icon">${MISTAKE_ICONS[i%MISTAKE_ICONS.length]}</span>
+            <div style="flex:1; font-size:12.5px; font-weight:500;">${escapeHtml(r.key)}</div>
+            <div style="font-size:11px; color:var(--tj-text3);">${r.n}× · ${pct}%</div>
+            <div class="tj-mono" style="font-size:12.5px; color:${r.usdN?(r.usdImpact<0?'var(--tj-red)':'var(--tj-green)'):'var(--tj-text3)'}; min-width:70px; text-align:right;">${r.usdN?fmtUsd(r.usdImpact):'-'}</div>
           </div>
+          <div style="height:6px; border-radius:4px; background:var(--tj-panel2); overflow:hidden;"><div style="height:100%; width:${barPct}%; background:rgba(193,93,76,0.65); border-radius:4px; transition:width 0.6s var(--tj-ease);"></div></div>
         </div>`;
       }).join('')}
     </div>`;
   }
+  const CAT_CYCLE = ['gold','blue','violet','cyan','orange','indigo','pink','green'];
+  function renderSetupCards(closed){
+    const rows = groupWinRate(closed, t=>t.setups, true).filter(r=>r.n>=1).sort((a,b)=>b.avgR-a.avgR);
+    if (!rows.length) return '';
+    const html = `<div class="tj-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); margin-bottom:24px;">
+      ${rows.map((r,i)=>{
+        const rTrades = closed.filter(t=>(t.setups||[]).includes(r.key)).sort((a,b)=>a.date<b.date?-1:1);
+        const sumPos = rTrades.filter(t=>num(t.resultR)>0).reduce((s,t)=>s+num(t.resultR),0);
+        const sumNeg = rTrades.filter(t=>num(t.resultR)<0).reduce((s,t)=>s+num(t.resultR),0);
+        const pf = sumNeg!==0 ? sumPos/Math.abs(sumNeg) : (sumPos>0?Infinity:0);
+        const cat = CAT_CYCLE[i % CAT_CYCLE.length];
+        const chartId = 'tj-setup-eq-'+i;
+        return `<div class="tj-panelcard tj-cat-${cat} tj-rise" style="padding:16px 18px;" data-setup-chart="${chartId}" data-setup-r="${rTrades.map(t=>num(t.resultR)).join(',')}">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span class="tj-cat-icon">▲</span><div style="font-size:13px; font-weight:600;">${escapeHtml(r.key)}</div></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px; color:var(--tj-text3); margin-bottom:10px;">
+            <div>Trades: <span class="tj-mono" style="color:var(--tj-text);">${r.n}</span></div>
+            <div>Win Rate: <span class="tj-mono" style="color:${r.winRate>=55?'var(--tj-green)':'var(--tj-text)'};">${r.winRate}%</span></div>
+            <div>Profit Factor: <span class="tj-mono" style="color:var(--tj-text);">${isFinite(pf)?pf.toFixed(2):'∞'}</span></div>
+            <div>Avg R: <span class="tj-mono" style="color:${r.avgR>=0?'var(--tj-green)':'var(--tj-red)'};">${fmtR(r.avgR)}</span></div>
+          </div>
+          ${r.usdN?`<div style="font-size:15px; font-weight:600; font-family:'IBM Plex Mono',monospace; color:${r.sumUsd>=0?'var(--tj-green)':'var(--tj-red)'}; margin-bottom:8px;">${fmtUsd(r.sumUsd)}</div>`:''}
+          <div style="height:40px;"><canvas id="${chartId}"></canvas></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+    // mini equity curves render after insertion (see mountSetupCharts)
+    setTimeout(() => mountSetupCharts(), 0);
+    return html;
+  }
+  function mountSetupCharts(){
+    const cards = document.querySelectorAll('[data-setup-chart]');
+    if (!cards.length) return;
+    ensureChartJs(() => {
+      cards.forEach(card => {
+        const canvas = document.getElementById(card.dataset.setupChart);
+        if (!canvas || canvas.dataset.mounted) return;
+        canvas.dataset.mounted = '1';
+        const rVals = card.dataset.setupR.split(',').filter(Boolean).map(Number);
+        let cum = 0; const series = rVals.map(v => (cum += v));
+        const positive = series.length && series[series.length-1] >= 0;
+        new Chart(canvas, {
+          type:'line',
+          data:{ labels: series.map((_,i)=>i+1), datasets:[{ data: series, borderColor: positive?'#5FA876':'#C15D4C', backgroundColor: positive?'rgba(95,168,118,0.14)':'rgba(193,93,76,0.14)', fill:true, tension:0.3, pointRadius:0, borderWidth:1.5 }] },
+          options:{ responsive:true, maintainAspectRatio:false, animation:{duration:600}, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{ x:{display:false}, y:{display:false} } }
+        });
+      });
+    });
+  }
+
+  function renderSessionInstrument(closed){
+    const sessCats = {asia:'cyan', london:'blue', ny:'violet', other:'indigo'};
+    const sessRows = SESSIONS.map(([v,l])=>{
+      const arr = closed.filter(t=>t.session===v);
+      if (!arr.length) return null;
+      const wins = arr.filter(t=>t.outcome==='win').length;
+      const usdArr = arr.filter(hasUsd);
+      return { v, l, n:arr.length, winRate:Math.round(100*wins/arr.length), sumUsd:usdArr.reduce((s,t)=>s+num(t.pnlUsd),0), hasUsd:usdArr.length>0, avgR: arr.reduce((s,t)=>s+num(t.resultR),0)/arr.length };
+    }).filter(Boolean);
+    let html = '';
+    if (sessRows.length){
+      html += `<div style="font-size:13px; font-weight:500; margin-bottom:12px;">შედეგი სესიის მიხედვით</div>
+      <div class="tj-kpi-grid" style="margin-bottom:26px;">
+        ${sessRows.map(r=>`<div class="tj-panelcard tj-cat-${sessCats[r.v]||'indigo'} tj-rise" style="padding:16px 18px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span class="tj-cat-icon">◐</span><div style="font-size:13px; font-weight:600;">${r.l.toUpperCase()}</div></div>
+          <div style="font-size:11px; color:var(--tj-text3); line-height:1.9;">
+            Trades: <span class="tj-mono" style="color:var(--tj-text);">${r.n}</span><br/>
+            Win Rate: <span class="tj-mono" style="color:${r.winRate>=55?'var(--tj-green)':'var(--tj-text)'};">${r.winRate}%</span>
+          </div>
+          <div class="tj-mono" style="font-size:17px; font-weight:600; margin-top:6px; color:${r.hasUsd?(r.sumUsd>=0?'var(--tj-green)':'var(--tj-red)'):(r.avgR>=0?'var(--tj-green)':'var(--tj-red)')};">${r.hasUsd?fmtUsd(r.sumUsd):fmtR(r.avgR)}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+    const instrRows = groupWinRate(closed, t=>t.instrument, false).sort((a,b)=>b.n-a.n);
+    if (instrRows.length){
+      html += `<div style="font-size:13px; font-weight:500; margin-bottom:12px;">შედეგი ინსტრუმენტის მიხედვით</div>
+      <div class="tj-table-wrap tj-panelcard"><table class="tj-table"><thead><tr><th>ინსტრუმენტი</th><th>Trades</th><th>Win Rate</th><th>Avg R</th><th>Net P&L</th></tr></thead><tbody>
+        ${instrRows.map(r=>`<tr style="cursor:default;">
+          <td style="font-weight:600;"><span class="tj-badge tj-mono" style="background:rgba(90,140,205,0.14); color:#5A8CCD;">${escapeHtml(r.key)}</span></td>
+          <td class="tj-mono">${r.n}</td>
+          <td class="tj-mono" style="color:${r.winRate<40?'var(--tj-red)':r.winRate<55?'var(--tj-amber)':'var(--tj-green)'};">${r.winRate}%</td>
+          <td class="tj-mono" style="color:${r.avgR>=0?'var(--tj-green)':'var(--tj-red)'};">${fmtR(r.avgR)}</td>
+          <td class="tj-mono" style="color:${r.usdN?(r.sumUsd>=0?'var(--tj-green)':'var(--tj-red)'):'var(--tj-text3)'};">${r.usdN?fmtUsd(r.sumUsd):'-'}</td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    return html || `<div style="font-size:12.5px; color:var(--tj-text2);">არასაკმარისი მონაცემი.</div>`;
+  }
+
+  function renderTimingSection(closed){
+    const dayOrder = ['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვირა'];
+    const dayMap = {};
+    closed.forEach(t=>{ const d = weekdayName(t.date); if (!d) return; dayMap[d] = dayMap[d] || {n:0,sumR:0,win:0}; dayMap[d].n++; dayMap[d].sumR+=num(t.resultR); if (t.outcome==='win') dayMap[d].win++; });
+    const dayRows = dayOrder.map(d => dayMap[d] ? { key:d, n:dayMap[d].n, avgR:dayMap[d].sumR/dayMap[d].n, winRate:Math.round(100*dayMap[d].win/dayMap[d].n) } : null).filter(Boolean);
+    let html = '';
+    if (dayRows.length){
+      const maxAbs = Math.max(...dayRows.map(r=>Math.abs(r.avgR)), 0.01);
+      const best = dayRows.slice().sort((a,b)=>b.avgR-a.avgR)[0];
+      html += `<div style="font-size:13px; font-weight:500; margin-bottom:12px;">შედეგი კვირის დღის მიხედვით</div>
+      <div class="tj-panelcard" style="padding:16px 18px; margin-bottom:14px;">
+        ${dayRows.map(r=>{
+          const w = Math.round(50*Math.abs(r.avgR)/maxAbs);
+          const positive = r.avgR>=0;
+          return `<div style="display:grid; grid-template-columns:60px 1fr 70px; align-items:center; gap:10px; padding:7px 0;">
+            <div style="font-size:11.5px; color:var(--tj-text2);">${r.key}</div>
+            <div style="position:relative; height:16px; background:var(--tj-panel2); border-radius:4px; overflow:hidden;">
+              <div style="position:absolute; left:50%; top:0; bottom:0; ${positive?'':'right:50%; left:auto;'} width:${w}%; background:${positive?'rgba(95,168,118,0.7)':'rgba(193,93,76,0.7)'}; border-radius:4px; transition:width 0.7s var(--tj-ease);"></div>
+              <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--tj-border);"></div>
+            </div>
+            <div class="tj-mono" style="font-size:11.5px; text-align:right; color:${positive?'var(--tj-green)':'var(--tj-red)'};">${fmtR(r.avgR)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="tj-panelcard tj-cat-gold" style="padding:12px 16px; margin-bottom:26px; font-size:12.5px; color:var(--tj-text2); display:flex; align-items:center; gap:10px;"><span class="tj-cat-icon">✦</span>${escapeHtml(best.key)} თქვენი ${best.avgR>=0?'ყველაზე ძლიერი':'ყველაზე სუსტი'} სავაჭრო დღეა (${fmtR(best.avgR)} საშუალოდ, n=${best.n}).</div>`;
+    }
+    // hourly x weekday heatmap
+    const withHour = closed.filter(t=>t.time);
+    if (withHour.length >= 5){
+      const hours = Array.from(new Set(withHour.map(t=>parseInt(t.time.split(':')[0],10)))).sort((a,b)=>a-b);
+      const hourGroups = {};
+      withHour.forEach(t=>{
+        const h = parseInt(t.time.split(':')[0],10);
+        const d = weekdayName(t.date);
+        if (!d) return;
+        const key = h+'|'+d;
+        hourGroups[key] = hourGroups[key] || {n:0,sumR:0,win:0};
+        hourGroups[key].n++; hourGroups[key].sumR += num(t.resultR); if (t.outcome==='win') hourGroups[key].win++;
+      });
+      const dayCols = ['ორშ','სამ','ოთხ','ხუთ','პარ'];
+      const allR = Object.values(hourGroups).map(g=>Math.abs(g.sumR/g.n));
+      const maxHourR = Math.max(...allR, 0.5);
+      html += `<div style="font-size:13px; font-weight:500; margin-bottom:12px;">საათობრივი სავაჭრო აქტივობა</div>
+      <div class="tj-panelcard" style="padding:16px 18px; margin-bottom:20px; overflow-x:auto;">
+        <div style="display:grid; grid-template-columns:44px repeat(${dayCols.length},1fr); gap:4px; min-width:360px;">
+          <div></div>${dayCols.map(d=>`<div style="text-align:center; font-size:10px; color:var(--tj-text3);">${d}</div>`).join('')}
+          ${hours.map(h=>`<div style="font-size:10px; color:var(--tj-text3); display:flex; align-items:center;">${String(h).padStart(2,'0')}:00</div>${dayCols.map(d=>{
+            const g = hourGroups[h+'|'+d];
+            let bg = 'var(--tj-panel2)';
+            let title = `${String(h).padStart(2,'0')}:00 ${d} - მონაცემი არ არის`;
+            if (g){
+              const avgR = g.sumR/g.n;
+              const intensity = Math.min(0.9, 0.3+Math.abs(avgR)/maxHourR*0.6);
+              bg = avgR>0 ? `rgba(95,168,118,${intensity})` : avgR<0 ? `rgba(193,93,76,${intensity})` : 'var(--tj-border)';
+              title = `${String(h).padStart(2,'0')}:00 ${d} · ${g.n} ტრეიდი · ${Math.round(100*g.win/g.n)}% Win Rate · ${fmtR(avgR)}`;
+            }
+            return `<div class="tj-cal-cell" style="background:${bg}; aspect-ratio:auto; height:22px; border-radius:4px;" title="${title}"></div>`;
+          }).join('')}`).join('')}
+        </div>
+      </div>`;
+    }
+    return html || `<div style="font-size:12.5px; color:var(--tj-text2);">დროზე დაფუძნებული ანალიზისთვის საჭიროა მეტი ტრეიდი დროის ველით.</div>`;
+  }
+
+  function renderRiskSection(closed){
+    const withRisk = closed.filter(t=>t.riskPct);
+    const riskVals = withRisk.map(t=>num(t.riskPct));
+    const avgRisk = riskVals.length ? riskVals.reduce((a,b)=>a+b,0)/riskVals.length : null;
+    const usdClosed = closed.filter(hasUsd);
+    let cum=0, peak=0, maxDD=0, curDD=0;
+    usdClosed.forEach(t=>{ cum+=num(t.pnlUsd); if (cum>peak) peak=cum; const dd=cum-peak; if (dd<maxDD) maxDD=dd; });
+    curDD = cum - peak;
+    const largestWin = usdClosed.filter(t=>num(t.pnlUsd)>0).reduce((m,t)=>Math.max(m,num(t.pnlUsd)),0);
+    const largestLoss = usdClosed.filter(t=>num(t.pnlUsd)<0).reduce((m,t)=>Math.min(m,num(t.pnlUsd)),0);
+    const riskStd = riskVals.length>1 ? Math.sqrt(riskVals.reduce((s,v)=>s+Math.pow(v-avgRisk,2),0)/riskVals.length) : null;
+    const riskLevel = avgRisk===null ? null : avgRisk<0.6 ? 'low' : avgRisk<1.5 ? 'moderate' : 'high';
+    const riskLabel = {low:'დაბალი რისკი', moderate:'ზომიერი რისკი', high:'მაღალი რისკი'};
+    const riskPos = avgRisk===null ? 15 : Math.min(95, Math.max(5, (avgRisk/3)*100));
+    let html = `<div class="tj-kpi-grid" style="margin-bottom:20px;">
+      ${metricCard('მიმდინარე Drawdown', usdClosed.length?fmtUsd(curDD):'-', 'პიკიდან', 'var(--tj-red)', 0, {cat:'red', icon:'▽'})}
+      ${metricCard('საშ. რისკი/ტრეიდი', avgRisk!==null?avgRisk.toFixed(2)+'%':'-', 'ანგარიშიდან', null, 1, {cat:'orange', icon:'◆'})}
+      ${metricCard('უდიდესი მოგება', usdClosed.length?fmtUsd(largestWin):'-', '', 'var(--tj-green)', 2, {cat:'green', icon:'↑'})}
+      ${metricCard('უდიდესი წაგება', usdClosed.length?fmtUsd(largestLoss):'-', '', 'var(--tj-red)', 3, {cat:'red', icon:'↓'})}
+      ${metricCard('მაქს. Drawdown', usdClosed.length?fmtUsd(maxDD):'-', 'ისტორიული', 'var(--tj-red)', 4, {cat:'orange', icon:'▽'})}
+      ${metricCard('რისკის სტაბილურობა', riskStd!==null?'±'+riskStd.toFixed(2)+'%':'-', riskStd!==null&&riskStd<0.3?'სტაბილური':'ცვალებადი', null, 5, {cat:'indigo', icon:'≈'})}
+    </div>`;
+    if (riskLevel){
+      html += `<div class="tj-panelcard" style="padding:18px 20px; margin-bottom:20px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:14px;">რისკის დონე</div>
+        <div style="position:relative; height:10px; border-radius:6px; background:linear-gradient(90deg, rgba(95,168,118,0.5), rgba(217,125,61,0.5), rgba(193,93,76,0.5)); margin-bottom:8px;">
+          <div style="position:absolute; top:-5px; left:${riskPos}%; transform:translateX(-50%); width:2px; height:20px; background:var(--tj-text);"></div>
+          <div style="position:absolute; top:-5px; left:${riskPos}%; transform:translate(-50%,-100%); font-size:10px; color:var(--tj-text2); white-space:nowrap; margin-top:-4px;">${avgRisk.toFixed(2)}%</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--tj-text3);"><span>დაბალი</span><span>ზომიერი</span><span>მაღალი</span></div>
+        <div style="margin-top:10px; font-size:12.5px; color:var(--tj-text2);">ამჟამად: <strong style="color:var(--tj-text);">${riskLabel[riskLevel]}</strong></div>
+      </div>`;
+    }
+    if (usdClosed.length){
+      html += `<div class="tj-panelcard" style="padding:18px 20px;">
+        <div style="font-size:13px; font-weight:500; margin-bottom:12px;">Drawdown გრაფიკი</div>
+        <div style="position:relative; height:160px;"><canvas id="tj-risk-dd-chart"></canvas></div>
+      </div>`;
+      setTimeout(() => {
+        const canvas = document.getElementById('tj-risk-dd-chart');
+        if (!canvas) return;
+        ensureChartJs(() => {
+          let c=0, pk=0; const ddSeries = usdClosed.map(t=>{ c+=num(t.pnlUsd); if (c>pk) pk=c; return +(c-pk).toFixed(2); });
+          new Chart(canvas, { type:'line', data:{ labels:ddSeries.map((_,i)=>i+1), datasets:[{ data:ddSeries, borderColor:'#D97D3D', backgroundColor:'rgba(217,125,61,0.16)', fill:true, tension:0.25, pointRadius:0, borderWidth:1.5 }] },
+            options:{ responsive:true, maintainAspectRatio:false, animation:{duration:800,easing:'easeOutCubic'}, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{grid:{color:'#302A1F'},ticks:{color:'#B4AB9A',font:{size:9}}} } } });
+        });
+      }, 0);
+    }
+    return html;
+  }
+
+  function renderInsights(closed){
+    const insights = [];
+    const usdClosed = closed.filter(hasUsd);
+    const totalUsd = usdClosed.reduce((s,t)=>s+num(t.pnlUsd),0);
+    // best session share
+    const sessGroups = groupWinRate(closed, t=>sessionLabel(t.session)||null, false);
+    if (sessGroups.length && totalUsd){
+      const bestSess = sessGroups.slice().sort((a,b)=>b.sumUsd-a.sumUsd)[0];
+      if (bestSess.sumUsd>0){
+        const share = Math.round(100*bestSess.sumUsd/Math.max(totalUsd,0.01));
+        insights.push({ icon:'◐', cat:'cyan', text:`თქვენი ${bestSess.key} სესია აწარმოებს მთლიანი მოგების ${Math.min(100,Math.max(0,share))}%-ს.`, metric: fmtUsd(bestSess.sumUsd) });
+      }
+    }
+    // best setup by profit factor
+    const setupRows = groupWinRate(closed, t=>t.setups, true).filter(r=>r.n>=3);
+    if (setupRows.length){
+      const withPf = setupRows.map(r=>{
+        const arr = closed.filter(t=>(t.setups||[]).includes(r.key));
+        const pos = arr.filter(t=>num(t.resultR)>0).reduce((s,t)=>s+num(t.resultR),0);
+        const neg = arr.filter(t=>num(t.resultR)<0).reduce((s,t)=>s+num(t.resultR),0);
+        return { key:r.key, pf: neg!==0?pos/Math.abs(neg):(pos>0?99:0) };
+      }).sort((a,b)=>b.pf-a.pf);
+      if (withPf.length && withPf[0].pf>1){
+        insights.push({ icon:'▲', cat:'violet', text:`"${withPf[0].key}" Setup-ს აქვს ყველაზე მაღალი Profit Factor.`, metric: withPf[0].pf.toFixed(2) });
+      }
+    }
+    // time-of-day drop
+    const withHour = closed.filter(t=>t.time);
+    if (withHour.length >= 10){
+      const early = withHour.filter(t=>parseInt(t.time.split(':')[0],10)<14);
+      const late = withHour.filter(t=>parseInt(t.time.split(':')[0],10)>=14);
+      if (early.length>=3 && late.length>=3){
+        const earlyAvg = early.reduce((s,t)=>s+num(t.resultR),0)/early.length;
+        const lateAvg = late.reduce((s,t)=>s+num(t.resultR),0)/late.length;
+        if (lateAvg < earlyAvg - 0.15){
+          insights.push({ icon:'◷', cat:'orange', text:'თქვენი შედეგები უარესდება 14:00 საათის შემდეგ.', metric: fmtR(earlyAvg)+' → '+fmtR(lateAvg) });
+        }
+      }
+    }
+    // plan adherence
+    const adhered = closed.filter(t=>t.planAdherence!=='no');
+    const broke = closed.filter(t=>t.planAdherence==='no');
+    if (adhered.length>=3 && broke.length>=3){
+      const a1 = adhered.reduce((s,t)=>s+num(t.resultR),0)/adhered.length;
+      const a2 = broke.reduce((s,t)=>s+num(t.resultR),0)/broke.length;
+      if (a1 > a2){
+        insights.push({ icon:'✓', cat:'green', text:'გეგმის მკაცრად დაცვისას თქვენი შედეგები საგრძნობლად უკეთესია.', metric: fmtR(a1)+' vs '+fmtR(a2) });
+      }
+    }
+    // discipline / quality vs outcome
+    const withQ = closed.map(t=>({t,q:tradeQualityScore(t)})).filter(x=>x.q!==null);
+    if (withQ.length>=5){
+      const highQ = withQ.filter(x=>x.q>=8).map(x=>x.t);
+      const lowQ = withQ.filter(x=>x.q<6).map(x=>x.t);
+      if (highQ.length>=2 && lowQ.length>=2){
+        const hAvg = highQ.reduce((s,t)=>s+num(t.resultR),0)/highQ.length;
+        const lAvg = lowQ.reduce((s,t)=>s+num(t.resultR),0)/lowQ.length;
+        insights.push({ icon:'✦', cat:'pink', text:'მაღალი ხარისხის შესრულების ტრეიდები საგრძნობლად სჯობს დაბალხარისხიანებს.', metric: fmtR(hAvg)+' vs '+fmtR(lAvg) });
+      }
+    }
+    if (!insights.length) return `<div style="font-size:12.5px; color:var(--tj-text2);">დასკვნების გენერირებისთვის საჭიროა მეტი მონაცემი სხვადასხვა კატეგორიაში (სესია, Setup, დრო, გეგმის დაცვა).</div>`;
+    return `<div class="tj-kpi-grid">${insights.map((ins,i)=>`<div class="tj-panelcard tj-cat-${ins.cat} tj-rise" style="padding:16px 18px; --tj-delay:${i*50}ms;">
+      <div style="display:flex; align-items:flex-start; gap:10px;">
+        <span class="tj-cat-icon">${ins.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:12.5px; color:var(--tj-text); line-height:1.5; margin-bottom:8px;">${ins.text}</div>
+          <div class="tj-mono" style="font-size:14px; font-weight:600;">${ins.metric}</div>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+  }
+
   function renderAnalytics(){
     let filtered = getFilteredTrades();
     if (trades.length===0){ bodyEl.innerHTML = `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">ანალიტიკისთვის საჭიროა მინიმუმ ერთი ჩანაწერი.</div>`; return; }
@@ -1466,17 +1856,26 @@
 
     const n = closed.length;
     const wins = closed.filter(t=>t.outcome==='win');
+    const losses = closed.filter(t=>t.outcome==='loss');
     const winRate = Math.round(100*wins.length/n);
     const totalR = closed.reduce((s,t)=>s+num(t.resultR),0);
     const avgR = totalR/n;
     const sumPosR = closed.filter(t=>num(t.resultR)>0).reduce((s,t)=>s+num(t.resultR),0);
     const sumNegR = closed.filter(t=>num(t.resultR)<0).reduce((s,t)=>s+num(t.resultR),0);
     const profitFactor = sumNegR!==0 ? sumPosR/Math.abs(sumNegR) : (sumPosR>0?Infinity:0);
+    const usdClosed = closed.filter(hasUsd);
+    const winsUsd = usdClosed.filter(t=>num(t.pnlUsd)>0);
+    const lossesUsd = usdClosed.filter(t=>num(t.pnlUsd)<0);
+    const avgWinUsd = winsUsd.length ? winsUsd.reduce((s,t)=>s+num(t.pnlUsd),0)/winsUsd.length : null;
+    const avgLossUsd = lossesUsd.length ? lossesUsd.reduce((s,t)=>s+num(t.pnlUsd),0)/lossesUsd.length : null;
+    const rrRatio = (avgWinUsd!==null && avgLossUsd) ? avgWinUsd/Math.abs(avgLossUsd) : null;
     let outlierDropPct = null;
     if (wins.length>=1 && n>=2 && avgR>0){ const maxWinR = Math.max(...wins.map(t=>num(t.resultR))); const expWithoutMax = (totalR-maxWinR)/(n-1); const dropPct = (1-(expWithoutMax/avgR))*100; if (dropPct>50) outlierDropPct = Math.round(dropPct); }
+    let cumR=0; const eqSeries = closed.map(t=>(cumR+=num(t.resultR)));
 
     const sections = [
-      ['overview','ზოგადი სურათი'], ['setup','Setup ანალიზი'], ['breakdown','გარჩევა'], ['mistakes','შეცდომების ანალიზი'], ['psychology','ფსიქოლოგია'], ['sleep','ძილი და შედეგები']
+      ['overview','ზოგადი სურათი'], ['setup','სტრატეგიები'], ['session','სესია/ინსტრუმენტი'], ['timing','დრო'], ['risk','რისკი'],
+      ['breakdown','გარჩევა'], ['mistakes','შეცდომები'], ['psychology','ფსიქოლოგია'], ['insights','დასკვნები'], ['sleep','ძილი']
     ];
     inner.innerHTML = `
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">${sections.map(([k,l])=>`<button type="button" data-sec="${k}" class="tj-btn ${k==='overview'?'active':''}">${l}</button>`).join('')}</div>
@@ -1484,15 +1883,35 @@
         <div data-section="overview">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;"><div style="font-size:13px; font-weight:500;">ძირითადი მაჩვენებლები</div>${sampleBadge(n)}</div>
           <div class="tj-kpi-grid" style="margin-bottom:20px;">
-            ${metricCard('სულ ტრეიდი', n)}
-            ${metricCard('Win rate', winRate+'%', '', 'var(--tj-green)')}
-            ${metricCard('Profit factor', isFinite(profitFactor)?profitFactor.toFixed(2):'∞')}
-            ${metricCard('Expectancy', fmtR(avgR), '', avgR>=0?'var(--tj-green)':'var(--tj-red)')}
-            ${metricCard('ჯამური R', fmtR(totalR), '', totalR>=0?'var(--tj-green)':'var(--tj-red)')}
+            ${metricCard('სულ ტრეიდი', n, `${wins.length}W / ${losses.length}L`, null, 0, {cat:'indigo', icon:'▤'})}
+            ${metricCard('Win Rate', winRate+'%', '', null, 1, {cat:'violet', icon:'◎'})}
+            ${metricCard('Profit Factor', isFinite(profitFactor)?profitFactor.toFixed(2):'∞', profitFactor>=1.5?'ძლიერი':'საშუალო', null, 2, {cat:'blue', icon:'▣'})}
+            ${metricCard('Expectancy', fmtR(avgR), 'ტრეიდზე', avgR>=0?'var(--tj-green)':'var(--tj-red)', 3, {cat:'gold', icon:'✦'})}
+            ${metricCard('ჯამური R', fmtR(totalR), '', totalR>=0?'var(--tj-green)':'var(--tj-red)', 4, {cat: totalR>=0?'green':'red', icon:'∑'})}
           </div>
-          ${outlierDropPct?`<div class="tj-panelcard" style="border-color:var(--tj-amber); padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2);">⚠ Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით.</div>`:''}
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; margin-bottom:24px;">
+            <div class="tj-panelcard tj-cat-violet tj-rise" style="padding:18px 20px; display:flex; align-items:center; gap:18px;">
+              <div style="position:relative; width:110px; height:110px; flex-shrink:0;">${ring(winRate,110,'#9678D2')}<div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div class="tj-mono" style="font-size:22px; font-weight:600;">${winRate}%</div><div style="font-size:9.5px; color:var(--tj-text3);">WIN RATE</div></div></div>
+              <div style="font-size:12px; color:var(--tj-text2); line-height:2;">Wins: <span class="tj-mono" style="color:var(--tj-green);">${wins.length}</span><br/>Losses: <span class="tj-mono" style="color:var(--tj-red);">${losses.length}</span></div>
+            </div>
+            <div class="tj-panelcard tj-cat-orange tj-rise" style="padding:18px 20px;">
+              <div style="font-size:12px; color:var(--tj-text2); margin-bottom:10px;">Risk / Reward</div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span style="font-size:11.5px; color:var(--tj-text3);">Avg Win</span><span class="tj-mono" style="color:var(--tj-green);">${avgWinUsd!==null?fmtUsd(avgWinUsd):'-'}</span></div>
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span style="font-size:11.5px; color:var(--tj-text3);">Avg Loss</span><span class="tj-mono" style="color:var(--tj-red);">${avgLossUsd!==null?fmtUsd(avgLossUsd):'-'}</span></div>
+              <div class="tj-mono" style="font-size:20px; font-weight:600;">${rrRatio!==null?rrRatio.toFixed(2)+' : 1':'-'}</div>
+            </div>
+            <div class="tj-panelcard tj-cat-gold tj-rise" style="padding:18px 20px;">
+              <div style="font-size:12px; color:var(--tj-text2); margin-bottom:8px;">Expectancy</div>
+              <div class="tj-mono" style="font-size:24px; font-weight:600; color:${avgR>=0?'var(--tj-green)':'var(--tj-red)'};">${fmtR(avgR)}</div>
+              <div style="height:44px; margin-top:8px;"><canvas id="tj-exp-spark"></canvas></div>
+            </div>
+          </div>
+          ${outlierDropPct?`<div class="tj-panelcard tj-cat-orange" style="padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2); display:flex; align-items:center; gap:10px;"><span class="tj-cat-icon">⚠</span>Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით.</div>`:''}
         </div>
         <div data-section="setup" style="display:none;">${renderSetupCards(closed)}</div>
+        <div data-section="session" style="display:none;">${renderSessionInstrument(closed)}</div>
+        <div data-section="timing" style="display:none;">${renderTimingSection(closed)}</div>
+        <div data-section="risk" style="display:none;">${renderRiskSection(closed)}</div>
         <div data-section="breakdown" style="display:none;">
           ${renderBreakdownTable('Setup-ების მიხედვით', groupWinRate(closed,t=>t.setups,true), 3, true)}
           ${renderBreakdownTable('ინსტრუმენტების მიხედვით', groupWinRate(closed,t=>t.instrument,false), 3, true)}
@@ -1504,9 +1923,19 @@
         </div>
         <div data-section="mistakes" style="display:none;">${renderMistakeAnalysis(closed)}</div>
         <div data-section="psychology" style="display:none;">${renderPsychology(closed)}</div>
+        <div data-section="insights" style="display:none;">${renderInsights(closed)}</div>
         <div data-section="sleep" style="display:none;">${renderSleepCorrelation(closed)}</div>
       </div>
     `;
+    setTimeout(() => {
+      const canvas = document.getElementById('tj-exp-spark');
+      if (!canvas) return;
+      ensureChartJs(() => {
+        const positive = eqSeries.length && eqSeries[eqSeries.length-1] >= 0;
+        new Chart(canvas, { type:'line', data:{ labels:eqSeries.map((_,i)=>i+1), datasets:[{ data:eqSeries, borderColor:'#E6B94D', backgroundColor:'rgba(230,185,77,0.14)', fill:true, tension:0.3, pointRadius:0, borderWidth:1.5 }] },
+          options:{ responsive:true, maintainAspectRatio:false, animation:{duration:700}, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{ x:{display:false}, y:{display:false} } } });
+      });
+    }, 0);
     inner.querySelectorAll('[data-sec]').forEach(btn=>{
       btn.onclick = () => {
         if (btn.classList.contains('active')) return;
