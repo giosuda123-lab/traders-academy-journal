@@ -91,6 +91,40 @@ window.TA = (function(){
 
     initCookieConsent();
     initAnalyticsClicks();
+    initNavScrollEffects();
+    mountScrollProgress();
+  }
+
+  // ნავიგაციის ზოლს სქროლისას ემატება მსუბუქი ჩრდილი/ბორდერი - "სიღრმის"
+  // შეგრძნებისთვის, პრემიუმ SaaS-საიტების მსგავსად.
+  function initNavScrollEffects(){
+    const nav = document.getElementById('ta-nav');
+    if (!nav || nav._taScrollBound) return;
+    nav._taScrollBound = true;
+    function onScroll(){
+      if (window.scrollY > 8) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  // გვერდის ზედა კიდეზე წვრილი სქროლის პროგრესის ზოლი.
+  function mountScrollProgress(){
+    if (document.querySelector('.scroll-progress')) return;
+    const bar = document.createElement('div');
+    bar.className = 'scroll-progress';
+    document.body.prepend(bar);
+    function update(){
+      const h = document.documentElement;
+      const scrollTop = h.scrollTop || document.body.scrollTop;
+      const height = h.scrollHeight - h.clientHeight;
+      const pct = height > 0 ? (scrollTop / height) * 100 : 0;
+      bar.style.width = pct + '%';
+    }
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
   }
 
   // ===== Google Analytics (GA4) - მხოლოდ cookie-თანხმობის შემდეგ იტვირთება =====
@@ -368,5 +402,5 @@ window.TA = (function(){
     return data.publicUrl;
   }
 
-  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile, trackEvent };
+  return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile, trackEvent, initNavScrollEffects, mountScrollProgress };
 })();
