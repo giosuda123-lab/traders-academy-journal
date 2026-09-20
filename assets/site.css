@@ -14,6 +14,10 @@
   --accent: #E6B94D;
   --accent-rgb: 230,185,77;
   --accent-deep: #C79A2E;
+  --accent-light: #F2D98A;
+  --accent-light-rgb: 242,217,138;
+  --accent-soft: #A9853C;
+  --accent-soft-rgb: 169,133,60;
   --green: #4F9E76;
   --red: #BD5A4C;
   --amber: #C99A50;
@@ -83,7 +87,7 @@ a { color: inherit; }
 }
 .btn:hover { border-color: var(--accent); }
 .btn-primary { border-color: var(--accent); background: rgba(var(--accent-rgb),0.16); color: var(--text); }
-.btn-primary:hover { background: rgba(var(--accent-rgb),0.28); border-color: var(--accent-deep); }
+.btn-primary:hover { background: rgba(var(--accent-rgb),0.24); border-color: var(--accent-deep); }
 .btn-sm { padding: 7px 14px; font-size: 13px; border-radius: 7px; }
 
 /* ===== ფორმის ველები ===== */
@@ -101,7 +105,7 @@ textarea.input { resize: vertical; }
 .hr { border: none; border-top: 0.5px solid var(--border); margin: 0; }
 
 .card { background: var(--panel); border: 0.5px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color 0.2s ease, transform 0.2s ease; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card:hover { border-color: var(--accent-soft); transform: translateY(-2px); }
 
 /* ===== სტატიის prose ===== */
 .prose { font-size: 17px; line-height: 1.75; color: var(--text); }
@@ -154,7 +158,7 @@ textarea.input { resize: vertical; }
 /* ===== 1) ღილაკების "ცოცხალი" hover ===== */
 .btn { transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
 .btn:hover { transform: translateY(-2px); }
-.btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.35); }
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(var(--accent-light-rgb),0.28); }
 
 /* ===== 2) ნავიგაციის ბმულების ცოცხალი underline ===== */
 .nav-links a:not(.nav-cta) { position: relative; }
@@ -183,7 +187,7 @@ textarea.input { resize: vertical; }
 .ambient-glow { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .ambient-glow span {
   position: absolute; width: 480px; height: 480px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb),0.10) 0%, rgba(var(--accent-rgb),0) 70%);
+  background: radial-gradient(circle, rgba(var(--accent-soft-rgb),0.12) 0%, rgba(var(--accent-soft-rgb),0) 70%);
   filter: blur(10px); animation: ta-drift 26s ease-in-out infinite;
 }
 .ambient-glow span:nth-child(1) { top: -140px; left: -100px; animation-delay: 0s; }
@@ -220,8 +224,8 @@ textarea.input { resize: vertical; }
 /* ===== ოქროსფერი ჩარჩო ფოტოსთვის - ბუნებრივი პროპორციით, დაუჭრელად ===== */
 .gold-frame {
   position: relative; border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45);
+  border: 1px solid var(--accent-soft);
+  box-shadow: 0 0 0 5px rgba(var(--accent-soft-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45);
   animation: ta-glow 5s ease-in-out infinite;
 }
 .gold-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -230,16 +234,16 @@ textarea.input { resize: vertical; }
   aspect-ratio: 16/9; background: var(--panel2); color: var(--text3); font-size: 13px; padding: 24px;
 }
 @keyframes ta-glow {
-  0%, 100% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45); }
-  50% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb),0.16), 0 24px 60px rgba(0,0,0,0.45); }
+  0%, 100% { box-shadow: 0 0 0 5px rgba(var(--accent-soft-rgb),0.08), 0 24px 60px rgba(0,0,0,0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(var(--accent-soft-rgb),0.15), 0 24px 60px rgba(0,0,0,0.45); }
 }
 @media (prefers-reduced-motion: reduce) { .gold-frame { animation: none; } }
 
 /* ===== Hero - ფოტო მთელი ბლოკის ფონად, ტექსტი დაფენილია ===== */
 .hero-photo {
   position: relative; border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--accent);
-  box-shadow: 0 0 0 5px rgba(var(--accent-rgb),0.08), 0 24px 60px rgba(0,0,0,0.5);
+  border: 1px solid var(--accent-soft);
+  box-shadow: 0 0 0 5px rgba(var(--accent-soft-rgb),0.08), 0 24px 60px rgba(0,0,0,0.5);
   aspect-ratio: 16/9;
   animation: ta-glow 5s ease-in-out infinite;
 }
