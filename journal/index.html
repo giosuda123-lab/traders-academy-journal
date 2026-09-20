@@ -82,7 +82,7 @@
   .tj-ai-card { transition: box-shadow 0.2s ease; }
   .tj-ai-card:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.3); }
   .tj-panelcard { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
-  .tj-panelcard:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.22); border-color: rgba(230,185,77,0.45); }
+  .tj-panelcard:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.22); border-color: rgba(169,133,60,0.5); }
   input:focus, select:focus, textarea:focus { outline: none; border-color: var(--tj-accent) !important; box-shadow: 0 0 0 2px rgba(230,185,77,0.14); }
   ::selection { background: rgba(230,185,77,0.28); }
 </style>
@@ -106,6 +106,8 @@
   --tj-text2: #B4AB9A;
   --tj-text3: #8A8170;
   --tj-accent: #E6B94D;
+  --tj-accent-light: #F2D98A;
+  --tj-accent-soft: #A9853C;
   --tj-green: #5FA876;
   --tj-red: #C15D4C;
   --tj-amber: #D97D3D;
@@ -749,8 +751,8 @@
             ${t.riskPct ? `<span style="font-size:11px; color:var(--tj-text3);">რისკი ${t.riskPct}%</span>` : ''}
           </div>
         </div>
-        ${(t.marketTags&&t.marketTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.marketTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}${t.tradeContext ? `<span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span>` : ''}</div>` : (t.tradeContext ? `<div style="margin-bottom:6px;"><span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span></div>` : '')}
-        ${(t.setups&&t.setups.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.setups.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(230,185,77,0.12); color:var(--tj-accent);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+        ${(t.marketTags&&t.marketTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.marketTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(169,133,60,0.16); color:var(--tj-accent-light);">${escapeHtml(s)}</span>`).join('')}${t.tradeContext ? `<span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span>` : ''}</div>` : (t.tradeContext ? `<div style="margin-bottom:6px;"><span style="font-size:11px; padding:2px 9px; border-radius:999px; border:0.5px solid var(--tj-border); color:var(--tj-text2);">${escapeHtml(tradeContextLabel(t))}</span></div>` : '')}
+        ${(t.setups&&t.setups.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.setups.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(169,133,60,0.16); color:var(--tj-accent-light);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
         ${(t.vetoes&&t.vetoes.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.vetoes.map(v=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(193,93,76,0.12); color:var(--tj-red);">${escapeHtml(v)}</span>`).join('')}</div>` : ''}
         ${(t.srTags&&t.srTags.length) ? `<div style="margin-bottom:6px; display:flex; flex-wrap:wrap; gap:6px;">${t.srTags.map(s=>`<span style="font-size:11px; padding:2px 9px; border-radius:999px; background:rgba(255,255,255,0.05); color:var(--tj-text2);">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
         ${t.marketNote ? `<div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:4px;"><strong style="color:var(--tj-text3);">ბაზარი:</strong> ${escapeHtml(t.marketNote)}</div>` : ''}
