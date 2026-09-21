@@ -832,8 +832,16 @@
     wireTagPicker(bodyEl.querySelector('#tj-sr-wrap'), d.srTags);
     refreshHistBoxes();
 
-    const ctxOtherInput = form.querySelector('[name="tradeContextOther"]');
-    if (ctxOtherInput) ctxOtherInput.oninput = () => { d.tradeContextOther = ctxOtherInput.value; };
+    // ყველა ჩვეულებრივი ველი (თარიღი, დრო, ინსტრუმენტი, ფასები, შენიშვნები და ა.შ.)
+    // მაშინვე უნდა ჩაიწეროს draft-ობიექტში (d), რადგან სხვა ღილაკებზე დაჭერისას
+    // (მიმართულება, შედეგის ტიპი, ემოციური მდგომარეობა, ხარისხის შეფასება,
+    // სქრინშოტის ატვირთვა/წაშლა) ფორმა მთლიანად თავიდან იხატება (renderNewTrade())
+    // და d-ს მიხედვით ივსება - სინქრონიზაციის გარეშე უკვე ჩაწერილი მნიშვნელობები
+    // (მაგ. Instrument ან შენიშვნა) იშლებოდა ხელახალი დახატვისას.
+    form.querySelectorAll('input[name], select[name], textarea[name]').forEach(el => {
+      const evt = (el.tagName === 'SELECT' || el.type === 'date' || el.type === 'time') ? 'change' : 'input';
+      el.addEventListener(evt, () => { d[el.name] = el.value; });
+    });
 
     ['before','entry','after'].forEach(slot => {
       const input = form.querySelector(`[data-shot="${slot}"]`);
