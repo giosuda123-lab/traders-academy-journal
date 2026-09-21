@@ -563,11 +563,12 @@
       });
       const input = wrap.querySelector(`[data-tagnew="${kind}"]`);
       if (input){
-        input.addEventListener('keydown', async (e) => {
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
+        let committing = false;
+        async function commitTag(){
+          if (committing) return;
           const val = input.value.trim();
           if (!val) return;
+          committing = true;
           if (!settings[kind].includes(val)){ settings[kind].push(val); await saveSettings(); }
           if (!selectedArr.includes(val)) selectedArr.push(val);
           input.value = '';
@@ -583,8 +584,18 @@
             newChip.classList.toggle('sel');
             if (onChange) onChange();
           };
+          committing = false;
           if (onChange) onChange();
+        }
+        input.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          commitTag();
         });
+        // თუ ახალი ტეგი აკრეფილია, მაგრამ Enter არ დაუჭერია და უბრალოდ სხვაგან
+        // გადავიდა ფოკუსი (მაგ. სქრინშოტის ატვირთვის ღილაკზე დაჭერით, რაც მთელ
+        // ფორმას თავიდან ხატავს) - ტეგი მაინც უნდა შენახულიყო და არ დაკარგულიყო.
+        input.addEventListener('blur', () => { commitTag(); });
       }
     });
   }
