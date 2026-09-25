@@ -60,8 +60,12 @@
   let editingPost = null; // null | {} | post-object
   let testimonials = [];
   let editingTestimonial = null;
-  let adminTab = 'posts'; // 'posts' | 'testimonials'
+  let adminTab = 'posts'; // 'posts' | 'testimonials' | 'users'
   let quillEditor = null;
+  let profiles = [];
+  let allTrades = [];
+  let usersDataLoaded = false;
+  let viewingUserId = null; // null = სია, სხვანაირად კონკრეტული მომხმარებლის ტრეიდები
 
   // სურათს canvas-ით ამცირებს/კუმშავს, JPEG data URL-ს აბრუნებს - Supabase-ის
   // TEXT/JSONB ველებში ინახება პირდაპირ ცალკე storage-ის გარეშე.
@@ -121,17 +125,133 @@
     testimonials = error ? [] : (data || []);
   }
 
+  // დარეგისტრირებული მომხმარებლების და ყველას ტრეიდების ჩატვირთვა - მხოლოდ
+  // მაშინ, როცა ადმინი პირველად გახსნის "მომხმარებლების" ტაბს (არა ყოველ
+  // admin-გვერდის ჩატვირთვისას). საჯარო ხედვას საჭიროებს ახალი RLS policy
+  // (supabase/admin-users-view.sql) - თუ ის გაშვებული არ არის, error-ი
+  // მშვიდად აჩვენებს ცარიელ სიას/შეცდომის შეტყობინებას.
+  async function loadUsersData(){
+    const [profRes, tradesRes] = await Promise.all([
+      TA.sb.from('profiles').select('id,display_name,created_at').order('created_at', { ascending: false }),
+      TA.sb.from('trades').select('id,user_id,data,created_at')
+    ]);
+    if (profRes.error) throw profRes.error;
+    profiles = profRes.data || [];
+    allTrades = tradesRes.error ? [] : (tradesRes.data || []);
+    usersDataLoaded = true;
+  }
+
   function renderList(){
     root.innerHTML = `
       <div style="display:flex; gap:8px; margin-bottom:24px;">
         <button id="tab-posts" class="btn btn-sm" style="${adminTab==='posts' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">სტატიები</button>
         <button id="tab-testimonials" class="btn btn-sm" style="${adminTab==='testimonials' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეო-რევიუები</button>
+        <button id="tab-users" class="btn btn-sm" style="${adminTab==='users' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">მომხმარებლები</button>
       </div>
       <div id="tab-content"></div>
     `;
     document.getElementById('tab-posts').onclick = () => { adminTab = 'posts'; renderList(); };
     document.getElementById('tab-testimonials').onclick = () => { adminTab = 'testimonials'; renderList(); };
-    if (adminTab === 'posts') renderPostsList(); else renderTestimonialsList();
+    document.getElementById('tab-users').onclick = () => { adminTab = 'users'; viewingUserId = null; renderList(); };
+    if (adminTab === 'posts') renderPostsList();
+    else if (adminTab === 'testimonials') renderTestimonialsList();
+    else renderUsersTab();
+  }
+
+  // ================= USERS (მომხმარებლები) =================
+  async function renderUsersTab(){
+    const tc = document.getElementById('tab-content');
+    if (!usersDataLoaded){
+      tc.innerHTML = '<div style="color:var(--text3); font-size:14px;">იტვირთება…</div>';
+      try { await loadUsersData(); }
+      catch(e){
+        tc.innerHTML = `<div class="status-msg status-error">მომხმარებლების ჩატვირთვა ვერ მოხერხდა: ${TA.escapeHtml(e && e.message ? e.message : 'უცნობი შეცდომა')}. სავარაუდოდ, საჯარო ბაზაში ჯერ არ გაქვთ გაშვებული supabase/admin-users-view.sql სკრიპტი.</div>`;
+        return;
+      }
+    }
+    if (viewingUserId) renderUserTrades(viewingUserId);
+    else renderUsersList();
+  }
+
+  function tradesForUser(userId){ return allTrades.filter(t => t.user_id === userId); }
+
+  function renderUsersList(){
+    const tc = document.getElementById('tab-content');
+    const tradeCounts = {};
+    allTrades.forEach(t => { tradeCounts[t.user_id] = (tradeCounts[t.user_id]||0) + 1; });
+    tc.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+        <div class="serif" style="font-size:22px; font-weight:600;">დარეგისტრირებული მომხმარებლები</div>
+        <span class="badge">სულ: ${profiles.length}</span>
+      </div>
+      ${profiles.length === 0 ? '<div style="color:var(--text3); font-size:14px;">ჯერ არავინ დარეგისტრირებულა.</div>' : `
+      <div style="display:flex; flex-direction:column;">
+        ${profiles.map(p => `
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; padding:14px 0; border-bottom:0.5px solid var(--border);">
+            <div>
+              <div style="font-size:14.5px; font-weight:600;">${TA.escapeHtml(p.display_name || p.id)}</div>
+              <div class="mono" style="font-size:11.5px; color:var(--text3); margin-top:4px;">დარეგისტრირდა: ${TA.fmtDate(p.created_at)} · ტრეიდები: ${tradeCounts[p.id]||0}</div>
+            </div>
+            <button class="btn btn-sm" data-view-user="${p.id}">ტრეიდების ნახვა</button>
+          </div>
+        `).join('')}
+      </div>`}
+    `;
+    tc.querySelectorAll('[data-view-user]').forEach(b => { b.onclick = () => { viewingUserId = b.dataset.viewUser; renderUserTrades(viewingUserId); }; });
+  }
+
+  function renderUserTrades(userId){
+    const tc = document.getElementById('tab-content');
+    const profile = profiles.find(p => p.id === userId);
+    const list = tradesForUser(userId).slice().sort((a,b) => (b.data.date||'').localeCompare(a.data.date||'') || (b.data.time||'').localeCompare(a.data.time||''));
+    const closed = list.filter(t => t.data.outcome);
+    const wins = closed.filter(t => t.data.outcome === 'win').length;
+    const winRate = closed.length ? Math.round(100*wins/closed.length) : null;
+    const totalR = closed.reduce((s,t) => s + (Number(t.data.resultR)||0), 0);
+    const totalUsd = closed.reduce((s,t) => s + (Number(t.data.pnlUsd)||0), 0);
+
+    tc.innerHTML = `
+      <button id="users-back-btn" class="btn btn-sm" style="margin-bottom:20px;">← მომხმარებლების სია</button>
+      <div class="serif" style="font-size:20px; font-weight:600; margin-bottom:4px;">${TA.escapeHtml(profile ? (profile.display_name || profile.id) : userId)}</div>
+      <div style="font-size:12.5px; color:var(--text3); margin-bottom:20px;">დარეგისტრირდა: ${profile ? TA.fmtDate(profile.created_at) : '-'}</div>
+
+      <div class="grid-3" style="gap:14px; margin-bottom:24px;">
+        <div class="card" style="padding:16px;"><div style="font-size:12px; color:var(--text3);">სულ ტრეიდი</div><div class="serif" style="font-size:22px; font-weight:600; margin-top:4px;">${list.length}</div></div>
+        <div class="card" style="padding:16px;"><div style="font-size:12px; color:var(--text3);">Win rate</div><div class="serif" style="font-size:22px; font-weight:600; margin-top:4px; color:${winRate===null?'var(--text)':(winRate>=50?'var(--green)':'var(--red)')};">${winRate===null?'-':winRate+'%'}</div></div>
+        <div class="card" style="padding:16px;"><div style="font-size:12px; color:var(--text3);">სულ R / P&L</div><div class="serif" style="font-size:22px; font-weight:600; margin-top:4px; color:${totalR>=0?'var(--green)':'var(--red)'};">${totalR.toFixed(1)}R</div><div style="font-size:12px; color:var(--text3); margin-top:2px;">$${totalUsd.toFixed(0)}</div></div>
+      </div>
+
+      ${list.length === 0 ? '<div style="color:var(--text3); font-size:14px;">ამ მომხმარებელს ჯერ არცერთი ტრეიდი არ აქვს დამატებული.</div>' : `
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr style="text-align:left; color:var(--text3); font-size:11.5px;">
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">თარიღი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">ინსტრუმენტი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">მიმართულება</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">შედეგი</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">R</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">P&L ($)</th>
+              <th style="padding:8px 10px; border-bottom:0.5px solid var(--border);">Setup</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(t => `
+              <tr>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${TA.escapeHtml(t.data.date||'')}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${TA.escapeHtml(t.data.instrument||'')}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${t.data.direction==='long'?'Long':'Short'}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border); color:${t.data.outcome==='win'?'var(--green)':(t.data.outcome==='loss'?'var(--red)':'var(--text2)')};">${t.data.outcome==='win'?'Win':t.data.outcome==='loss'?'Loss':(t.data.outcome==='be'?'BE':'-')}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${t.data.resultR||'-'}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${t.data.pnlUsd||'-'}</td>
+                <td style="padding:8px 10px; border-bottom:0.5px solid var(--border);">${TA.escapeHtml((t.data.setups||[]).join(', '))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    `;
+    document.getElementById('users-back-btn').onclick = () => { viewingUserId = null; renderUsersList(); };
   }
 
   function renderPostsList(){
