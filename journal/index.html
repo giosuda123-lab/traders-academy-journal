@@ -280,7 +280,7 @@
   let dashRange = '30'; // days, or 'all'
   let dashAccountId = '';
 
-  let settings = { setups:[], vetoes:[], marketTags:[], srTags:[], instruments:[], pointValues:{} };
+  let settings = { setups:[], vetoes:[], marketTags:[], srTags:[], instruments:[], pointValues:{}, playbook:{} };
 
   let accounts = (function(){ try { return JSON.parse(localStorage.getItem('tj_accounts_v3')) || []; } catch(e){ return []; } })();
   function persistAccounts(){ try { localStorage.setItem('tj_accounts_v3', JSON.stringify(accounts)); } catch(e){} }
@@ -463,6 +463,7 @@
     ['trades','ტრეიდები','▤'],
     ['drc','დღის რეპორტი','☾'],
     ['analytics','ანალიტიკა','▲'],
+    ['playbook','Playbook','▧'],
     ['ai','AI ანალიზი','✦'],
     ['accounts','ანგარიშები','◐'],
     ['settings','პარამეტრები','⚙'],
@@ -2004,6 +2005,141 @@
     };
   }
 
+  // ================= PLAYBOOK (Mike Bellafiore - "The PlayBook" მეთოდი) =================
+  // საკუთარი A+ setup-ების ბიბლია: შესვლის/გამოსვლის წესები და რისკის
+  // შენიშვნები ინახება settings.playbook-ში (journal_settings-ის jsonb ველი -
+  // ცალკე ცხრილი/SQL საჭირო არ არის). თითოეულ setup-ს ავტომატურად ერთვის
+  // რეალური ისტორიული სტატისტიკა და საუკეთესო ტრეიდები, ტექსტიდან trades[]-ზე.
+  let playbookEditing = null;
+
+  function playbookStatsFor(setupName){
+    const matches = trades.filter(t => (t.setups||[]).includes(setupName));
+    const closed = matches.filter(t => t.outcome);
+    const wins = closed.filter(t => t.outcome==='win').length;
+    const winRate = closed.length ? Math.round(100*wins/closed.length) : null;
+    const avgR = closed.length ? closed.reduce((s,t)=>s+num(t.resultR),0)/closed.length : null;
+    const best = closed.filter(t=>t.outcome==='win').slice().sort((a,b)=>num(b.resultR)-num(a.resultR)).slice(0,3);
+    return { count: matches.length, closedCount: closed.length, winRate, avgR, best };
+  }
+
+  function playbookCardHtml(setupName){
+    const pb = (settings.playbook && settings.playbook[setupName]) || {};
+    const stats = playbookStatsFor(setupName);
+    const editing = playbookEditing === setupName;
+    const hasContent = !!(pb.description || pb.entryCriteria || pb.exitCriteria || pb.riskNotes);
+    return `
+    <div class="tj-panelcard" style="padding:20px 22px;" data-playbook-card="${escapeHtml(setupName)}">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:4px; flex-wrap:wrap;">
+        <div>
+          <div class="tj-serif" style="font-size:15.5px; font-weight:600;">${escapeHtml(setupName)}</div>
+          <div style="font-size:11.5px; color:var(--tj-text3); margin-top:4px;">
+            ${stats.closedCount ? `${stats.winRate}% Win rate · საშ. ${fmtR(stats.avgR)} · n=${stats.closedCount}` : 'ჯერ არ გაქვთ დახურული ტრეიდი ამ Setup-ით'}
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <button type="button" class="tj-btn" data-playbook-edit="${escapeHtml(setupName)}">${editing ? 'დახურვა' : (hasContent ? 'რედაქტირება' : '+ დოკუმენტირება')}</button>
+          <button type="button" class="tj-btn" data-playbook-delete="${escapeHtml(setupName)}" style="color:var(--tj-red);">წაშლა</button>
+        </div>
+      </div>
+
+      ${editing ? `
+        <div style="display:grid; gap:12px; margin-top:14px; max-width:640px;">
+          <div>${fieldLabel('აღწერა - რას წარმოადგენს ეს Setup')}<textarea data-pb-field="description" rows="2" placeholder="მაგ. ტრენდში, pullback-ის შემდეგ, momentum-ის დაბრუნებაზე შესვლა...">${escapeHtml(pb.description||'')}</textarea></div>
+          <div>${fieldLabel('შესვლის კრიტერიუმები (Entry Rules)')}<textarea data-pb-field="entryCriteria" rows="3" placeholder="რა უნდა ჩანდეს ჩარტზე, რომ ეს იყოს A+ setup?">${escapeHtml(pb.entryCriteria||'')}</textarea></div>
+          <div>${fieldLabel('გამოსვლის წესები (Exit Rules)')}<textarea data-pb-field="exitCriteria" rows="3">${escapeHtml(pb.exitCriteria||'')}</textarea></div>
+          <div>${fieldLabel('რისკის მართვის შენიშვნები')}<textarea data-pb-field="riskNotes" rows="2">${escapeHtml(pb.riskNotes||'')}</textarea></div>
+          <div><button type="button" class="tj-btn primary" data-playbook-save="${escapeHtml(setupName)}">შენახვა</button></div>
+        </div>
+      ` : `
+        ${hasContent ? `
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:14px; margin-top:12px; font-size:13px; color:var(--tj-text2); line-height:1.6;">
+            ${pb.description ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">აღწერა</div>${escapeHtml(pb.description)}</div>` : ''}
+            ${pb.entryCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">Entry</div>${escapeHtml(pb.entryCriteria)}</div>` : ''}
+            ${pb.exitCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">Exit</div>${escapeHtml(pb.exitCriteria)}</div>` : ''}
+            ${pb.riskNotes ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:4px;">რისკი</div>${escapeHtml(pb.riskNotes)}</div>` : ''}
+          </div>
+        ` : `<div style="font-size:12.5px; color:var(--tj-text3); margin-top:8px;">ჯერ არ არის დოკუმენტირებული.</div>`}
+
+        ${stats.best.length ? `
+          <div style="margin-top:16px;">
+            <div style="font-size:11px; color:var(--tj-text3); margin-bottom:8px;">საუკეთესო ტრეიდები ამ Setup-ით</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              ${stats.best.map(t => `
+                <div class="tj-panelcard" style="padding:10px 12px; min-width:150px;">
+                  <div style="font-size:11.5px; color:var(--tj-text3);">${escapeHtml(t.date||'')} · ${escapeHtml(t.instrument||'')}</div>
+                  <div style="font-size:14px; font-weight:600; color:var(--tj-green); margin-top:2px;">${fmtR(num(t.resultR))}</div>
+                  ${(t.screenshots && (t.screenshots.entry||t.screenshots.before)) ? `<img src="${t.screenshots.entry||t.screenshots.before}" style="width:100%; height:56px; object-fit:cover; border-radius:6px; margin-top:6px; cursor:pointer;" data-playbook-shot="${escapeHtml(t.id)}"/>` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `}
+    </div>`;
+  }
+
+  function renderPlaybook(){
+    const setups = settings.setups || [];
+    bodyEl.innerHTML = `
+      <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">Playbook - საკუთარი Setup-ების ბიბლია</div>
+      <div style="font-size:12.5px; color:var(--tj-text2); margin-bottom:20px; max-width:680px;">
+        დააფიქსირეთ, როგორ გამოიყურება თითოეული თქვენი A+ setup - შესვლის/გამოსვლის წესები და რისკის მართვა, Mike Bellafiore-ის "The PlayBook" მეთოდის მიხედვით. თითოეულ setup-ს ავტომატურად ერთვის თქვენი რეალური ისტორიული სტატისტიკა და საუკეთესო ტრეიდები.
+      </div>
+      <div style="margin-bottom:18px;">
+        <button type="button" id="tj-playbook-newsetup" class="tj-btn">+ ახალი Setup</button>
+      </div>
+      ${setups.length===0
+        ? `<div style="color:var(--tj-text3); font-size:13px;">ჯერ არცერთი Setup არ გაქვთ განსაზღვრული. დაამატეთ ზემოთა ღილაკით, ან პირდაპირ "ახალი ტრეიდის" ფორმაში.</div>`
+        : `<div style="display:flex; flex-direction:column; gap:16px;">${setups.map(playbookCardHtml).join('')}</div>`
+      }
+    `;
+
+    const newBtn = document.getElementById('tj-playbook-newsetup');
+    if (newBtn) newBtn.onclick = async () => {
+      const name = prompt('ახალი Setup-ის სახელი:');
+      if (!name || !name.trim()) return;
+      const val = name.trim();
+      if (!settings.setups.includes(val)){ settings.setups.push(val); await saveSettings(); }
+      playbookEditing = val;
+      renderPlaybook();
+    };
+    bodyEl.querySelectorAll('[data-playbook-edit]').forEach(b => {
+      b.onclick = () => { playbookEditing = playbookEditing===b.dataset.playbookEdit ? null : b.dataset.playbookEdit; renderPlaybook(); };
+    });
+    bodyEl.querySelectorAll('[data-playbook-save]').forEach(b => {
+      b.onclick = async () => {
+        const setupName = b.dataset.playbookSave;
+        const card = b.closest('[data-playbook-card]');
+        settings.playbook = settings.playbook || {};
+        const entry = settings.playbook[setupName] = settings.playbook[setupName] || {};
+        card.querySelectorAll('[data-pb-field]').forEach(ta => { entry[ta.dataset.pbField] = ta.value; });
+        entry.updatedAt = new Date().toISOString();
+        setBtnLoading(b, true, 'ინახება…');
+        const ok = await saveSettings();
+        setBtnLoading(b, false);
+        if (ok){ showToast('Setup შენახულია', 'ok'); playbookEditing = null; renderPlaybook(); }
+        else showToast('შენახვა ვერ მოხერხდა', 'error');
+      };
+    });
+    bodyEl.querySelectorAll('[data-playbook-delete]').forEach(b => {
+      b.onclick = async () => {
+        const setupName = b.dataset.playbookDelete;
+        if (!confirm(`წავშალო "${setupName}"? უკვე შევსებულ ტრეიდებში ტეგი დარჩება, მაგრამ Setup-ების სიიდან და Playbook-იდან წაიშლება.`)) return;
+        settings.setups = (settings.setups||[]).filter(s => s!==setupName);
+        if (settings.playbook) delete settings.playbook[setupName];
+        const ok = await saveSettings();
+        showToast(ok ? 'წაიშალა' : 'წაშლა ვერ მოხერხდა', ok ? 'ok' : 'error');
+        renderPlaybook();
+      };
+    });
+    bodyEl.querySelectorAll('[data-playbook-shot]').forEach(img => {
+      img.onclick = () => {
+        const t = trades.find(x => x.id === img.dataset.playbookShot);
+        if (t) openImageModal(t.screenshots.entry || t.screenshots.before);
+      };
+    });
+  }
+
   // ================= GUIDE =================
   function renderGuide(){
     bodyEl.innerHTML = `<div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:14px;">ინსტრუქცია</div>
@@ -2030,6 +2166,7 @@
     else if (page==='trades') renderTrades();
     else if (page==='drc') renderDRC();
     else if (page==='analytics') renderAnalytics();
+    else if (page==='playbook') renderPlaybook();
     else if (page==='ai') renderAI();
     else if (page==='accounts') renderAccounts();
     else if (page==='settings') renderSettings();
@@ -2128,7 +2265,7 @@
     try {
       const { data, error } = await supabase.from('journal_settings').select('data').eq('user_id', currentUser.id).maybeSingle();
       if (error) throw error;
-      if (data && data.data) settings = Object.assign({ setups:[], vetoes:[], marketTags:[], srTags:[], instruments:[], pointValues:{} }, data.data);
+      if (data && data.data) settings = Object.assign({ setups:[], vetoes:[], marketTags:[], srTags:[], instruments:[], pointValues:{}, playbook:{} }, data.data);
     } catch(e){}
   }
   async function saveSettings(){
