@@ -319,7 +319,10 @@
   document.getElementById('tj-lightbox-close').onclick = closeLightbox;
   lightbox.addEventListener('click', (e)=>{ if (e.target===lightbox) closeLightbox(); });
   window.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeLightbox(); closeDrawer(); } });
-  function openImageModal(dataUrl){ lightboxContent.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:78vh; border-radius:8px;"/>`; lightbox.style.display='flex'; }
+  function openImageModal(dataUrl, captionHtml){
+    lightboxContent.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:78vh; border-radius:8px;"/>${captionHtml ? `<div style="max-width:640px; margin:14px auto 0; text-align:left; font-size:13px; color:var(--tj-text2); line-height:1.6; max-height:22vh; overflow:auto;">${captionHtml}</div>` : ''}`;
+    lightbox.style.display='flex';
+  }
   function closeLightbox(){ lightbox.style.display='none'; lightboxContent.innerHTML=''; }
 
   function fileToCompressedBase64(file, maxW){
@@ -2005,7 +2008,7 @@
     };
   }
 
-  // ================= PLAYBOOK (Mike Bellafiore - "The PlayBook" მეთოდი) =================
+  // ================= PLAYBOOK =================
   // დამოუკიდებელი, თავისუფალი განყოფილება - არ არის მიბმული "ახალი ტრეიდის"
   // Setup-ების სიაზე. თითოეული Playbook ჩანაწერი (შაბლონი) თავად იქმნება
   // აქ, ხელით: სათაური, აღწერა/წესები, საკუთარი ატვირთული სურათები და
@@ -2017,6 +2020,24 @@
 
   function playbookEntries(){ return settings.playbookEntries || []; }
   function newPlaybookId(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'pb_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+  // ნომრიანი სიის ტექსტს ("1. ... 2. ... 3. ...") მწკრივებად ყოფს, თითო
+  // პუნქტი ცალკე ხაზზე რომ გამოჩნდეს ერთი გრძელი აბზაცის ნაცვლად.
+  function formatPlaybookText(text){
+    if (!text) return '';
+    const t = text.trim();
+    const segments = t.split(/(?=(?:^|\s)\d+[\.\)]\s)/g).map(s => s.trim()).filter(Boolean);
+    if (segments.length > 1){
+      return segments.map(seg => `<div style="margin-bottom:6px;">${escapeHtml(seg)}</div>`).join('');
+    }
+    return `<div style="white-space:pre-wrap;">${escapeHtml(t)}</div>`;
+  }
+
+  // Playbook-ის სურათები ორივე ფორმატს უჭერს მხარს: ძველი ჩანაწერები
+  // უბრალო string url-ებია, ახლები {url, caption} ობიექტებია - თითო
+  // სურათს თავისი, დამოუკიდებელი აღწერა რომ ჰქონდეს.
+  function pbImgUrl(img){ return (typeof img === 'string') ? img : ((img && img.url) || ''); }
+  function pbImgCaption(img){ return (typeof img === 'string') ? '' : ((img && img.caption) || ''); }
 
   function renderPlaybook(){
     if (playbookViewId) renderPlaybookDetail(playbookViewId);
@@ -2030,7 +2051,7 @@
         <div>
           <div class="tj-serif" style="font-size:17px; font-weight:600; margin-bottom:4px;">Playbook</div>
           <div style="font-size:12.5px; color:var(--tj-text2); max-width:640px;">
-            თქვენი საკუთარი A+ setup-ების ბიბლია, Mike Bellafiore-ის "The PlayBook" მეთოდის მიხედვით. შექმენით შაბლონები, ატვირთეთ მაგალითის სურათები და ხელით მიაბით უკვე შევსებული ტრეიდები.
+            თქვენი საკუთარი A+ setup-ების ბიბლია. შექმენით შაბლონები, ატვირთეთ მაგალითის სურათები და ხელით მიაბით უკვე შევსებული ტრეიდები.
           </div>
         </div>
         <button type="button" id="tj-playbook-newentry" class="tj-btn primary" style="flex-shrink:0;">+ ახალი შაბლონი</button>
@@ -2041,7 +2062,7 @@
             ${entries.map(e => `
               <div class="tj-panelcard" style="padding:0; overflow:hidden; cursor:pointer; display:flex; flex-direction:column;" data-playbook-open="${e.id}">
                 <div style="height:110px; background:var(--tj-panel2); display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                  ${e.images && e.images[0] ? `<img src="${e.images[0]}" style="width:100%; height:100%; object-fit:cover;"/>` : `<span style="font-size:26px; color:var(--tj-text3);">▧</span>`}
+                  ${e.images && e.images[0] ? `<img src="${pbImgUrl(e.images[0])}" style="width:100%; height:100%; object-fit:cover;"/>` : `<span style="font-size:26px; color:var(--tj-text3);">▧</span>`}
                 </div>
                 <div style="padding:14px 16px;">
                   <div class="tj-serif" style="font-size:14.5px; font-weight:600; margin-bottom:6px;">${escapeHtml(e.title||'უსათაურო')}</div>
@@ -2101,10 +2122,10 @@
         </div>
       ` : `
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom:24px; font-size:13.5px; color:var(--tj-text2); line-height:1.65;">
-          ${entry.description ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">აღწერა</div>${escapeHtml(entry.description)}</div>` : ''}
-          ${entry.entryCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">Entry</div>${escapeHtml(entry.entryCriteria)}</div>` : ''}
-          ${entry.exitCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">Exit</div>${escapeHtml(entry.exitCriteria)}</div>` : ''}
-          ${entry.riskNotes ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">რისკი</div>${escapeHtml(entry.riskNotes)}</div>` : ''}
+          ${entry.description ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">აღწერა</div>${formatPlaybookText(entry.description)}</div>` : ''}
+          ${entry.entryCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">Entry</div>${formatPlaybookText(entry.entryCriteria)}</div>` : ''}
+          ${entry.exitCriteria ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">Exit</div>${formatPlaybookText(entry.exitCriteria)}</div>` : ''}
+          ${entry.riskNotes ? `<div><div style="font-size:11px; color:var(--tj-text3); margin-bottom:5px;">რისკი</div>${formatPlaybookText(entry.riskNotes)}</div>` : ''}
           ${!entry.description && !entry.entryCriteria && !entry.exitCriteria && !entry.riskNotes ? `<div style="color:var(--tj-text3);">ჯერ არ არის დოკუმენტირებული - დააჭირეთ "რედაქტირებას".</div>` : ''}
         </div>
       `}
@@ -2115,11 +2136,17 @@
           <label class="tj-btn" style="display:inline-flex; cursor:pointer;">ატვირთვა<input type="file" accept="image/*" id="tj-pb-image-input" multiple style="display:none;"/></label>
         </div>
         ${entry.images && entry.images.length ? `
-          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; flex-wrap:wrap; gap:14px;">
             ${entry.images.map((img,i) => `
-              <div style="position:relative;">
-                <img src="${img}" style="width:110px; height:74px; object-fit:cover; border-radius:8px; border:0.5px solid var(--tj-border); cursor:pointer;" data-pb-image-view="${i}"/>
-                <button type="button" data-pb-image-remove="${i}" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; border:none; background:var(--tj-red); color:#fff; font-size:12px; cursor:pointer; line-height:1;">×</button>
+              <div style="width:110px;">
+                <div style="position:relative;">
+                  <img src="${pbImgUrl(img)}" style="width:110px; height:74px; object-fit:cover; border-radius:8px; border:0.5px solid var(--tj-border); cursor:pointer;" data-pb-image-view="${i}"/>
+                  <button type="button" data-pb-image-remove="${i}" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; border:none; background:var(--tj-red); color:#fff; font-size:12px; cursor:pointer; line-height:1;">×</button>
+                </div>
+                ${editing
+                  ? `<textarea data-pb-image-caption="${i}" rows="2" placeholder="ამ სურათის აღწერა..." style="width:110px; margin-top:6px; font-size:11px; padding:5px 6px;">${escapeHtml(pbImgCaption(img))}</textarea>`
+                  : (pbImgCaption(img) ? `<div style="width:110px; margin-top:6px; font-size:11px; color:var(--tj-text2); line-height:1.4;">${escapeHtml(pbImgCaption(img))}</div>` : '')
+                }
               </div>
             `).join('')}
           </div>
@@ -2182,12 +2209,16 @@
       const files = Array.from(imgInput.files || []);
       if (!files.length) return;
       entry.images = entry.images || [];
-      for (const file of files){ entry.images.push(await fileToCompressedBase64(file)); }
+      for (const file of files){ entry.images.push({ url: await fileToCompressedBase64(file), caption:'' }); }
       await saveSettings();
       renderPlaybook();
     };
     bodyEl.querySelectorAll('[data-pb-image-view]').forEach(img => {
-      img.onclick = () => openImageModal(entry.images[Number(img.dataset.pbImageView)]);
+      img.onclick = () => {
+        const im = entry.images[Number(img.dataset.pbImageView)];
+        const cap = pbImgCaption(im);
+        openImageModal(pbImgUrl(im), cap ? formatPlaybookText(cap) : '');
+      };
     });
     bodyEl.querySelectorAll('[data-pb-image-remove]').forEach(b => {
       b.onclick = async () => {
@@ -2195,6 +2226,14 @@
         await saveSettings();
         renderPlaybook();
       };
+    });
+    bodyEl.querySelectorAll('[data-pb-image-caption]').forEach(ta => {
+      ta.addEventListener('blur', async () => {
+        const i = Number(ta.dataset.pbImageCaption);
+        const current = entry.images[i];
+        entry.images[i] = { url: pbImgUrl(current), caption: ta.value };
+        await saveSettings();
+      });
     });
 
     const linkAddBtn = document.getElementById('tj-pb-link-add');
