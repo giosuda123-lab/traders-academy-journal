@@ -186,9 +186,11 @@ let notebooks=new Map();let legacyNotes=new Map();let noteDirty=new Set();let us
 const oldNotes=read('notes',[]);
 const COURSE_ID='price-action-preview';
 let playRequest=0;
+let activeBunnyPlayer=null;
 async function loadSecureVideo(){
  const requestId=++playRequest;
  videoSeconds=null;
+ activeBunnyPlayer=null;
  const screen=el('lt-video-screen');
  screen.replaceChildren();screen.style.position='relative';
  const msg=document.createElement('span');msg.style.color='var(--text2)';msg.style.fontSize='13px';
@@ -209,6 +211,7 @@ async function loadSecureVideo(){
      if(requestId!==playRequest||!window.playerjs?.Player)return;
      try{
        const player=new window.playerjs.Player(iframe);
+       activeBunnyPlayer=player;
        player.on('timeupdate',(value)=>{
          if(requestId!==playRequest)return;
          try{const event=typeof value==='string'?JSON.parse(value):value;
@@ -368,16 +371,37 @@ function timestampValue(seconds){
  const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
  return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
-el('note-timestamp').addEventListener('click',()=>{
- let stamp;
- if(videoSeconds!==null){stamp=timestampValue(videoSeconds)}
- else{
-  const manual=prompt('ვიდეოს დრო (მაგალითად 12:34). ვიდეოს დრო ავტომატურად ჩაიწერება დაკვრისას:', '00:00');
-  if(manual===null)return;
-  if(!/^(?:\d{1,2}:)?[0-5]?\d:[0-5]\d$/.test(manual.trim()))return alert('შეიყვანე დრო MM:SS ან HH:MM:SS ფორმატში');
-  stamp=manual.trim();
- }
- insertNoteText((el('new-note').value?'\n\n':'')+'['+stamp+'] ');
+// Query the player when the button is pressed, so paused or seeked positions
+// are accurate even if no new timeupdate event has arrived.
+function currentBunnyTime(){
+ const player=activeBunnyPlayer;
+ const forRequest=playRequest;
+ if(!player||typeof player.getCurrentTime!=='function')return Promise.resolve(videoSeconds);
+ return new Promise(resolve=>{
+   let finished=false;
+   const finish=value=>{
+     if(finished)return;finished=true;
+     clearTimeout(timeout);
+     if(forRequest!==playRequest){resolve(null);return}
+     const n=Number(value);
+     resolve(value!==null&&value!==undefined&&Number.isFinite(n)&&n>=0?Math.floor(n):videoSeconds);
+   };
+   const timeout=setTimeout(()=>finish(videoSeconds),1800);
+   try{player.getCurrentTime(time=>finish(time))}catch{finish(videoSeconds)}
+ });
+}
+el('note-timestamp').addEventListener('click',async()=>{
+ const btn=el('note-timestamp');btn.disabled=true;
+ try{
+   const requestedFor=playRequest;
+   const seconds=await currentBunnyTime();
+   if(requestedFor!==playRequest)return; // Do not insert time from another lesson.
+   if(seconds===null){
+     alert('ვიდეოს დრო ჯერ არ არის ხელმისაწვდომი. გახსენი ვიდეო, გააჩერე სასურველ მომენტზე და ხელახლა სცადე.');
+     return;
+   }
+   insertNoteText((el('new-note').value?'\n\n':'')+'['+timestampValue(seconds)+'] ');
+ }finally{btn.disabled=false}
 });
 el('note-heading').addEventListener('click',()=>insertNoteText((el('new-note').value?'\n\n':'')+'━━ სათაური ━━\n'));
 el('note-important').addEventListener('click',()=>insertNoteText((el('new-note').value?'\n':'')+'★ მნიშვნელოვანი: '));
