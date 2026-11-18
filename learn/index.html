@@ -32,6 +32,16 @@
 .lt-pane{padding:17px;min-height:410px}
 .lt-lesson{border:1px solid var(--border);border-radius:10px;background:var(--panel2);padding:14px;width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer;display:flex;align-items:center;gap:13px;margin-top:9px}
 .lt-lesson:hover,.lt-lesson[aria-current=true]{border-color:var(--accent-soft);background:#302819}
+.lt-module{border:1px solid var(--border);border-radius:11px;margin-bottom:10px;overflow:hidden;background:#211d17}
+.lt-module-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 12px;background:#242018;color:var(--text);border:0;cursor:pointer;text-align:left;font:inherit}
+.lt-module-head:hover{background:#2d261b}
+.lt-module-name{font-size:13px;font-weight:700;line-height:1.45}
+.lt-module-count{display:block;color:var(--text3);font-size:11px;margin-top:3px;font-weight:400}
+.lt-module-chevron{color:var(--accent);font-size:16px;flex:none;transition:transform .2s}
+.lt-module-head[aria-expanded=true] .lt-module-chevron{transform:rotate(180deg)}
+.lt-module-lessons{padding:0 9px 10px}
+.lt-module-lessons[hidden]{display:none}
+.lt-module-lessons .lt-lesson{margin-top:8px}
 .lt-number{font:12px 'IBM Plex Mono',monospace;color:var(--accent);width:22px;flex:none}
 .lt-ltitle{font-size:13px;line-height:1.4}.lt-ltime{display:block;font-size:11px;color:var(--text3);margin-top:4px}
 .lt-label{display:block;color:var(--text2);font-size:12px;margin-bottom:8px}
@@ -73,7 +83,7 @@
 <aside class="lt-sidebar"><div class="lt-sidebox"><div class="lt-tabs" role="tablist" aria-label="გაკვეთილები და ჩანაწერები">
 <button class="lt-tab" id="tab-lessons" role="tab" aria-selected="true" aria-controls="panel-lessons">☷ &nbsp; გაკვეთილები</button>
 <button class="lt-tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="panel-notes">✎ &nbsp; ჩანაწერები</button></div>
-<section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow"><strong style="font-size:14px">მოდული 01 — საფუძვლები</strong><span class="lt-meta">5 გაკვეთილი</span></div><div id="lesson-list"></div></section>
+<section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow" style="margin-bottom:12px"><strong style="font-size:14px">კურსის მოდულები</strong><span class="lt-meta" id="module-summary">0 მოდული</span></div><div id="lesson-list"></div></section>
 <section class="lt-pane" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
 <label class="lt-label" for="new-note">ჩემი ჩანაწერი ამ გაკვეთილზე</label>
 <textarea id="new-note" class="lt-input" placeholder="ჩაწერე მნიშვნელოვანი იდეა, სავაჭრო წესი ან კითხვა..."></textarea>
@@ -90,6 +100,7 @@
 (function(){
 'use strict';
 let lessons=[];
+let expandedModuleId=null;
 const fallbackLesson={id:'none',title:'გაკვეთილები ჯერ არ არის დამატებული',duration:'00:00'};
 async function loadCurriculumForStudent(){
  const m=await TA.sb.from('course_modules').select('id,title,sort_order').eq('course_id',COURSE_ID).order('sort_order').order('created_at');
@@ -98,8 +109,9 @@ async function loadCurriculumForStudent(){
  if(!modules.length){lessons=[];selected=0;renderLesson();return}
  const l=await TA.sb.from('course_lessons').select('id,module_id,title,duration_seconds,sort_order').in('module_id',modules.map(x=>x.id)).order('sort_order').order('created_at');
  if(l.error)throw l.error;
- lessons=modules.flatMap(mod=>(l.data||[]).filter(x=>x.module_id===mod.id).map(x=>({id:x.id,title:x.title,duration:Math.floor(x.duration_seconds/60)+':'+String(x.duration_seconds%60).padStart(2,'0'),module:mod.title})));
+ lessons=modules.flatMap(mod=>(l.data||[]).filter(x=>x.module_id===mod.id).map(x=>({id:x.id,title:x.title,duration:Math.floor(x.duration_seconds/60)+':'+String(x.duration_seconds%60).padStart(2,'0'),module:mod.title,moduleId:mod.id})));
  selected=Math.min(selected,Math.max(lessons.length-1,0));
+ expandedModuleId=lessons[selected]?.moduleId||null;
  renderLesson();
 }
 const prefix='ta-learning-preview-v1-';
@@ -170,15 +182,40 @@ function renderLesson(){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
  el('video-duration').textContent='ხანგრძლივობა: '+l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
  const pct=lessons.length?Math.round((selected/lessons.length)*100):0;el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
- el('lesson-list').replaceChildren();
- lessons.forEach((item,i)=>{const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(i===selected));
- const num=document.createElement('span');num.className='lt-number';num.textContent=String(i+1).padStart(2,'0');
- const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=item.title;
- const time=document.createElement('span');time.className='lt-ltime';time.textContent=item.duration+' წთ';info.append(title,time);b.append(num,info);
- b.addEventListener('click',()=>chooseLesson(i));el('lesson-list').append(b)});
+ const target=el('lesson-list');target.replaceChildren();
+ const groups=[];
+ lessons.forEach((lesson,index)=>{
+   let group=groups.find(g=>g.id===lesson.moduleId);
+   if(!group){group={id:lesson.moduleId,title:lesson.module||'მოდული',items:[]};groups.push(group)}
+   group.items.push({lesson,index});
+ });
+ el('module-summary').textContent=groups.length+' მოდული · '+lessons.length+' გაკვეთილი';
+ const currentModuleId=lessons[selected]?.moduleId;
+ if(!groups.some(g=>g.id===expandedModuleId))expandedModuleId=currentModuleId||groups[0]?.id||null;
+ groups.forEach((group,groupIndex)=>{
+   const panel=document.createElement('div');panel.className='lt-module';
+   const head=document.createElement('button');head.type='button';head.className='lt-module-head';
+   const isOpen=expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));
+   const contentId='lt-module-'+groupIndex;head.setAttribute('aria-controls',contentId);
+   const name=document.createElement('span');name.className='lt-module-name';name.textContent=String(groupIndex+1).padStart(2,'0')+' · '+group.title;
+   const count=document.createElement('span');count.className='lt-module-count';count.textContent=group.items.length+' გაკვეთილი';
+   name.append(count);
+   const chevron=document.createElement('span');chevron.className='lt-module-chevron';chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');
+   head.append(name,chevron);
+   const content=document.createElement('div');content.id=contentId;content.className='lt-module-lessons';content.hidden=!isOpen;
+   head.addEventListener('click',()=>{expandedModuleId=isOpen?null:group.id;renderLesson()});
+   group.items.forEach(({lesson,index})=>{
+     const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(index===selected));
+     const num=document.createElement('span');num.className='lt-number';num.textContent=String(group.items.findIndex(x=>x.index===index)+1).padStart(2,'0');
+     const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=lesson.title;
+     const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration;info.append(title,time);b.append(num,info);
+     b.addEventListener('click',()=>chooseLesson(index));content.append(b);
+   });
+   panel.append(head,content);target.append(panel);
+ });
  el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
 }
-function chooseLesson(i){saveDraft();selected=i;write('lesson',i);renderLesson();loadSecureVideo()}
+function chooseLesson(i){if(!lessons[i])return;saveDraft();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
 function saveDraft(){const ok=write('draft-'+lessonId(selected),el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
 let draftTimer;
 el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ინახება...';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,350)});
