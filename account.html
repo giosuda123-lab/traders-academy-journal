@@ -43,14 +43,24 @@
       <div class="card" style="max-width:420px;">
         <p style="font-size:13px; color:var(--text3); margin:0 0 4px;">შესული ხართ როგორც</p>
         <p style="font-size:16px; color:var(--text); margin:0 0 20px; word-break:break-all;">${TA.escapeHtml(user.email)}</p>
-        <p style="font-size:14px; color:var(--text2); margin:0 0 20px;">ახლა შეგიძლიათ კომენტარების დატოვება <a href="/blog/" style="color:var(--accent);">სტატიებზე</a>.</p>
+        <p style="font-size:14px; color:var(--text2); margin:0 0 16px;">ახლა შეგიძლიათ კომენტარების დატოვება <a href="/blog/" style="color:var(--accent);">სტატიებზე</a>.</p><div id="my-courses" style="margin-bottom:16px;color:var(--text2);font-size:13px;">მიმდინარეობს კურსებზე წვდომის შემოწმება...</div>
         <button type="button" id="logout-btn" class="btn">გასვლა</button>
       </div>
     `;
+    loadMyCourses(user);
     document.getElementById('logout-btn').onclick = async () => {
       await TA.sb.auth.signOut();
       init();
     };
+  }
+
+  async function loadMyCourses(user){
+    const container=document.getElementById('my-courses');if(!container)return;
+    const {data,error}=await TA.sb.from('course_enrollments').select('course_id').eq('user_id',user.id).eq('course_id','price-action-preview');
+    if(!container.isConnected)return;
+    if(error){container.textContent='კურსების ჩამონათვალი დროებით მიუწვდომელია.';return}
+    if(data&&data.length){container.innerHTML='<a class="btn btn-primary" href="/learn/">▶ ჩემი ვიდეოკურსი</a>'}
+    else container.textContent='ვიდეოკურსზე წვდომა ჯერ არ გაქვთ. წვდომას აკადემიის ადმინისტრატორი მოგანიჭებთ.';
   }
 
   function renderLoggedOut(){
