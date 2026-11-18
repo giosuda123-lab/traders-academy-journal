@@ -100,6 +100,15 @@ body{background:radial-gradient(ellipse 950px 500px at 51% -180px,rgba(230,185,7
 .lt-btn{border-radius:10px;transition:background .18s,transform .18s}
 .lt-btn:hover:not(:disabled){transform:translateY(-1px)}
 .lt-alert[hidden]{display:none}
+.lt-notebook-head{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.lt-notebook-head strong{color:var(--text);font-size:14px;display:block}
+.lt-notebook-head small{color:var(--text3);font-size:11px;display:block;margin-top:5px}
+.lt-note-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.lt-note-toolbar .lt-btn{padding:8px 10px;font-size:11px}
+textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-height:1.75;tab-size:2}
+.lt-notebook-help{font-size:11px;color:var(--text3);line-height:1.6;margin-top:12px}
+.lt-save{margin-bottom:6px}
+
 .lt-playerfoot{background:#120f0c}
 @keyframes ltReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:850px){.lt{padding:15px 14px 45px}.lt-grid{grid-template-columns:1fr}.lt-sidebar{position:static}.lt-sidebox{max-height:min(68dvh,640px);min-height:320px}.lt-pane{min-height:0}.lt-h1{font-size:30px}}
@@ -127,17 +136,28 @@ body{background:radial-gradient(ellipse 950px 500px at 51% -180px,rgba(230,185,7
 <button class="lt-tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="panel-notes">✎ &nbsp; ჩანაწერები</button></div>
 <section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow" style="margin-bottom:12px"><strong style="font-size:14px">კურსის მოდულები</strong><span class="lt-meta" id="module-summary">0 მოდული</span></div><div id="lesson-list"></div></section>
 <section class="lt-pane" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
-<label class="lt-label" for="new-note">ჩემი ჩანაწერი ამ გაკვეთილზე</label>
-<textarea id="new-note" class="lt-input" placeholder="ჩაწერე მნიშვნელოვანი იდეა, სავაჭრო წესი ან კითხვა..."></textarea>
-<div class="lt-save"><small id="draft-status">მონახაზი ამ მოწყობილობაზე ინახება</small><button class="lt-btn" id="add-note" disabled>+ ჩანაწერის დამატება</button></div>
-<div class="lt-alert" id="legacy-note-warning" hidden>ამ ბრაუზერში ძველი სატესტო ჩანაწერებია. ისინი ავტომატურად არ წაიშლება ან აიტვირთება. საჭიროების შემთხვევაში ტექსტის ასლი შეინახე.</div>
-<label class="lt-label" for="note-search">მოძებნე ჩანაწერებში</label><input id="note-search" class="lt-input" type="search" placeholder="საკვანძო სიტყვა...">
-<div class="lt-footrow" style="margin-top:16px"><strong style="font-size:13px">ამ გაკვეთილის ჩანაწერები</strong><button class="lt-smallbtn" id="export-notes">↓ TXT ექსპორტი</button></div>
-<div id="note-list"></div>
+<div class="lt-notebook-head">
+  <div><strong>ჩემი ჩანაწერი ამ გაკვეთილზე</strong><small>ერთი ნოუთი · ავტომატური შენახვა</small></div>
+  <button id="export-notes" class="lt-smallbtn" type="button">↓ TXT ექსპორტი</button>
+</div>
+<div class="lt-note-toolbar">
+  <button class="lt-btn" id="note-timestamp" type="button">⏱ დროის ჩასმა</button>
+  <button class="lt-btn" id="note-heading" type="button">§ სათაური</button>
+  <button class="lt-btn" id="note-important" type="button">★ მნიშვნელოვანი</button>
+</div>
+<label for="new-note" class="lt-label">ნოუთი</label>
+<textarea id="new-note" class="lt-input lt-notebook" placeholder="ჩაწერე მნიშვნელოვანი იდეები. დაამატე ვიდეოს დროის ნიშნული, სათაური ან სავაჭრო წესი..." spellcheck="true"></textarea>
+<div class="lt-save">
+ <small id="draft-status" role="status" aria-live="polite">ნოუთი იტვირთება...</small>
+ <button class="lt-btn" id="save-notebook" type="button">შენახვა</button>
+</div>
+<p class="lt-notebook-help">ნოუთი მხოლოდ შენ გეკუთვნის. სხვადასხვა გაკვეთილს საკუთარი ნოუთი აქვს.</p>
+<div class="lt-alert" id="legacy-note-warning" hidden>ამ ბრაუზერში ძველი სატესტო ჩანაწერებია; ისინი წაშლილი არ არის.</div>
 </section></div></aside>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/site.js"></script>
+<script src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js" defer></script>
 <script>
 (function(){
 'use strict';
@@ -162,12 +182,13 @@ const read=(key,fallback)=>{try{const x=localStorage.getItem(prefix+key);return 
 const write=(key,value)=>{try{localStorage.setItem(prefix+key,JSON.stringify(value));return true}catch{return false}};
 const el=id=>document.getElementById(id);
 let selected=Number(read('lesson',0));if(!Number.isInteger(selected)||selected<0)selected=0;
-let notes=[];let user=null;let loadingNotes=false;
+let notebooks=new Map();let legacyNotes=new Map();let noteDirty=new Set();let user=null;let loadingNotes=false;let videoSeconds=null;
 const oldNotes=read('notes',[]);
 const COURSE_ID='price-action-preview';
 let playRequest=0;
 async function loadSecureVideo(){
  const requestId=++playRequest;
+ videoSeconds=null;
  const screen=el('lt-video-screen');
  screen.replaceChildren();screen.style.position='relative';
  const msg=document.createElement('span');msg.style.color='var(--text2)';msg.style.fontSize='13px';
@@ -184,19 +205,99 @@ async function loadSecureVideo(){
    iframe.allow='accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
    iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
    screen.replaceChildren(iframe);el('video-status').textContent='Bunny Stream · დაცული დაკვრა';
+   iframe.addEventListener('load',()=>{
+     if(requestId!==playRequest||!window.playerjs?.Player)return;
+     try{
+       const player=new window.playerjs.Player(iframe);
+       player.on('timeupdate',(value)=>{
+         if(requestId!==playRequest)return;
+         try{const event=typeof value==='string'?JSON.parse(value):value;
+           const seconds=Number(event?.seconds);
+           if(Number.isFinite(seconds)&&seconds>=0)videoSeconds=Math.floor(seconds);
+         }catch{}
+       });
+     }catch{}
+   },{once:true});
  }catch(e){if(requestId!==playRequest)return;msg.textContent='ვიდეო ვერ ჩაიტვირთა: '+e.message;el('video-status').textContent='დაკავშირება ვერ მოხერხდა'}
 }
 
 const lessonId=i=>lessons[i]?.id||'none';
 const status=(message)=>{const box=el('auth-status');box.textContent=message;box.hidden=!message};
+const notebookKey=id=>'notebook-v1-'+(user?.id||'guest')+'-'+id;
+function notebookText(id){return notebooks.get(id)||''}
+function showNotebook(){const id=lessonId(selected);el('new-note').value=notebookText(id);el('draft-status').textContent=noteDirty.has(id)?'შენახვა საჭიროა':'ავტომატური შენახვა ჩართულია'}
+function captureNotebook(){
+ const id=lessonId(selected);
+ if(id==='none'||!user)return;
+ const value=el('new-note').value;
+ if(value===notebookText(id))return;
+ notebooks.set(id,value);noteDirty.add(id);write(notebookKey(id),value);
+ scheduleNotebookSave(id);
+}
+let notebookTimer=null;
+function scheduleNotebookSave(id){
+ clearTimeout(notebookTimer);
+ notebookTimer=setTimeout(()=>saveNotebook(id),950);
+}
+async function saveNotebook(id){
+ if(!user||!id||id==='none'||!noteDirty.has(id))return;
+ const content=notebookText(id);
+ if(id===lessonId(selected))el('draft-status').textContent='Supabase-ში ინახება...';
+ const {error}=await TA.sb.from('course_lesson_notebooks').upsert({
+   user_id:user.id,course_id:COURSE_ID,lesson_id:id,content,updated_at:new Date().toISOString()
+ },{onConflict:'user_id,course_id,lesson_id'});
+ if(error){
+   if(id===lessonId(selected))el('draft-status').textContent='ქსელში შენახვა ვერ მოხერხდა · მონახაზი შენახულია მოწყობილობაზე';
+   console.error('Notebook save failed:',error.message);
+   return;
+ }
+ // Keep newly typed text dirty until its newer version is also uploaded.
+ if(notebookText(id)===content){
+   noteDirty.delete(id);
+   try{localStorage.removeItem(prefix+notebookKey(id))}catch{}
+ }
+ if(id===lessonId(selected))el('draft-status').textContent=noteDirty.has(id)?'ახალი ცვლილება ინახება...':'შენახულია Supabase-ში ✓';
+ if(noteDirty.has(id))scheduleNotebookSave(id);
+}
 async function fetchNotes(){
  if(!user)return;
- loadingNotes=true;el('add-note').disabled=true;
- const {data,error}=await TA.sb.from('course_notes').select('id,lesson_id,content,video_seconds,created_at').eq('course_id',COURSE_ID).eq('user_id',user.id).order('created_at',{ascending:false});
- loadingNotes=false;el('add-note').disabled=!lessons.length;
- if(error){status('ჩანაწერების ჩატვირთვა ვერ მოხერხდა: '+error.message);return}
- notes=(data||[]).map(n=>({id:n.id,lessonId:n.lesson_id,text:n.content,created:Date.parse(n.created_at)}));
- status('');renderNotes()
+ loadingNotes=true;el('new-note').disabled=true;el('save-notebook').disabled=true;
+ const [bookRes,oldRes]=await Promise.all([
+  TA.sb.from('course_lesson_notebooks').select('lesson_id,content').eq('course_id',COURSE_ID).eq('user_id',user.id),
+  TA.sb.from('course_notes').select('lesson_id,content,created_at').eq('course_id',COURSE_ID).eq('user_id',user.id).order('created_at')
+ ]);
+ loadingNotes=false;el('new-note').disabled=false;el('save-notebook').disabled=false;
+ if(bookRes.error){status('ნოუთების ჩატვირთვა ვერ მოხერხდა: '+bookRes.error.message);return}
+ if(oldRes.error){console.warn('Old notes not available:',oldRes.error.message)}
+ notebooks=new Map((bookRes.data||[]).map(n=>[n.lesson_id,n.content]));
+ legacyNotes=new Map();
+ for(const n of oldRes.data||[]){
+   if(!legacyNotes.has(n.lesson_id))legacyNotes.set(n.lesson_id,[]);
+   legacyNotes.get(n.lesson_id).push(n);
+ }
+ for(const lesson of lessons){
+   const id=lesson.id;
+   if(!notebooks.has(id)){
+     const old=legacyNotes.get(id)||[];
+     if(old.length){
+       const content=old.map(n=>'['+new Date(n.created_at).toLocaleDateString('ka-GE')+']\n'+n.content).join('\n\n──────────\n\n');
+       notebooks.set(id,content);
+       noteDirty.add(id);
+     }
+     const oldDraft=read('draft-'+id,'');
+     if(oldDraft&&typeof oldDraft==='string'&&oldDraft.trim()){
+       notebooks.set(id,(notebookText(id)?notebookText(id)+'\n\n':'')+oldDraft);
+       noteDirty.add(id);
+     }
+   }
+   const local=read(notebookKey(id),null);
+   if(typeof local==='string'&&local!==notebookText(id)){
+     notebooks.set(id,local);noteDirty.add(id);
+   }
+ }
+ status('');showNotebook();
+ // Save imported legacy notes without deleting original rows.
+ for(const id of Array.from(noteDirty))await saveNotebook(id);
 }
 async function initAuth(){
  try{
@@ -256,40 +357,37 @@ function renderLesson(preserveDraft=false){
    });
    panel.append(head,content);target.append(panel);
  });
- if(!preserveDraft)el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
+ if(!preserveDraft)showNotebook()
 }
-function chooseLesson(i){if(!lessons[i])return;saveDraft();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
-function saveDraft(){const ok=write('draft-'+lessonId(selected),el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
-let draftTimer;
-el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ინახება...';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,350)});
-function renderNotes(){
- const q=el('note-search').value.toLocaleLowerCase('ka').trim();const target=el('note-list');target.replaceChildren();
- const filtered=notes.filter(n=>n.lessonId===lessonId(selected)&&n.text.toLocaleLowerCase('ka').includes(q));
- if(!user){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='შედით ანგარიშში, რათა ნახოთ შენახული ჩანაწერები.';target.append(empty);return}if(!filtered.length){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='ამ გაკვეთილზე ჩანაწერები არ მოიძებნა.';target.append(empty);return}
- filtered.sort((a,b)=>b.created-a.created).forEach(n=>{
- const card=document.createElement('article');card.className='lt-note';const head=document.createElement('div');head.className='lt-notehead';
- const stamp=document.createElement('span');stamp.className='lt-time';stamp.textContent='✎ '+new Date(n.created).toLocaleDateString('ka-GE');
- const del=document.createElement('button');del.className='lt-smallbtn';del.textContent='წაშლა';del.addEventListener('click',async()=>{if(!user||!confirm('წავშალოთ ეს ჩანაწერი?'))return;del.disabled=true;const {error}=await TA.sb.from('course_notes').delete().eq('id',n.id).eq('user_id',user.id);if(error){alert('წაშლა ვერ მოხერხდა: '+error.message);del.disabled=false;return}notes=notes.filter(x=>x.id!==n.id);renderNotes()});
- const p=document.createElement('p');p.textContent=n.text;head.append(stamp,del);card.append(head,p);target.append(card)
- })
+function chooseLesson(i){if(!lessons[i])return;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
+function insertNoteText(value){
+ const input=el('new-note');const a=input.selectionStart,b=input.selectionEnd;
+ input.setRangeText(value,a,b,'end');input.focus();captureNotebook();
 }
-el('add-note').addEventListener('click',async()=>{
- const content=el('new-note').value.trim();if(!content||!user||loadingNotes||!lessons.length)return;
- const btn=el('add-note');btn.disabled=true;el('draft-status').textContent='ჩანაწერი იტვირთება Supabase-ში...';
- try{
-  const {data,error}=await TA.sb.from('course_notes').insert({user_id:user.id,course_id:COURSE_ID,lesson_id:lessonId(selected),content,video_seconds:0}).select('id,lesson_id,content,created_at').single();
-  if(error)throw error;
-  notes.unshift({id:data.id,lessonId:lessonId(selected),text:data.content,created:Date.parse(data.created_at)});
-  el('new-note').value='';saveDraft();renderNotes();
-  el('draft-status').textContent='შენახულია Supabase-ში';
- }catch(e){el('draft-status').textContent='შენახვა ვერ მოხერხდა — მონახაზი დარჩა';alert('შენახვა ვერ მოხერხდა: '+e.message)}
- finally{btn.disabled=false}
+function timestampValue(seconds){
+ const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
+ return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+el('note-timestamp').addEventListener('click',()=>{
+ let stamp;
+ if(videoSeconds!==null){stamp=timestampValue(videoSeconds)}
+ else{
+  const manual=prompt('ვიდეოს დრო (მაგალითად 12:34). ვიდეოს დრო ავტომატურად ჩაიწერება დაკვრისას:', '00:00');
+  if(manual===null)return;
+  if(!/^(?:\d{1,2}:)?[0-5]?\d:[0-5]\d$/.test(manual.trim()))return alert('შეიყვანე დრო MM:SS ან HH:MM:SS ფორმატში');
+  stamp=manual.trim();
+ }
+ insertNoteText((el('new-note').value?'\n\n':'')+'['+stamp+'] ');
 });
-el('note-search').addEventListener('input',renderNotes);
+el('note-heading').addEventListener('click',()=>insertNoteText((el('new-note').value?'\n\n':'')+'━━ სათაური ━━\n'));
+el('note-important').addEventListener('click',()=>insertNoteText((el('new-note').value?'\n':'')+'★ მნიშვნელოვანი: '));
+el('new-note').addEventListener('input',()=>{captureNotebook();el('draft-status').textContent='ინახება...'});
+el('new-note').addEventListener('blur',()=>{captureNotebook();saveNotebook(lessonId(selected))});
+el('save-notebook').addEventListener('click',()=>{captureNotebook();saveNotebook(lessonId(selected))});
 el('export-notes').addEventListener('click',()=>{
- const content=notes.filter(n=>n.lessonId===lessonId(selected)).map(n=>new Date(n.created).toLocaleString('ka-GE')+'\n'+n.text).join('\n\n---\n\n');
+ const content=el('new-note').value;
  const blob=new Blob([(lessons[selected]||fallbackLesson).title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
- const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
 el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
 el('tab-notes').addEventListener('click',()=>switchTab('notes'));
