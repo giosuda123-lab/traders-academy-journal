@@ -55,7 +55,8 @@
 <body>
 <main class="lt" id="main-content">
 <div class="lt-top"><div><div class="lt-brand"><b>✦</b> Trader's Academy</div><div class="lt-meta">LEARNING TERMINAL / PREVIEW</div></div><a href="/">← მთავარ საიტზე დაბრუნება</a></div>
-<div class="lt-alert">სატესტო ვერსია — ვიდეოები ჯერ არ არის დაკავშირებული. ნოუთები ამ ეტაპზე მხოლოდ ამ ბრაუზერში ინახება; არ გამოიყენოთ რეალური მოსწავლეებისთვის.</div>
+<div class="lt-alert">სატესტო ვერსია — ვიდეოები და კურსის ფასიანი წვდომა ჯერ არ არის დაკავშირებული. შესული მომხმარებლის ახალი ჩანაწერები Supabase-ში ინახება.</div>
+<div class="lt-alert" id="auth-status" role="status">მიმდინარეობს ანგარიშის შემოწმება...</div><div id="auth-container" style="margin-bottom:18px"></div>
 <div class="lt-grid">
 <section class="lt-main" aria-label="ვიდეოგაკვეთილი">
 <div class="lt-meta" id="breadcrumb">PRICE ACTION / მოდული 01</div>
@@ -75,12 +76,15 @@
 <section class="lt-pane" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
 <label class="lt-label" for="new-note">ჩემი ჩანაწერი ამ გაკვეთილზე</label>
 <textarea id="new-note" class="lt-input" placeholder="ჩაწერე მნიშვნელოვანი იდეა, სავაჭრო წესი ან კითხვა..."></textarea>
-<div class="lt-save"><small id="draft-status">მონახაზი ავტომატურად ინახება</small><button class="lt-btn" id="add-note">+ ჩანაწერის დამატება</button></div>
+<div class="lt-save"><small id="draft-status">მონახაზი ამ მოწყობილობაზე ინახება</small><button class="lt-btn" id="add-note" disabled>+ ჩანაწერის დამატება</button></div>
+<div class="lt-alert" id="legacy-note-warning" hidden>ამ ბრაუზერში ძველი სატესტო ჩანაწერებია. ისინი ავტომატურად არ წაიშლება ან აიტვირთება. საჭიროების შემთხვევაში ტექსტის ასლი შეინახე.</div>
 <label class="lt-label" for="note-search">მოძებნე ჩანაწერებში</label><input id="note-search" class="lt-input" type="search" placeholder="საკვანძო სიტყვა...">
 <div class="lt-footrow" style="margin-top:16px"><strong style="font-size:13px">ამ გაკვეთილის ჩანაწერები</strong><button class="lt-smallbtn" id="export-notes">↓ TXT ექსპორტი</button></div>
 <div id="note-list"></div>
 </section></div></aside>
 </div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/site.js"></script>
 <script>
 (function(){
 'use strict';
@@ -96,7 +100,29 @@ const read=(key,fallback)=>{try{const x=localStorage.getItem(prefix+key);return 
 const write=(key,value)=>{try{localStorage.setItem(prefix+key,JSON.stringify(value));return true}catch{return false}};
 const el=id=>document.getElementById(id);
 let selected=Number(read('lesson',2));if(!Number.isInteger(selected)||selected<0||selected>=lessons.length)selected=2;
-let notes=read('notes',[]);if(!Array.isArray(notes))notes=[];
+let notes=[];let user=null;let loadingNotes=false;
+const oldNotes=read('notes',[]);
+const COURSE_ID='price-action-preview';
+const lessonId=i=>'module-01-lesson-'+String(i+1).padStart(2,'0');
+const status=(message)=>{el('auth-status').textContent=message};
+async function fetchNotes(){
+ if(!user)return;
+ loadingNotes=true;el('add-note').disabled=true;
+ const {data,error}=await TA.sb.from('course_notes').select('id,lesson_id,content,video_seconds,created_at').eq('course_id',COURSE_ID).eq('user_id',user.id).order('created_at',{ascending:false});
+ loadingNotes=false;el('add-note').disabled=false;
+ if(error){status('ჩანაწერების ჩატვირთვა ვერ მოხერხდა: '+error.message);return}
+ notes=(data||[]).map(n=>({id:n.id,lesson:lessons.findIndex((_,i)=>lessonId(i)===n.lesson_id),text:n.content,created:Date.parse(n.created_at)}));
+ status('შესული ხართ: '+user.email+' · ჩანაწერები ინახება Supabase-ში');renderNotes()
+}
+async function initAuth(){
+ try{
+  if(!window.TA||!TA.sb)throw new Error('ავტორიზაციის ბიბლიოთეკა ვერ ჩაიტვირთა');
+  user=await TA.getUser();
+  if(!user){status('ნოუთების ღრუბელში შენახვისთვის გაიარეთ ავტორიზაცია.');el('auth-container').replaceChildren();TA.renderAuthWidget(el('auth-container'),async u=>{user=u;el('auth-container').replaceChildren();await fetchNotes()});el('add-note').disabled=true;renderNotes();return}
+  el('auth-container').replaceChildren();await fetchNotes();
+ }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
+}
+
 let tab='lessons';
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
 function renderLesson(){
@@ -118,19 +144,25 @@ el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ი
 function renderNotes(){
  const q=el('note-search').value.toLocaleLowerCase('ka').trim();const target=el('note-list');target.replaceChildren();
  const filtered=notes.filter(n=>n.lesson===selected&&n.text.toLocaleLowerCase('ka').includes(q));
- if(!filtered.length){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='ამ გაკვეთილზე ჩანაწერები არ მოიძებნა.';target.append(empty);return}
+ if(!user){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='შედით ანგარიშში, რათა ნახოთ შენახული ჩანაწერები.';target.append(empty);return}if(!filtered.length){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='ამ გაკვეთილზე ჩანაწერები არ მოიძებნა.';target.append(empty);return}
  filtered.sort((a,b)=>b.created-a.created).forEach(n=>{
  const card=document.createElement('article');card.className='lt-note';const head=document.createElement('div');head.className='lt-notehead';
  const stamp=document.createElement('span');stamp.className='lt-time';stamp.textContent='✎ '+new Date(n.created).toLocaleDateString('ka-GE');
- const del=document.createElement('button');del.className='lt-smallbtn';del.textContent='წაშლა';del.addEventListener('click',()=>{if(confirm('წავშალოთ ეს ჩანაწერი?')){notes=notes.filter(x=>x.id!==n.id);write('notes',notes);renderNotes()}});
+ const del=document.createElement('button');del.className='lt-smallbtn';del.textContent='წაშლა';del.addEventListener('click',async()=>{if(!user||!confirm('წავშალოთ ეს ჩანაწერი?'))return;del.disabled=true;const {error}=await TA.sb.from('course_notes').delete().eq('id',n.id).eq('user_id',user.id);if(error){alert('წაშლა ვერ მოხერხდა: '+error.message);del.disabled=false;return}notes=notes.filter(x=>x.id!==n.id);renderNotes()});
  const p=document.createElement('p');p.textContent=n.text;head.append(stamp,del);card.append(head,p);target.append(card)
  })
 }
-el('add-note').addEventListener('click',()=>{
- const text=el('new-note').value.trim();if(!text)return;
- notes.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),lesson:selected,text,created:Date.now()});
- if(!write('notes',notes)){alert('ჩანაწერის შენახვა ვერ მოხერხდა. შეინახეთ ტექსტი ცალკე.');notes.pop();return}
- el('new-note').value='';saveDraft();renderNotes()
+el('add-note').addEventListener('click',async()=>{
+ const content=el('new-note').value.trim();if(!content||!user||loadingNotes)return;
+ const btn=el('add-note');btn.disabled=true;el('draft-status').textContent='ჩანაწერი იტვირთება Supabase-ში...';
+ try{
+  const {data,error}=await TA.sb.from('course_notes').insert({user_id:user.id,course_id:COURSE_ID,lesson_id:lessonId(selected),content,video_seconds:0}).select('id,lesson_id,content,created_at').single();
+  if(error)throw error;
+  notes.unshift({id:data.id,lesson:selected,text:data.content,created:Date.parse(data.created_at)});
+  el('new-note').value='';saveDraft();renderNotes();
+  el('draft-status').textContent='შენახულია Supabase-ში';
+ }catch(e){el('draft-status').textContent='შენახვა ვერ მოხერხდა — მონახაზი დარჩა';alert('შენახვა ვერ მოხერხდა: '+e.message)}
+ finally{btn.disabled=false}
 });
 el('note-search').addEventListener('input',renderNotes);
 el('export-notes').addEventListener('click',()=>{
@@ -143,6 +175,8 @@ el('tab-notes').addEventListener('click',()=>switchTab('notes'));
 el('prev').addEventListener('click',()=>chooseLesson(Math.max(0,selected-1)));
 el('next').addEventListener('click',()=>chooseLesson(Math.min(lessons.length-1,selected+1)));
 renderLesson();
+if(Array.isArray(oldNotes)&&oldNotes.length)el('legacy-note-warning').hidden=false;
+initAuth();
 })();
 </script>
 </body></html>
