@@ -157,7 +157,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/site.js"></script>
-<script src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js" defer></script>
+<script src="https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -187,10 +187,12 @@ const oldNotes=read('notes',[]);
 const COURSE_ID='price-action-preview';
 let playRequest=0;
 let activeBunnyPlayer=null;
+let bunnyPlayerReady=false;
 async function loadSecureVideo(){
  const requestId=++playRequest;
  videoSeconds=null;
  activeBunnyPlayer=null;
+ bunnyPlayerReady=false;
  const screen=el('lt-video-screen');
  screen.replaceChildren();screen.style.position='relative';
  const msg=document.createElement('span');msg.style.color='var(--text2)';msg.style.fontSize='13px';
@@ -206,21 +208,40 @@ async function loadSecureVideo(){
    const iframe=document.createElement('iframe');iframe.src=url.toString();iframe.title=lessons[selected].title;
    iframe.allow='accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
    iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
-   screen.replaceChildren(iframe);el('video-status').textContent='Bunny Stream · დაცული დაკვრა';
-   iframe.addEventListener('load',()=>{
+   // Register before inserting the iframe, so we don't miss its load event.
+   const setupPlayer=()=>{
      if(requestId!==playRequest||!window.playerjs?.Player)return;
      try{
        const player=new window.playerjs.Player(iframe);
        activeBunnyPlayer=player;
-       player.on('timeupdate',(value)=>{
+       player.on('ready',()=>{
          if(requestId!==playRequest)return;
-         try{const event=typeof value==='string'?JSON.parse(value):value;
+         bunnyPlayerReady=true;
+         player.getCurrentTime(value=>{
+           const n=Number(value);
+           if(requestId===playRequest&&Number.isFinite(n)&&n>=0)videoSeconds=Math.floor(n);
+         });
+       });
+       player.on('timeupdate',value=>{
+         if(requestId!==playRequest)return;
+         try{
+           const event=typeof value==='string'?JSON.parse(value):value;
            const seconds=Number(event?.seconds);
            if(Number.isFinite(seconds)&&seconds>=0)videoSeconds=Math.floor(seconds);
          }catch{}
        });
-     }catch{}
-   },{once:true});
+       player.on('pause',()=>{
+         if(requestId!==playRequest)return;
+         player.getCurrentTime(time=>{
+           const n=Number(time);
+           if(requestId===playRequest&&Number.isFinite(n)&&n>=0)videoSeconds=Math.floor(n);
+         });
+       });
+     }catch(e){console.warn('Bunny Player.js integration failed:',e)}
+   };
+   iframe.addEventListener('load',setupPlayer,{once:true});
+   screen.replaceChildren(iframe);
+   el('video-status').textContent='';
  }catch(e){if(requestId!==playRequest)return;msg.textContent='ვიდეო ვერ ჩაიტვირთა: '+e.message;el('video-status').textContent='დაკავშირება ვერ მოხერხდა'}
 }
 
@@ -376,7 +397,7 @@ function timestampValue(seconds){
 function currentBunnyTime(){
  const player=activeBunnyPlayer;
  const forRequest=playRequest;
- if(!player||typeof player.getCurrentTime!=='function')return Promise.resolve(videoSeconds);
+ if(!player||!bunnyPlayerReady||typeof player.getCurrentTime!=='function')return Promise.resolve(videoSeconds);
  return new Promise(resolve=>{
    let finished=false;
    const finish=value=>{
@@ -397,7 +418,7 @@ el('note-timestamp').addEventListener('click',async()=>{
    const seconds=await currentBunnyTime();
    if(requestedFor!==playRequest)return; // Do not insert time from another lesson.
    if(seconds===null){
-     alert('ვიდეოს დრო ჯერ არ არის ხელმისაწვდომი. გახსენი ვიდეო, გააჩერე სასურველ მომენტზე და ხელახლა სცადე.');
+     el('draft-status').textContent='ვიდეოს დრო ვერ მოიძებნა. დარწმუნდი, რომ ვიდეო ჩატვირთულია და სცადე თავიდან.';
      return;
    }
    insertNoteText((el('new-note').value?'\n\n':'')+'['+timestampValue(seconds)+'] ');
