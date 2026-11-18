@@ -60,7 +60,7 @@
   let editingPost = null; // null | {} | post-object
   let testimonials = [];
   let editingTestimonial = null;
-  let adminTab = 'posts'; // 'posts' | 'testimonials' | 'users'
+  let adminTab = 'posts'; // 'posts' | 'testimonials' | 'users' | 'curriculum'
   let quillEditor = null;
   let profiles = [];
   let allTrades = [];
@@ -151,16 +151,106 @@
       <div style="display:flex; gap:8px; margin-bottom:24px;">
         <button id="tab-posts" class="btn btn-sm" style="${adminTab==='posts' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">სტატიები</button>
         <button id="tab-testimonials" class="btn btn-sm" style="${adminTab==='testimonials' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეო-რევიუები</button>
+        <button id="tab-curriculum" class="btn btn-sm" style="${adminTab==='curriculum' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეოკურსის მართვა</button>
         <button id="tab-users" class="btn btn-sm" style="${adminTab==='users' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">მომხმარებლები</button>
       </div>
       <div id="tab-content"></div>
     `;
     document.getElementById('tab-posts').onclick = () => { adminTab = 'posts'; renderList(); };
     document.getElementById('tab-testimonials').onclick = () => { adminTab = 'testimonials'; renderList(); };
+    document.getElementById('tab-curriculum').onclick = () => {adminTab='curriculum';renderList();};
     document.getElementById('tab-users').onclick = () => { adminTab = 'users'; viewingUserId = null; renderList(); };
     if (adminTab === 'posts') renderPostsList();
     else if (adminTab === 'testimonials') renderTestimonialsList();
+    else if(adminTab==='curriculum')renderCurriculum();
     else renderUsersTab();
+  }
+
+
+  // Course curriculum admin: all writes pass Supabase admin RLS.
+  const COURSE_ID='price-action-preview';
+  async function loadCurriculum(){
+    const m=await TA.sb.from('course_modules').select('*').eq('course_id',COURSE_ID).order('sort_order').order('created_at');
+    if(m.error)throw m.error;
+    const modules=m.data||[];
+    let lessons=[];
+    if(modules.length){
+      const l=await TA.sb.from('course_lessons').select('*').in('module_id',modules.map(x=>x.id)).order('sort_order').order('created_at');
+      if(l.error)throw l.error;lessons=l.data||[];
+    }
+    let videoIds=[];
+    if(lessons.length){
+      const v=await TA.sb.from('course_lesson_videos').select('lesson_id,bunny_video_id').in('lesson_id',lessons.map(x=>x.id));
+      if(v.error)throw v.error;videoIds=v.data||[];
+    }
+    return {modules,lessons,videoIds};
+  }
+  async function renderCurriculum(){
+    const tc=document.getElementById('tab-content');
+    tc.innerHTML='<p style="color:var(--text2)">მოდულები იტვირთება...</p>';
+    let structure;
+    try{structure=await loadCurriculum()}catch(e){tc.textContent='მონაცემების ჩატვირთვა ვერ მოხერხდა: '+e.message+' — ჯერ გაუშვით supabase/course-curriculum.sql';return}
+    if(adminTab!=='curriculum')return;
+    const {modules,lessons,videoIds}=structure;
+    tc.replaceChildren();
+    const heading=document.createElement('h2');heading.className='serif';heading.textContent='ვიდეოკურსის მოდულები';tc.append(heading);
+    const subtitle=document.createElement('p');subtitle.style.color='var(--text2)';subtitle.style.fontSize='13px';subtitle.textContent='აქ შეგიძლია მოდულების, გაკვეთილების და Bunny Video ID-ების მართვა. დაცული პლეერი ცალკე ჩაირთვება.';tc.append(subtitle);
+    const create=document.createElement('button');create.className='btn btn-primary';create.textContent='+ ახალი მოდული';create.style.marginBottom='22px';create.onclick=()=>editModule();tc.append(create);
+    if(!modules.length){const empty=document.createElement('p');empty.textContent='მოდულები ჯერ არ არის. დაამატე პირველი მოდული.';tc.append(empty)}
+    function button(label,fn){const b=document.createElement('button');b.className='btn btn-sm';b.textContent=label;b.onclick=fn;return b}
+    function editModule(m){
+      const title=prompt('მოდულის სახელი:',m?.title||'');if(title===null)return;
+      if(!title.trim())return alert('მოდულის დასახელება სავალდებულოა');
+      const order=prompt('რიგითობა (0, 1, 2 ...):',String(m?.sort_order??modules.length));if(order===null)return;
+      const sort_order=Number(order);if(!Number.isInteger(sort_order))return alert('რიგითობა უნდა იყოს მთელი რიცხვი');
+      (async()=>{
+        const payload={title:title.trim(),sort_order};
+        const result=m
+          ?await TA.sb.from('course_modules').update(payload).eq('id',m.id)
+          :await TA.sb.from('course_modules').insert({...payload,course_id:COURSE_ID});
+        if(result.error)alert(result.error.message);else renderCurriculum();
+      })();
+    }
+    function editLesson(l,moduleId){
+      const title=prompt('ლექციის სახელი:',l?.title||'');if(title===null)return;
+      if(!title.trim())return alert('ლექციის დასახელება სავალდებულოა');
+      const order=prompt('რიგითობა (0, 1, 2 ...):',String(l?.sort_order??lessons.filter(x=>x.module_id===moduleId).length));if(order===null)return;
+      const sort_order=Number(order);if(!Number.isInteger(sort_order))return alert('რიგითობა უნდა იყოს მთელი რიცხვი');
+      (async()=>{
+        const payload={title:title.trim(),sort_order};
+        const result=l
+          ?await TA.sb.from('course_lessons').update(payload).eq('id',l.id)
+          :await TA.sb.from('course_lessons').insert({...payload,module_id:moduleId});
+        if(result.error)alert(result.error.message);else renderCurriculum();
+      })();
+    }
+    async function changeVideo(l){
+      const old=videoIds.find(v=>v.lesson_id===l.id)?.bunny_video_id||'';
+      const id=prompt('ჩასვი Bunny Stream ვიდეოს ID (UUID). წასაშლელად დატოვე ცარიელი:',old);if(id===null)return;
+      const value=id.trim();
+      if(value&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))return alert('ვიდეოს ID უნდა იყოს UUID ფორმატში, არა ბმული ან API გასაღები');
+      const r=value
+        ?await TA.sb.from('course_lesson_videos').upsert({lesson_id:l.id,bunny_video_id:value})
+        :await TA.sb.from('course_lesson_videos').delete().eq('lesson_id',l.id);
+      if(r.error)alert(r.error.message);else renderCurriculum();
+    }
+    modules.forEach(m=>{
+      const card=document.createElement('div');card.className='card';card.style.marginBottom='16px';card.style.padding='20px';
+      const head=document.createElement('div');head.style.cssText='display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center';
+      const title=document.createElement('strong');title.textContent=m.title+' · #'+m.sort_order;head.append(title);
+      const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+      actions.append(button('შეცვლა',()=>editModule(m)),button('+ ლექცია',()=>editLesson(null,m.id)),button('წაშლა',async()=>{if(!confirm('მოდულის წაშლა მის ყველა ლექციას წაშლის. გავაგრძელოთ?'))return;const r=await TA.sb.from('course_modules').delete().eq('id',m.id);if(r.error)alert(r.error.message);else renderCurriculum()}));
+      head.append(actions);card.append(head);
+      lessons.filter(x=>x.module_id===m.id).forEach(l=>{
+        const item=document.createElement('div');item.style.cssText='border-top:1px solid var(--border);padding-top:13px;margin-top:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+        const info=document.createElement('div');const label=document.createElement('div');label.style.fontSize='14px';label.textContent=l.title+' · #'+l.sort_order;
+        const status=document.createElement('small');status.style.color='var(--text3)';status.textContent=videoIds.some(v=>v.lesson_id===l.id)?'Bunny ვიდეო მიმაგრებულია':'ვიდეო ჯერ არ არის მიმაგრებული';info.append(label,status);
+        const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px;flex-wrap:wrap';
+        controls.append(button('ვიდეოს ID',()=>changeVideo(l)),button('შეცვლა',()=>editLesson(l,m.id)),button('წაშლა',async()=>{if(!confirm('წავშალოთ ლექცია?'))return;const r=await TA.sb.from('course_lessons').delete().eq('id',l.id);if(r.error)alert(r.error.message);else renderCurriculum()}));
+        item.append(info,controls);card.append(item)
+      });
+      tc.append(card);
+    });
   }
 
   // ================= USERS (მომხმარებლები) =================
