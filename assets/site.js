@@ -93,6 +93,7 @@ window.TA = (function(){
     initAnalyticsClicks();
     initNavScrollEffects();
     mountScrollProgress();
+    mountCourseNav();
   }
 
   // ნავიგაციის ზოლს სქროლისას ემატება მსუბუქი ჩრდილი/ბორდერი - "სიღრმის"
@@ -188,6 +189,19 @@ window.TA = (function(){
       localStorage.setItem('ta_cookie_consent', 'declined');
       el.remove();
     };
+  }
+
+
+  async function mountCourseNav(){
+    try{
+      const {data:{user}}=await sb.auth.getUser();
+      if(!user)return;
+      const {data,error}=await sb.from('course_enrollments').select('course_id').eq('course_id','price-action-preview').eq('user_id',user.id).maybeSingle();
+      if(error||!data)return;
+      const links=document.getElementById('ta-nav-links');if(!links||links.querySelector('[data-course-link]'))return;
+      const a=document.createElement('a');a.href='/learn/';a.textContent='ჩემი ვიდეოკურსი';a.dataset.courseLink='true';a.className='nav-cta';
+      const account=links.querySelector('a[href="/account.html"]');links.insertBefore(a,account||null);
+    }catch(e){}
   }
 
   function mountFooter(){

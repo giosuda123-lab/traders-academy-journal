@@ -48,7 +48,7 @@
 .lt-empty{font-size:13px;color:var(--text3);padding:22px 0}
 .lt-progress{margin-top:24px;border:1px solid var(--border);border-radius:10px;padding:16px}
 .lt-bar{height:5px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:12px}.lt-bar span{display:block;height:100%;background:var(--accent);width:0%}
-.lt-alert{background:#292314;border:1px solid #59482a;color:#ead8b0;padding:10px 14px;border-radius:9px;font-size:12px;margin-bottom:18px}
+.lt-access-hidden{display:none!important}\n.lt-alert{background:#292314;border:1px solid #59482a;color:#ead8b0;padding:10px 14px;border-radius:9px;font-size:12px;margin-bottom:18px}
 @media(max-width:850px){.lt-grid{grid-template-columns:1fr}.lt{padding:16px}.lt-pane{min-height:280px}.lt-brand{font-size:19px}}
 </style>
 </head>
@@ -57,7 +57,7 @@
 <div class="lt-top"><div><div class="lt-brand"><b>✦</b> Trader's Academy</div><div class="lt-meta">LEARNING TERMINAL / PREVIEW</div></div><a href="/">← მთავარ საიტზე დაბრუნება</a></div>
 <div class="lt-alert">სატესტო ვერსია — ვიდეოები და კურსის ფასიანი წვდომა ჯერ არ არის დაკავშირებული. შესული მომხმარებლის ახალი ჩანაწერები Supabase-ში ინახება.</div>
 <div class="lt-alert" id="auth-status" role="status">მიმდინარეობს ანგარიშის შემოწმება...</div><div id="auth-container" style="margin-bottom:18px"></div>
-<div class="lt-grid">
+<div class="lt-grid lt-access-hidden" id="course-content">
 <section class="lt-main" aria-label="ვიდეოგაკვეთილი">
 <div class="lt-meta" id="breadcrumb">PRICE ACTION / მოდული 01</div>
 <h1 class="lt-h1" id="lesson-title">ძლიერი Signal Bar</h1>
@@ -117,13 +117,23 @@ async function fetchNotes(){
 async function initAuth(){
  try{
   if(!window.TA||!TA.sb)throw new Error('ავტორიზაციის ბიბლიოთეკა ვერ ჩაიტვირთა');
-  user=await TA.getUser();
-  if(!user){status('ნოუთების ღრუბელში შენახვისთვის გაიარეთ ავტორიზაცია.');el('auth-container').replaceChildren();TA.renderAuthWidget(el('auth-container'),async u=>{user=u;el('auth-container').replaceChildren();await fetchNotes()});el('add-note').disabled=true;renderNotes();return}
-  el('auth-container').replaceChildren();await fetchNotes();
+  const {data:{user:verified},error:authError}=await TA.sb.auth.getUser();
+  if(authError)throw authError;
+  user=verified;
+  if(!user){
+    status('ვიდეოკურსის სანახავად გაიარეთ ავტორიზაცია.');
+    el('auth-container').replaceChildren();
+    TA.renderAuthWidget(el('auth-container'),async u=>{user=u;el('auth-container').replaceChildren();await initAuth()});
+    el('add-note').disabled=true;return;
+  }
+  const {data,error}=await TA.sb.from('course_enrollments').select('course_id').eq('course_id',COURSE_ID).eq('user_id',user.id).maybeSingle();
+  if(error){status('კურსის წვდომის შემოწმება ვერ მოხერხდა: '+error.message);return}
+  if(!data){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
+  el('auth-container').replaceChildren();
+  el('course-content').classList.remove('lt-access-hidden');
+  await fetchNotes();
  }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
 }
-
-let tab='lessons';
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
 function renderLesson(){
  const l=lessons[selected];el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent='მოდული 01 · გაკვეთილი '+(selected+1)+' / '+lessons.length;
