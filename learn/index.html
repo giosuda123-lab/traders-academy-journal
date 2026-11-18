@@ -143,6 +143,7 @@ body{background:radial-gradient(ellipse 950px 500px at 51% -180px,rgba(230,185,7
 'use strict';
 let lessons=[];
 let expandedModuleId=null;
+let tab='lessons';
 const fallbackLesson={id:'none',title:'გაკვეთილები ჯერ არ არის დამატებული',duration:'00:00'};
 async function loadCurriculumForStudent(){
  const m=await TA.sb.from('course_modules').select('id,title,sort_order').eq('course_id',COURSE_ID).order('sort_order').order('created_at');
@@ -286,7 +287,7 @@ el('add-note').addEventListener('click',async()=>{
 });
 el('note-search').addEventListener('input',renderNotes);
 el('export-notes').addEventListener('click',()=>{
- const content=notes.filter(n=>n.lesson===selected).map(n=>new Date(n.created).toLocaleString('ka-GE')+'\n'+n.text).join('\n\n---\n\n');
+ const content=notes.filter(n=>n.lessonId===lessonId(selected)).map(n=>new Date(n.created).toLocaleString('ka-GE')+'\n'+n.text).join('\n\n---\n\n');
  const blob=new Blob([(lessons[selected]||fallbackLesson).title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
