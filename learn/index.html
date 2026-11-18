@@ -309,7 +309,7 @@ async function initAuth(){
     status('ვიდეოკურსის სანახავად გაიარეთ ავტორიზაცია.');
     el('auth-container').replaceChildren();
     TA.renderAuthWidget(el('auth-container'),async u=>{user=u;el('auth-container').replaceChildren();await initAuth()});
-    el('add-note').disabled=true;return;
+    el('new-note').disabled=true;return;
   }
   const {data,error}=await TA.sb.from('course_enrollments').select('course_id').eq('course_id',COURSE_ID).eq('user_id',user.id).maybeSingle();
   if(error){status('კურსის წვდომის შემოწმება ვერ მოხერხდა: '+error.message);return}
@@ -319,9 +319,9 @@ async function initAuth(){
   el('course-content').classList.remove('lt-access-hidden');
   await fetchNotes();
   await loadSecureVideo();
- }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
+ }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('new-note').disabled=true}
 }
-function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
+function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')showNotebook()}
 function renderLesson(preserveDraft=false){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
  el('breadcrumb').textContent=(l.module||'TRADER\'S ACADEMY').toLocaleUpperCase('ka')+' / LEARNING TERMINAL';
