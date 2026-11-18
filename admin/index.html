@@ -65,6 +65,8 @@
   let profiles = [];
   let allTrades = [];
   let usersDataLoaded = false;
+  let enrolledUserIds = new Set();
+  const TA_COURSE_ID = 'price-action-preview';
   let viewingUserId = null; // null = სია, სხვანაირად კონკრეტული მომხმარებლის ტრეიდები
 
   // სურათს canvas-ით ამცირებს/კუმშავს, JPEG data URL-ს აბრუნებს - Supabase-ის
@@ -138,6 +140,9 @@
     if (profRes.error) throw profRes.error;
     profiles = profRes.data || [];
     allTrades = tradesRes.error ? [] : (tradesRes.data || []);
+    const enrollResult=await TA.sb.from('course_enrollments').select('user_id').eq('course_id',TA_COURSE_ID);
+    if(enrollResult.error) throw enrollResult.error;
+    enrolledUserIds=new Set((enrollResult.data||[]).map(x=>x.user_id));
     usersDataLoaded = true;
   }
 
@@ -193,6 +198,7 @@
               <div class="mono" style="font-size:11.5px; color:var(--text3); margin-top:4px;">დარეგისტრირდა: ${TA.fmtDate(p.created_at)} · ტრეიდები: ${tradeCounts[p.id]||0}</div>
             </div>
             <div style="display:flex; gap:8px; flex-shrink:0;">
+              <button class="btn btn-sm" data-course-access="${p.id}" style="border-color:${enrolledUserIds.has(p.id)?'var(--green)':'var(--accent-soft)'}">${enrolledUserIds.has(p.id)?'✓ კურსზე წვდომა: ჩართული':'+ კურსზე წვდომის მინიჭება'}</button>
               <button class="btn btn-sm" data-view-user="${p.id}">ტრეიდების ნახვა</button>
               <a class="btn btn-sm" href="../journal/index.html?viewUserId=${p.id}" target="_blank" rel="noopener">სრული ჟურნალის ნახვა</a>
             </div>
@@ -200,6 +206,19 @@
         `).join('')}
       </div>`}
     `;
+    tc.querySelectorAll('[data-course-access]').forEach(b=>{
+      b.onclick=async()=>{
+        const id=b.dataset.courseAccess;const already=enrolledUserIds.has(id);
+        if(!confirm(already?'ამ მოსწავლეს ვიდეოკურსზე წვდომა გავუუქმოთ?':'ამ მოსწავლეს ვიდეოკურსზე წვდომა მივანიჭოთ?'))return;
+        b.disabled=true;
+        const result=already
+          ?await TA.sb.from('course_enrollments').delete().eq('course_id',TA_COURSE_ID).eq('user_id',id)
+          :await TA.sb.from('course_enrollments').insert({course_id:TA_COURSE_ID,user_id:id,granted_by:currentUser.id});
+        if(result.error){alert('ოპერაცია ვერ შესრულდა: '+result.error.message);b.disabled=false;return}
+        if(already)enrolledUserIds.delete(id);else enrolledUserIds.add(id);
+        renderUsersList();
+      }
+    });
     tc.querySelectorAll('[data-view-user]').forEach(b => { b.onclick = () => { viewingUserId = b.dataset.viewUser; renderUserTrades(viewingUserId); }; });
   }
 
