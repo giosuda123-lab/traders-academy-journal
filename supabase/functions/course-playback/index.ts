@@ -26,9 +26,8 @@ Deno.serve(async (req) => {
     const jwt=authHeader.slice(7);
     const url=Deno.env.get("SUPABASE_URL");
     const publicKey=Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
-    const serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const signingKey=Deno.env.get("BUNNY_STREAM_TOKEN_KEY");
-    if(!url || !publicKey || !serviceKey || !signingKey) return response("Server is not configured",503);
+    if(!url || !publicKey || !signingKey) return response("Server is not configured",503);
     const userClient=createClient(url,publicKey,{global:{headers:{Authorization:authHeader}},auth:{persistSession:false,autoRefreshToken:false}});
     const {data:auth,error:authError}=await userClient.auth.getUser(jwt);
     if(authError || !auth.user)return response("Invalid login",401);
@@ -37,16 +36,14 @@ Deno.serve(async (req) => {
     if(typeof lessonId!=="string" || !/^[0-9a-f-]{36}$/i.test(lessonId))return response("Invalid lesson",400);
     const {data:lesson,error:lessonError}=await userClient.from("course_lessons").select("id,module_id").eq("id",lessonId).maybeSingle();
     if(lessonError||!lesson)return response("Lesson is not available",403);
-    const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
-    const {data:module,error:moduleError}=await admin.from("course_modules").select("course_id").eq("id",lesson.module_id).maybeSingle();
-    if(moduleError||!module)return response("Lesson is not available",404);
-    const {data:grant,error:grantError}=await userClient.from("course_enrollments")
-      .select("course_id").eq("course_id",module.course_id).eq("user_id",auth.user.id).maybeSingle();
-    if(grantError||!grant)return response("No course access",403);
-    const {data:video,error:videoError}=await admin.from("course_lesson_videos")
-      .select("bunny_video_id").eq("lesson_id",lessonId).maybeSingle();
-    if(videoError||!video)return response("Video is not attached",404);
-    const videoId=video.bunny_video_id;
+    // Authenticated RPC checks enrollment inside Postgres, without relying on
+    // service-role API credentials or exposing the private mapping table.
+    const {data:videoId,error:videoError}=await userClient.rpc("ta_course_video_id",{p_lesson_id:lessonId});
+    if(videoError){
+      console.error("Video RPC lookup error:",videoError.message);
+      return response("Video lookup failed",500);
+    }
+    if(!videoId)return response("Video is not attached or access is denied",404);
     const expires=Math.floor(Date.now()/1000)+3600;
     const toSign=new TextEncoder().encode(signingKey+videoId+String(expires));
     const digest=await crypto.subtle.digest("SHA-256",toSign);
