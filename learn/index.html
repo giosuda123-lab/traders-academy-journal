@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Learning Terminal Preview | Trader's Academy</title>
+<link rel="stylesheet" href="/assets/site.css">
+<style>
+:root{color-scheme:dark}
+.lt{max-width:1500px;margin:auto;padding:22px 22px 60px}
+.lt-top{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-bottom:20px}
+.lt-top a{color:var(--text2);text-decoration:none;font-size:13px}.lt-top a:hover{color:var(--accent)}
+.lt-brand{font-family:'Source Serif 4',serif;color:var(--text);font-size:23px}.lt-brand b{color:var(--accent)}
+.lt-meta{font:11px 'IBM Plex Mono',monospace;color:var(--text3);letter-spacing:.12em}
+.lt-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr);gap:22px;align-items:start}
+.lt-main,.lt-sidebar{min-width:0}
+.lt-h1{font-family:'Source Serif 4',serif;font-size:clamp(24px,3vw,37px);font-weight:600;margin:9px 0 10px;line-height:1.22}
+.lt-sub{font-size:13px;color:var(--text2);margin-bottom:18px}
+.lt-player{background:#090806;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.lt-screen{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;background:radial-gradient(circle at 50% 50%,#262015,#090806 66%)}
+.lt-screen-icon{width:65px;height:65px;border:1px solid var(--accent-soft);border-radius:50%;display:grid;place-items:center;color:var(--accent);font-size:23px}
+.lt-screen strong{font-size:16px}.lt-screen small{font-size:12px;color:var(--text3);max-width:330px}
+.lt-playerfoot{padding:13px 17px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.lt-footrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lt-actions{display:flex;justify-content:space-between;gap:12px;margin-top:22px}
+.lt-actions button,.lt-actions a{font-size:13px}
+.lt-sidebox{border:1px solid var(--border);background:var(--panel);border-radius:14px;overflow:hidden}
+.lt-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.lt-tab{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text2);padding:16px 10px;cursor:pointer;font:600 13px Inter,sans-serif}
+.lt-tab[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent);background:#282318}
+.lt-pane{padding:17px;min-height:410px}
+.lt-lesson{border:1px solid var(--border);border-radius:10px;background:var(--panel2);padding:14px;width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer;display:flex;align-items:center;gap:13px;margin-top:9px}
+.lt-lesson:hover,.lt-lesson[aria-current=true]{border-color:var(--accent-soft);background:#302819}
+.lt-number{font:12px 'IBM Plex Mono',monospace;color:var(--accent);width:22px;flex:none}
+.lt-ltitle{font-size:13px;line-height:1.4}.lt-ltime{display:block;font-size:11px;color:var(--text3);margin-top:4px}
+.lt-label{display:block;color:var(--text2);font-size:12px;margin-bottom:8px}
+.lt-input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:11px;font:13px Inter,sans-serif;outline:none}
+.lt-input:focus{border-color:var(--accent)} textarea.lt-input{resize:vertical;min-height:128px;line-height:1.6}
+.lt-save{display:flex;gap:8px;justify-content:space-between;align-items:center;margin:10px 0 22px}
+.lt-save small{font-size:11px;color:var(--text3)}
+.lt-btn{background:rgba(var(--accent-rgb),.15);border:1px solid var(--accent-soft);color:var(--text);padding:10px 13px;border-radius:8px;cursor:pointer;font:12px Inter,sans-serif}
+.lt-btn:disabled{opacity:.35;cursor:not-allowed}.lt-btn:hover:not(:disabled){background:rgba(var(--accent-rgb),.25)}
+.lt-note{background:var(--panel2);padding:13px;border-radius:9px;border:1px solid var(--border);margin-top:10px;overflow-wrap:anywhere}
+.lt-notehead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.lt-time{font:12px 'IBM Plex Mono',monospace;color:var(--accent)}
+.lt-note p{font-size:13px;margin:0;white-space:pre-wrap;color:var(--text)}
+.lt-smallbtn{border:0;background:none;color:var(--text2);cursor:pointer;font-size:12px}.lt-smallbtn:hover{color:var(--accent)}
+.lt-empty{font-size:13px;color:var(--text3);padding:22px 0}
+.lt-progress{margin-top:24px;border:1px solid var(--border);border-radius:10px;padding:16px}
+.lt-bar{height:5px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:12px}.lt-bar span{display:block;height:100%;background:var(--accent);width:0%}
+.lt-alert{background:#292314;border:1px solid #59482a;color:#ead8b0;padding:10px 14px;border-radius:9px;font-size:12px;margin-bottom:18px}
+@media(max-width:850px){.lt-grid{grid-template-columns:1fr}.lt{padding:16px}.lt-pane{min-height:280px}.lt-brand{font-size:19px}}
+</style>
+</head>
+<body>
+<main class="lt" id="main-content">
+<div class="lt-top"><div><div class="lt-brand"><b>✦</b> Trader's Academy</div><div class="lt-meta">LEARNING TERMINAL / PREVIEW</div></div><a href="/">← მთავარ საიტზე დაბრუნება</a></div>
+<div class="lt-alert">სატესტო ვერსია — ვიდეოები ჯერ არ არის დაკავშირებული. ნოუთები ამ ეტაპზე მხოლოდ ამ ბრაუზერში ინახება; არ გამოიყენოთ რეალური მოსწავლეებისთვის.</div>
+<div class="lt-grid">
+<section class="lt-main" aria-label="ვიდეოგაკვეთილი">
+<div class="lt-meta" id="breadcrumb">PRICE ACTION / მოდული 01</div>
+<h1 class="lt-h1" id="lesson-title">ძლიერი Signal Bar</h1>
+<div class="lt-sub" id="lesson-subtitle"></div>
+<div class="lt-player">
+<div class="lt-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერის ადგილი</strong><small>რეალური ვიდეო, ხარისხის გადართვა და დროის ნიშნულები დაემატება ვიდეოჰოსტინგის დაკავშირების შემდეგ.</small></div>
+<div class="lt-playerfoot"><div class="lt-footrow"><span>▶ &nbsp; 00:00 / <span id="video-duration">35:10</span></span><span>ვიდეო ჯერ არ არის დაკავშირებული</span></div></div>
+</div>
+<div class="lt-progress"><div class="lt-footrow"><span>სატესტო პროგრესი</span><span id="progress-number">0%</span></div><div class="lt-bar"><span id="progress-bar"></span></div></div>
+<div class="lt-actions"><button class="lt-btn" id="prev">← წინა გაკვეთილი</button><button class="lt-btn" id="next">შემდეგი გაკვეთილი →</button></div>
+</section>
+<aside class="lt-sidebar"><div class="lt-sidebox"><div class="lt-tabs" role="tablist" aria-label="გაკვეთილები და ჩანაწერები">
+<button class="lt-tab" id="tab-lessons" role="tab" aria-selected="true" aria-controls="panel-lessons">☷ &nbsp; გაკვეთილები</button>
+<button class="lt-tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="panel-notes">✎ &nbsp; ჩანაწერები</button></div>
+<section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow"><strong style="font-size:14px">მოდული 01 — საფუძვლები</strong><span class="lt-meta">5 გაკვეთილი</span></div><div id="lesson-list"></div></section>
+<section class="lt-pane" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+<label class="lt-label" for="new-note">ჩემი ჩანაწერი ამ გაკვეთილზე</label>
+<textarea id="new-note" class="lt-input" placeholder="ჩაწერე მნიშვნელოვანი იდეა, სავაჭრო წესი ან კითხვა..."></textarea>
+<div class="lt-save"><small id="draft-status">მონახაზი ავტომატურად ინახება</small><button class="lt-btn" id="add-note">+ ჩანაწერის დამატება</button></div>
+<label class="lt-label" for="note-search">მოძებნე ჩანაწერებში</label><input id="note-search" class="lt-input" type="search" placeholder="საკვანძო სიტყვა...">
+<div class="lt-footrow" style="margin-top:16px"><strong style="font-size:13px">ამ გაკვეთილის ჩანაწერები</strong><button class="lt-smallbtn" id="export-notes">↓ TXT ექსპორტი</button></div>
+<div id="note-list"></div>
+</section></div></aside>
+</div></main>
+<script>
+(function(){
+'use strict';
+const lessons=[
+ {title:'ბაზრის სტრუქტურის საფუძვლები',duration:'24:15'},
+ {title:'ტრენდისა და რეინჯის ამოცნობა',duration:'32:40'},
+ {title:'ძლიერი Signal Bar',duration:'35:10'},
+ {title:'Entry და Stop Loss',duration:'28:35'},
+ {title:'Risk / Reward და Probability',duration:'41:20'}
+];
+const prefix='ta-learning-preview-v1-';
+const read=(key,fallback)=>{try{const x=localStorage.getItem(prefix+key);return x===null?fallback:JSON.parse(x)}catch{return fallback}};
+const write=(key,value)=>{try{localStorage.setItem(prefix+key,JSON.stringify(value));return true}catch{return false}};
+const el=id=>document.getElementById(id);
+let selected=Number(read('lesson',2));if(!Number.isInteger(selected)||selected<0||selected>=lessons.length)selected=2;
+let notes=read('notes',[]);if(!Array.isArray(notes))notes=[];
+let tab='lessons';
+function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
+function renderLesson(){
+ const l=lessons[selected];el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent='მოდული 01 · გაკვეთილი '+(selected+1)+' / '+lessons.length;
+ el('video-duration').textContent=l.duration;el('prev').disabled=selected===0;el('next').disabled=selected===lessons.length-1;
+ const pct=Math.round((selected/lessons.length)*100);el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
+ el('lesson-list').replaceChildren();
+ lessons.forEach((item,i)=>{const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(i===selected));
+ const num=document.createElement('span');num.className='lt-number';num.textContent=String(i+1).padStart(2,'0');
+ const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=item.title;
+ const time=document.createElement('span');time.className='lt-ltime';time.textContent=item.duration+' წთ';info.append(title,time);b.append(num,info);
+ b.addEventListener('click',()=>chooseLesson(i));el('lesson-list').append(b)});
+ el('new-note').value=read('draft-'+selected,'');renderNotes()
+}
+function chooseLesson(i){saveDraft();selected=i;write('lesson',i);renderLesson()}
+function saveDraft(){const ok=write('draft-'+selected,el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
+let draftTimer;
+el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ინახება...';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,350)});
+function renderNotes(){
+ const q=el('note-search').value.toLocaleLowerCase('ka').trim();const target=el('note-list');target.replaceChildren();
+ const filtered=notes.filter(n=>n.lesson===selected&&n.text.toLocaleLowerCase('ka').includes(q));
+ if(!filtered.length){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='ამ გაკვეთილზე ჩანაწერები არ მოიძებნა.';target.append(empty);return}
+ filtered.sort((a,b)=>b.created-a.created).forEach(n=>{
+ const card=document.createElement('article');card.className='lt-note';const head=document.createElement('div');head.className='lt-notehead';
+ const stamp=document.createElement('span');stamp.className='lt-time';stamp.textContent='✎ '+new Date(n.created).toLocaleDateString('ka-GE');
+ const del=document.createElement('button');del.className='lt-smallbtn';del.textContent='წაშლა';del.addEventListener('click',()=>{if(confirm('წავშალოთ ეს ჩანაწერი?')){notes=notes.filter(x=>x.id!==n.id);write('notes',notes);renderNotes()}});
+ const p=document.createElement('p');p.textContent=n.text;head.append(stamp,del);card.append(head,p);target.append(card)
+ })
+}
+el('add-note').addEventListener('click',()=>{
+ const text=el('new-note').value.trim();if(!text)return;
+ notes.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),lesson:selected,text,created:Date.now()});
+ if(!write('notes',notes)){alert('ჩანაწერის შენახვა ვერ მოხერხდა. შეინახეთ ტექსტი ცალკე.');notes.pop();return}
+ el('new-note').value='';saveDraft();renderNotes()
+});
+el('note-search').addEventListener('input',renderNotes);
+el('export-notes').addEventListener('click',()=>{
+ const content=notes.filter(n=>n.lesson===selected).map(n=>new Date(n.created).toLocaleString('ka-GE')+'\n'+n.text).join('\n\n---\n\n');
+ const blob=new Blob([lessons[selected].title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+});
+el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
+el('tab-notes').addEventListener('click',()=>switchTab('notes'));
+el('prev').addEventListener('click',()=>chooseLesson(Math.max(0,selected-1)));
+el('next').addEventListener('click',()=>chooseLesson(Math.min(lessons.length-1,selected+1)));
+renderLesson();
+})();
+</script>
+</body></html>
