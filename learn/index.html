@@ -19,6 +19,7 @@
 .lt-player{background:#090806;border:1px solid var(--border);border-radius:14px;overflow:hidden}
 .lt-screen{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px;background:radial-gradient(circle at 50% 50%,#262015,#090806 66%)}
 .lt-screen-icon{width:65px;height:65px;border:1px solid var(--accent-soft);border-radius:50%;display:grid;place-items:center;color:var(--accent);font-size:23px}
+.lt-screen iframe{display:block;border:0;width:100%;height:100%;position:absolute;inset:0}.lt-screen:has(iframe){position:relative;padding:0}
 .lt-screen strong{font-size:16px}.lt-screen small{font-size:12px;color:var(--text3);max-width:330px}
 .lt-playerfoot{padding:13px 17px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
 .lt-footrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -63,8 +64,8 @@
 <h1 class="lt-h1" id="lesson-title">ძლიერი Signal Bar</h1>
 <div class="lt-sub" id="lesson-subtitle"></div>
 <div class="lt-player">
-<div class="lt-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერის ადგილი</strong><small>რეალური ვიდეო, ხარისხის გადართვა და დროის ნიშნულები დაემატება ვიდეოჰოსტინგის დაკავშირების შემდეგ.</small></div>
-<div class="lt-playerfoot"><div class="lt-footrow"><span>▶ &nbsp; 00:00 / <span id="video-duration">35:10</span></span><span>ვიდეო ჯერ არ არის დაკავშირებული</span></div></div>
+<div class="lt-screen" id="lt-video-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერი</strong><small>ლექციის არჩევის შემდეგ ჩაიტვირთება ვიდეო, თუ მასზე წვდომა გაქვს.</small></div>
+<div class="lt-playerfoot"><div class="lt-footrow"><span id="video-duration">მოლოდინი...</span><span id="video-status">დაცული ვიდეო არ არის ჩატვირთული</span></div></div>
 </div>
 <div class="lt-progress"><div class="lt-footrow"><span>სატესტო პროგრესი</span><span id="progress-number">0%</span></div><div class="lt-bar"><span id="progress-bar"></span></div></div>
 <div class="lt-actions"><button class="lt-btn" id="prev">← წინა გაკვეთილი</button><button class="lt-btn" id="next">შემდეგი გაკვეთილი →</button></div>
@@ -109,6 +110,28 @@ let selected=Number(read('lesson',0));if(!Number.isInteger(selected)||selected<0
 let notes=[];let user=null;let loadingNotes=false;
 const oldNotes=read('notes',[]);
 const COURSE_ID='price-action-preview';
+let playRequest=0;
+async function loadSecureVideo(){
+ const requestId=++playRequest;
+ const screen=el('lt-video-screen');
+ screen.replaceChildren();screen.style.position='relative';
+ const msg=document.createElement('span');msg.style.color='var(--text2)';msg.style.fontSize='13px';
+ msg.textContent='ვიდეო იტვირთება...';screen.append(msg);
+ el('video-status').textContent='წვდომა მოწმდება...';
+ if(!user||!lessons[selected]?.id){msg.textContent='ამ გაკვეთილის ვიდეო ჯერ არ არის დამატებული';el('video-status').textContent='ვიდეო არ არის';return}
+ try{
+   const {data,error}=await TA.sb.functions.invoke('course-playback',{body:{lesson_id:lessons[selected].id}});
+   if(requestId!==playRequest)return;
+   if(error||!data?.url){throw new Error(data?.message||error?.message||'ვიდეო დროებით მიუწვდომელია')}
+   const url=new URL(data.url);
+   if(url.origin!=='https://player.mediadelivery.net')throw new Error('ვიდეოს არასწორი მისამართი');
+   const iframe=document.createElement('iframe');iframe.src=url.toString();iframe.title=lessons[selected].title;
+   iframe.allow='accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen';
+   iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';
+   screen.replaceChildren(iframe);el('video-status').textContent='Bunny Stream · დაცული დაკვრა';
+ }catch(e){if(requestId!==playRequest)return;msg.textContent='ვიდეო ვერ ჩაიტვირთა: '+e.message;el('video-status').textContent='დაკავშირება ვერ მოხერხდა'}
+}
+
 const lessonId=i=>lessons[i]?.id||'none';
 const status=(message)=>{el('auth-status').textContent=message};
 async function fetchNotes(){
@@ -139,12 +162,13 @@ async function initAuth(){
   await loadCurriculumForStudent();
   el('course-content').classList.remove('lt-access-hidden');
   await fetchNotes();
+  await loadSecureVideo();
  }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
 }
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
 function renderLesson(){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
- el('video-duration').textContent=l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
+ el('video-duration').textContent='ხანგრძლივობა: '+l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
  const pct=lessons.length?Math.round((selected/lessons.length)*100):0;el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
  el('lesson-list').replaceChildren();
  lessons.forEach((item,i)=>{const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(i===selected));
@@ -154,7 +178,7 @@ function renderLesson(){
  b.addEventListener('click',()=>chooseLesson(i));el('lesson-list').append(b)});
  el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
 }
-function chooseLesson(i){saveDraft();selected=i;write('lesson',i);renderLesson()}
+function chooseLesson(i){saveDraft();selected=i;write('lesson',i);renderLesson();loadSecureVideo()}
 function saveDraft(){const ok=write('draft-'+lessonId(selected),el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
 let draftTimer;
 el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ინახება...';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,350)});
