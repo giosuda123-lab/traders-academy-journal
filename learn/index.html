@@ -178,7 +178,7 @@ async function initAuth(){
  }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
 }
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
-function renderLesson(){
+function renderLesson(preserveDraft=false){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
  el('video-duration').textContent='ხანგრძლივობა: '+l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
  const pct=lessons.length?Math.round((selected/lessons.length)*100):0;el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
@@ -203,7 +203,7 @@ function renderLesson(){
    const chevron=document.createElement('span');chevron.className='lt-module-chevron';chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');
    head.append(name,chevron);
    const content=document.createElement('div');content.id=contentId;content.className='lt-module-lessons';content.hidden=!isOpen;
-   head.addEventListener('click',()=>{expandedModuleId=isOpen?null:group.id;renderLesson()});
+   head.addEventListener('click',()=>{expandedModuleId=isOpen?null:group.id;renderLesson(true)});
    group.items.forEach(({lesson,index})=>{
      const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(index===selected));
      const num=document.createElement('span');num.className='lt-number';num.textContent=String(group.items.findIndex(x=>x.index===index)+1).padStart(2,'0');
@@ -213,7 +213,7 @@ function renderLesson(){
    });
    panel.append(head,content);target.append(panel);
  });
- el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
+ if(!preserveDraft)el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
 }
 function chooseLesson(i){if(!lessons[i])return;saveDraft();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
 function saveDraft(){const ok=write('draft-'+lessonId(selected),el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
