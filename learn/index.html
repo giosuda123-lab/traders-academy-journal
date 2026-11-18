@@ -88,30 +88,36 @@
 <script>
 (function(){
 'use strict';
-const lessons=[
- {title:'ბაზრის სტრუქტურის საფუძვლები',duration:'24:15'},
- {title:'ტრენდისა და რეინჯის ამოცნობა',duration:'32:40'},
- {title:'ძლიერი Signal Bar',duration:'35:10'},
- {title:'Entry და Stop Loss',duration:'28:35'},
- {title:'Risk / Reward და Probability',duration:'41:20'}
-];
+let lessons=[];
+const fallbackLesson={id:'none',title:'გაკვეთილები ჯერ არ არის დამატებული',duration:'00:00'};
+async function loadCurriculumForStudent(){
+ const m=await TA.sb.from('course_modules').select('id,title,sort_order').eq('course_id',COURSE_ID).order('sort_order').order('created_at');
+ if(m.error)throw m.error;
+ const modules=m.data||[];
+ if(!modules.length){lessons=[];selected=0;renderLesson();return}
+ const l=await TA.sb.from('course_lessons').select('id,module_id,title,duration_seconds,sort_order').in('module_id',modules.map(x=>x.id)).order('sort_order').order('created_at');
+ if(l.error)throw l.error;
+ lessons=modules.flatMap(mod=>(l.data||[]).filter(x=>x.module_id===mod.id).map(x=>({id:x.id,title:x.title,duration:Math.floor(x.duration_seconds/60)+':'+String(x.duration_seconds%60).padStart(2,'0'),module:mod.title})));
+ selected=Math.min(selected,Math.max(lessons.length-1,0));
+ renderLesson();
+}
 const prefix='ta-learning-preview-v1-';
 const read=(key,fallback)=>{try{const x=localStorage.getItem(prefix+key);return x===null?fallback:JSON.parse(x)}catch{return fallback}};
 const write=(key,value)=>{try{localStorage.setItem(prefix+key,JSON.stringify(value));return true}catch{return false}};
 const el=id=>document.getElementById(id);
-let selected=Number(read('lesson',2));if(!Number.isInteger(selected)||selected<0||selected>=lessons.length)selected=2;
+let selected=Number(read('lesson',0));if(!Number.isInteger(selected)||selected<0)selected=0;
 let notes=[];let user=null;let loadingNotes=false;
 const oldNotes=read('notes',[]);
 const COURSE_ID='price-action-preview';
-const lessonId=i=>'module-01-lesson-'+String(i+1).padStart(2,'0');
+const lessonId=i=>lessons[i]?.id||'none';
 const status=(message)=>{el('auth-status').textContent=message};
 async function fetchNotes(){
  if(!user)return;
  loadingNotes=true;el('add-note').disabled=true;
  const {data,error}=await TA.sb.from('course_notes').select('id,lesson_id,content,video_seconds,created_at').eq('course_id',COURSE_ID).eq('user_id',user.id).order('created_at',{ascending:false});
- loadingNotes=false;el('add-note').disabled=false;
+ loadingNotes=false;el('add-note').disabled=!lessons.length;
  if(error){status('ჩანაწერების ჩატვირთვა ვერ მოხერხდა: '+error.message);return}
- notes=(data||[]).map(n=>({id:n.id,lesson:lessons.findIndex((_,i)=>lessonId(i)===n.lesson_id),text:n.content,created:Date.parse(n.created_at)}));
+ notes=(data||[]).map(n=>({id:n.id,lessonId:n.lesson_id,text:n.content,created:Date.parse(n.created_at)}));
  status('შესული ხართ: '+user.email+' · ჩანაწერები ინახება Supabase-ში');renderNotes()
 }
 async function initAuth(){
@@ -130,30 +136,31 @@ async function initAuth(){
   if(error){status('კურსის წვდომის შემოწმება ვერ მოხერხდა: '+error.message);return}
   if(!data){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
   el('auth-container').replaceChildren();
+  await loadCurriculumForStudent();
   el('course-content').classList.remove('lt-access-hidden');
   await fetchNotes();
  }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('add-note').disabled=true}
 }
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
 function renderLesson(){
- const l=lessons[selected];el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent='მოდული 01 · გაკვეთილი '+(selected+1)+' / '+lessons.length;
- el('video-duration').textContent=l.duration;el('prev').disabled=selected===0;el('next').disabled=selected===lessons.length-1;
- const pct=Math.round((selected/lessons.length)*100);el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
+ const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
+ el('video-duration').textContent=l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
+ const pct=lessons.length?Math.round((selected/lessons.length)*100):0;el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
  el('lesson-list').replaceChildren();
  lessons.forEach((item,i)=>{const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(i===selected));
  const num=document.createElement('span');num.className='lt-number';num.textContent=String(i+1).padStart(2,'0');
  const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=item.title;
  const time=document.createElement('span');time.className='lt-ltime';time.textContent=item.duration+' წთ';info.append(title,time);b.append(num,info);
  b.addEventListener('click',()=>chooseLesson(i));el('lesson-list').append(b)});
- el('new-note').value=read('draft-'+selected,'');renderNotes()
+ el('new-note').value=read('draft-'+lessonId(selected),'');renderNotes()
 }
 function chooseLesson(i){saveDraft();selected=i;write('lesson',i);renderLesson()}
-function saveDraft(){const ok=write('draft-'+selected,el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
+function saveDraft(){const ok=write('draft-'+lessonId(selected),el('new-note').value);el('draft-status').textContent=ok?'მონახაზი შენახულია ამ მოწყობილობაზე':'შენახვა ვერ მოხერხდა'}
 let draftTimer;
 el('new-note').addEventListener('input',()=>{el('draft-status').textContent='ინახება...';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,350)});
 function renderNotes(){
  const q=el('note-search').value.toLocaleLowerCase('ka').trim();const target=el('note-list');target.replaceChildren();
- const filtered=notes.filter(n=>n.lesson===selected&&n.text.toLocaleLowerCase('ka').includes(q));
+ const filtered=notes.filter(n=>n.lessonId===lessonId(selected)&&n.text.toLocaleLowerCase('ka').includes(q));
  if(!user){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='შედით ანგარიშში, რათა ნახოთ შენახული ჩანაწერები.';target.append(empty);return}if(!filtered.length){const empty=document.createElement('div');empty.className='lt-empty';empty.textContent='ამ გაკვეთილზე ჩანაწერები არ მოიძებნა.';target.append(empty);return}
  filtered.sort((a,b)=>b.created-a.created).forEach(n=>{
  const card=document.createElement('article');card.className='lt-note';const head=document.createElement('div');head.className='lt-notehead';
@@ -163,12 +170,12 @@ function renderNotes(){
  })
 }
 el('add-note').addEventListener('click',async()=>{
- const content=el('new-note').value.trim();if(!content||!user||loadingNotes)return;
+ const content=el('new-note').value.trim();if(!content||!user||loadingNotes||!lessons.length)return;
  const btn=el('add-note');btn.disabled=true;el('draft-status').textContent='ჩანაწერი იტვირთება Supabase-ში...';
  try{
   const {data,error}=await TA.sb.from('course_notes').insert({user_id:user.id,course_id:COURSE_ID,lesson_id:lessonId(selected),content,video_seconds:0}).select('id,lesson_id,content,created_at').single();
   if(error)throw error;
-  notes.unshift({id:data.id,lesson:selected,text:data.content,created:Date.parse(data.created_at)});
+  notes.unshift({id:data.id,lessonId:lessonId(selected),text:data.content,created:Date.parse(data.created_at)});
   el('new-note').value='';saveDraft();renderNotes();
   el('draft-status').textContent='შენახულია Supabase-ში';
  }catch(e){el('draft-status').textContent='შენახვა ვერ მოხერხდა — მონახაზი დარჩა';alert('შენახვა ვერ მოხერხდა: '+e.message)}
@@ -177,14 +184,13 @@ el('add-note').addEventListener('click',async()=>{
 el('note-search').addEventListener('input',renderNotes);
 el('export-notes').addEventListener('click',()=>{
  const content=notes.filter(n=>n.lesson===selected).map(n=>new Date(n.created).toLocaleString('ka-GE')+'\n'+n.text).join('\n\n---\n\n');
- const blob=new Blob([lessons[selected].title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
+ const blob=new Blob([(lessons[selected]||fallbackLesson).title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
 el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
 el('tab-notes').addEventListener('click',()=>switchTab('notes'));
 el('prev').addEventListener('click',()=>chooseLesson(Math.max(0,selected-1)));
 el('next').addEventListener('click',()=>chooseLesson(Math.min(lessons.length-1,selected+1)));
-renderLesson();
 if(Array.isArray(oldNotes)&&oldNotes.length)el('legacy-note-warning').hidden=false;
 initAuth();
 })();
