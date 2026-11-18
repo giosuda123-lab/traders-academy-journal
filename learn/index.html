@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Learning Terminal Preview | Trader's Academy</title>
+<title>Learning Terminal | Trader's Academy</title>
 <link rel="stylesheet" href="/assets/site.css">
 <style>
 :root{color-scheme:dark}
@@ -61,23 +61,65 @@
 .lt-bar{height:5px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:12px}.lt-bar span{display:block;height:100%;background:var(--accent);width:0%}
 .lt-access-hidden{display:none!important}\n.lt-alert{background:#292314;border:1px solid #59482a;color:#ead8b0;padding:10px 14px;border-radius:9px;font-size:12px;margin-bottom:18px}
 @media(max-width:850px){.lt-grid{grid-template-columns:1fr}.lt{padding:16px}.lt-pane{min-height:280px}.lt-brand{font-size:19px}}
+
+/* Learning Terminal: premium editorial finish and dedicated curriculum scroll */
+body{background:radial-gradient(ellipse 950px 500px at 51% -180px,rgba(230,185,77,.055),transparent 76%),#14120e}
+.lt{max-width:1570px;padding:30px clamp(16px,2.8vw,45px) 70px}
+.lt-top{margin-bottom:12px;border-bottom:1px solid rgba(230,185,77,.12)}
+.lt-brand{letter-spacing:-.025em;font-size:25px}
+.lt-grid{grid-template-columns:minmax(0,1.72fr) minmax(340px,0.95fr);gap:clamp(18px,2vw,32px)}
+.lt-h1{font-size:clamp(29px,3vw,42px);letter-spacing:-.022em}
+.lt-sub{margin-bottom:21px}
+.lt-player{border:1px solid #4b3a21;border-radius:17px;box-shadow:0 18px 58px rgba(0,0,0,.27)}
+.lt-screen{background:#080706}
+.lt-sidebar{position:sticky;top:18px;align-self:start;min-height:0}
+.lt-sidebox{display:flex;flex-direction:column;max-height:calc(100dvh - 36px);min-height:280px;border:1px solid #4c3d28;border-radius:17px;box-shadow:0 14px 40px rgba(0,0,0,.2);background:linear-gradient(155deg,#221e18,#1b1813 60%)}
+.lt-tabs{flex:none;background:#201c16}
+.lt-tab{transition:color .2s,background .2s,border-color .2s}
+.lt-tab:hover{background:rgba(230,185,77,.07);color:var(--text)}
+.lt-pane{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#74603a #211d17;padding:16px 14px 21px}
+.lt-pane[hidden]{display:none}
+.lt-pane::-webkit-scrollbar{width:7px}
+.lt-pane::-webkit-scrollbar-thumb{border-radius:20px;background:#74603a;border:2px solid #211d17}
+.lt-pane::-webkit-scrollbar-track{background:#211d17}
+.lt-module{background:#211d18;border-color:#3e3428;margin-bottom:9px;transition:border-color .2s,box-shadow .2s}
+.lt-module:hover{border-color:#675236}
+.lt-module-open{border-color:#8d713e;background:#231e16;box-shadow:inset 3px 0 0 #c99e45,0 6px 18px rgba(0,0,0,.14)}
+.lt-module-head{padding:16px 14px;background:transparent;transition:background .2s}
+.lt-module-head:hover{background:rgba(230,185,77,.055)}
+.lt-module-head:focus-visible,.lt-lesson:focus-visible,.lt-tab:focus-visible,.lt-btn:focus-visible{outline:2px solid #e6b94d;outline-offset:-3px}
+.lt-module-name{font-size:13.5px;letter-spacing:.005em}
+.lt-module-count{margin-top:5px;color:#ae9d7e}
+.lt-module-chevron{font-size:20px}
+.lt-module-lessons{padding:0 10px 12px;animation:ltReveal .2s ease-out}
+.lt-lesson{margin-top:7px;padding:12px 11px;background:#29241d;border-color:#3d3327;transition:background .18s,border-color .18s,transform .18s,box-shadow .18s}
+.lt-lesson:hover{background:#352b1b;transform:translateX(2px);border-color:#81653b}
+.lt-lesson[aria-current=true]{background:linear-gradient(115deg,rgba(230,185,77,.17),rgba(230,185,77,.05));border-color:#b48d41;box-shadow:inset 3px 0 #e6b94d}
+.lt-ltitle{font-size:12.5px;font-weight:550}
+.lt-number{color:#dabb72}
+.lt-btn{border-radius:10px;transition:background .18s,transform .18s}
+.lt-btn:hover:not(:disabled){transform:translateY(-1px)}
+.lt-alert[hidden]{display:none}
+.lt-playerfoot{background:#120f0c}
+@keyframes ltReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:850px){.lt{padding:15px 14px 45px}.lt-grid{grid-template-columns:1fr}.lt-sidebar{position:static}.lt-sidebox{max-height:min(68dvh,640px);min-height:320px}.lt-pane{min-height:0}.lt-h1{font-size:30px}}
+@media(prefers-reduced-motion:reduce){.lt-module-lessons{animation:none}.lt-module,.lt-lesson,.lt-btn,.lt-tab{transition:none}.lt-lesson:hover,.lt-btn:hover:not(:disabled){transform:none}}
 </style>
 </head>
 <body>
 <main class="lt" id="main-content">
-<div class="lt-top"><div><div class="lt-brand"><b>✦</b> Trader's Academy</div><div class="lt-meta">LEARNING TERMINAL / PREVIEW</div></div><a href="/">← მთავარ საიტზე დაბრუნება</a></div>
-<div class="lt-alert">სატესტო ვერსია — ვიდეოები და კურსის ფასიანი წვდომა ჯერ არ არის დაკავშირებული. შესული მომხმარებლის ახალი ჩანაწერები Supabase-ში ინახება.</div>
+<div class="lt-top"><div><div class="lt-brand"><b>✦</b> Trader's Academy</div><div class="lt-meta">LEARNING TERMINAL</div></div><a href="/">← მთავარ საიტზე დაბრუნება</a></div>
 <div class="lt-alert" id="auth-status" role="status">მიმდინარეობს ანგარიშის შემოწმება...</div><div id="auth-container" style="margin-bottom:18px"></div>
 <div class="lt-grid lt-access-hidden" id="course-content">
 <section class="lt-main" aria-label="ვიდეოგაკვეთილი">
-<div class="lt-meta" id="breadcrumb">PRICE ACTION / მოდული 01</div>
-<h1 class="lt-h1" id="lesson-title">ძლიერი Signal Bar</h1>
+<div class="lt-meta" id="breadcrumb">LEARNING TERMINAL</div>
+<h1 class="lt-h1" id="lesson-title">ვიდეოგაკვეთილი</h1>
 <div class="lt-sub" id="lesson-subtitle"></div>
 <div class="lt-player">
 <div class="lt-screen" id="lt-video-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერი</strong><small>ლექციის არჩევის შემდეგ ჩაიტვირთება ვიდეო, თუ მასზე წვდომა გაქვს.</small></div>
 <div class="lt-playerfoot"><div class="lt-footrow"><span id="video-duration">მოლოდინი...</span><span id="video-status">დაცული ვიდეო არ არის ჩატვირთული</span></div></div>
 </div>
-<div class="lt-progress"><div class="lt-footrow"><span>სატესტო პროგრესი</span><span id="progress-number">0%</span></div><div class="lt-bar"><span id="progress-bar"></span></div></div>
+
 <div class="lt-actions"><button class="lt-btn" id="prev">← წინა გაკვეთილი</button><button class="lt-btn" id="next">შემდეგი გაკვეთილი →</button></div>
 </section>
 <aside class="lt-sidebar"><div class="lt-sidebox"><div class="lt-tabs" role="tablist" aria-label="გაკვეთილები და ჩანაწერები">
@@ -145,7 +187,7 @@ async function loadSecureVideo(){
 }
 
 const lessonId=i=>lessons[i]?.id||'none';
-const status=(message)=>{el('auth-status').textContent=message};
+const status=(message)=>{const box=el('auth-status');box.textContent=message;box.hidden=!message};
 async function fetchNotes(){
  if(!user)return;
  loadingNotes=true;el('add-note').disabled=true;
@@ -153,7 +195,7 @@ async function fetchNotes(){
  loadingNotes=false;el('add-note').disabled=!lessons.length;
  if(error){status('ჩანაწერების ჩატვირთვა ვერ მოხერხდა: '+error.message);return}
  notes=(data||[]).map(n=>({id:n.id,lessonId:n.lesson_id,text:n.content,created:Date.parse(n.created_at)}));
- status('შესული ხართ: '+user.email+' · ჩანაწერები ინახება Supabase-ში');renderNotes()
+ status('');renderNotes()
 }
 async function initAuth(){
  try{
@@ -180,8 +222,8 @@ async function initAuth(){
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')renderNotes()}
 function renderLesson(preserveDraft=false){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
- el('video-duration').textContent='ხანგრძლივობა: '+l.duration;el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
- const pct=lessons.length?Math.round((selected/lessons.length)*100):0;el('progress-number').textContent=pct+'%';el('progress-bar').style.width=pct+'%';
+ el('breadcrumb').textContent=(l.module||'TRADER\'S ACADEMY').toLocaleUpperCase('ka')+' / LEARNING TERMINAL';
+ el('video-duration').textContent=l.duration!=='0:00'?'ხანგრძლივობა: '+l.duration:'';el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
  const target=el('lesson-list');target.replaceChildren();
  const groups=[];
  lessons.forEach((lesson,index)=>{
@@ -191,11 +233,11 @@ function renderLesson(preserveDraft=false){
  });
  el('module-summary').textContent=groups.length+' მოდული · '+lessons.length+' გაკვეთილი';
  const currentModuleId=lessons[selected]?.moduleId;
- if(!groups.some(g=>g.id===expandedModuleId))expandedModuleId=currentModuleId||groups[0]?.id||null;
+ if(expandedModuleId!==null&&!groups.some(g=>g.id===expandedModuleId))expandedModuleId=currentModuleId||groups[0]?.id||null;
  groups.forEach((group,groupIndex)=>{
    const panel=document.createElement('div');panel.className='lt-module';
    const head=document.createElement('button');head.type='button';head.className='lt-module-head';
-   const isOpen=expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));
+   const isOpen=expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));panel.classList.toggle('lt-module-open',isOpen);
    const contentId='lt-module-'+groupIndex;head.setAttribute('aria-controls',contentId);
    const name=document.createElement('span');name.className='lt-module-name';name.textContent=String(groupIndex+1).padStart(2,'0')+' · '+group.title;
    const count=document.createElement('span');count.className='lt-module-count';count.textContent=group.items.length+' გაკვეთილი';
@@ -208,7 +250,7 @@ function renderLesson(preserveDraft=false){
      const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(index===selected));
      const num=document.createElement('span');num.className='lt-number';num.textContent=String(group.items.findIndex(x=>x.index===index)+1).padStart(2,'0');
      const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=lesson.title;
-     const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration;info.append(title,time);b.append(num,info);
+     const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration==='0:00'?'':lesson.duration;info.append(title,time);b.append(num,info);
      b.addEventListener('click',()=>chooseLesson(index));content.append(b);
    });
    panel.append(head,content);target.append(panel);
