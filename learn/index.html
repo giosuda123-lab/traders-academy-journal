@@ -113,6 +113,18 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 @keyframes ltReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:850px){.lt{padding:15px 14px 45px}.lt-grid{grid-template-columns:1fr}.lt-sidebar{position:static}.lt-sidebox{max-height:min(68dvh,640px);min-height:320px}.lt-pane{min-height:0}.lt-h1{font-size:30px}}
 @media(prefers-reduced-motion:reduce){.lt-module-lessons{animation:none}.lt-module,.lt-lesson,.lt-btn,.lt-tab{transition:none}.lt-lesson:hover,.lt-btn:hover:not(:disabled){transform:none}}
+
+.lt-quiz{margin:22px 0 10px;padding:23px;border:1px solid #725a32;border-radius:15px;background:linear-gradient(145deg,#272118,#191611)}
+.lt-quiz[hidden]{display:none}
+.lt-quiz h2{font-size:24px;margin:5px 0}
+.lt-quiz-item{border-top:1px solid var(--border);padding:17px 0}
+.lt-quiz-item strong{display:block;color:var(--text);font-size:14px;margin-bottom:12px}
+.lt-quiz-option{display:flex;align-items:flex-start;gap:9px;padding:11px 12px;margin:7px 0;border:1px solid #443728;border-radius:8px;background:#29241c;cursor:pointer;font-size:13px}
+.lt-quiz-option:has(input:checked){background:#392e1b;border-color:#bd964a}
+.lt-quiz-option input{accent-color:#e6b94d;margin-top:3px}
+.lt-quiz-explanation{font-size:12px;color:#c3b698;line-height:1.6;margin-top:10px}
+.lt-quiz-trigger{display:block;width:100%;text-align:left;margin:10px 0 1px;padding:12px;border:1px solid #8e6f38;border-radius:9px;background:#302719;color:#eed49c;cursor:pointer;font-size:12px}
+.lt-quiz-trigger:hover{background:#3c301c}
 </style>
 </head>
 <body>
@@ -129,6 +141,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 <div class="lt-playerfoot"><div class="lt-footrow"><span id="video-duration">მოლოდინი...</span><span id="video-status">დაცული ვიდეო არ არის ჩატვირთული</span></div></div>
 </div>
 
+<section id="module-quiz-panel" class="lt-quiz" hidden aria-label="მოდულის შემაჯამებელი ტესტი"><div class="lt-footrow"><div><span class="lt-meta">KNOWLEDGE CHECK</span><h2 id="quiz-title" class="serif">მოდულის ტესტი</h2></div><button id="quiz-close" type="button" class="lt-smallbtn">დახურვა ✕</button></div><div id="quiz-questions"></div><p id="quiz-feedback" role="status"></p><button id="quiz-submit" class="lt-btn" type="button">პასუხების შემოწმება</button></section>
 <div class="lt-actions"><button class="lt-btn" id="prev">← წინა გაკვეთილი</button><button class="lt-btn" id="next">შემდეგი გაკვეთილი →</button></div>
 </section>
 <aside class="lt-sidebar"><div class="lt-sidebox"><div class="lt-tabs" role="tablist" aria-label="გაკვეთილები და ჩანაწერები">
@@ -164,6 +177,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 let lessons=[];
 let expandedModuleId=null;
 let tab='lessons';
+let quizQuestions=new Map();let activeQuizModule=null;
 const fallbackLesson={id:'none',title:'გაკვეთილები ჯერ არ არის დამატებული',duration:'00:00'};
 async function loadCurriculumForStudent(){
  const m=await TA.sb.from('course_modules').select('id,title,sort_order').eq('course_id',COURSE_ID).order('sort_order').order('created_at');
@@ -245,6 +259,70 @@ async function loadSecureVideo(){
  }catch(e){if(requestId!==playRequest)return;msg.textContent='ვიდეო ვერ ჩაიტვირთა: '+e.message;el('video-status').textContent='დაკავშირება ვერ მოხერხდა'}
 }
 
+
+async function loadModuleQuizQuestions(){
+ const ids=[...new Set(lessons.map(l=>l.moduleId))];
+ if(!ids.length)return;
+ const {data,error}=await TA.sb.from('course_module_quiz_questions')
+  .select('id,module_id,question,options,correct_index,explanation,sort_order')
+  .in('module_id',ids).eq('published',true).order('sort_order');
+ if(error){console.warn('Quiz questions unavailable:',error.message);return}
+ quizQuestions=new Map();
+ for(const q of data||[]){
+   if(!quizQuestions.has(q.module_id))quizQuestions.set(q.module_id,[]);
+   quizQuestions.get(q.module_id).push(q);
+ }
+ renderLesson(true);
+}
+function openModuleQuiz(moduleId){
+ const questions=quizQuestions.get(moduleId)||[];
+ if(!questions.length)return;
+ activeQuizModule=moduleId;
+ const section=el('module-quiz-panel');section.hidden=false;
+ const lesson=lessons.find(l=>l.moduleId===moduleId);
+ el('quiz-title').textContent=(lesson?.module||'მოდული')+' — ცოდნის შემოწმება';
+ const body=el('quiz-questions');body.replaceChildren();el('quiz-feedback').textContent='';
+ el('quiz-submit').hidden=false;
+ questions.forEach((q,i)=>{
+   const card=document.createElement('div');card.className='lt-quiz-item';
+   const title=document.createElement('strong');title.textContent=(i+1)+'. '+q.question;card.append(title);
+   (q.options||[]).forEach((option,j)=>{
+     const label=document.createElement('label');label.className='lt-quiz-option';
+     const input=document.createElement('input');input.type='radio';input.name='quiz-'+q.id;input.value=String(j);
+     const text=document.createElement('span');text.textContent=option;
+     label.append(input,text);card.append(label);
+   });body.append(card);
+ });
+ try{activeBunnyPlayer?.pause?.()}catch{}
+ section.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function gradeModuleQuiz(){
+ if(!activeQuizModule||!user)return;
+ const questions=quizQuestions.get(activeQuizModule)||[];
+ if(!questions.length)return;
+ let score=0;
+ const answers=[];
+ for(const q of questions){
+   const checked=el('quiz-questions').querySelector('input[name="quiz-'+q.id+'"]:checked');
+   if(!checked){el('quiz-feedback').textContent='უპასუხე ყველა კითხვას, შემდეგ შეამოწმე შედეგი.';return}
+   const answer=Number(checked.value);answers.push(answer);
+   if(answer===q.correct_index)score++;
+ }
+ const cards=el('quiz-questions').querySelectorAll('.lt-quiz-item');
+ questions.forEach((q,i)=>{
+   const explanation=document.createElement('p');explanation.className='lt-quiz-explanation';
+   explanation.textContent=(answers[i]===q.correct_index?'✓ სწორია. ':'სწორი პასუხი: '+q.options[q.correct_index]+'. ')+(q.explanation||'');
+   cards[i].append(explanation);
+   cards[i].querySelectorAll('input').forEach(x=>x.disabled=true);
+ });
+ el('quiz-feedback').textContent='შედეგი: '+score+' / '+questions.length+' სწორი პასუხი';
+ el('quiz-submit').hidden=true;
+ const {error}=await TA.sb.from('course_module_quiz_attempts').insert({
+   user_id:user.id,module_id:activeQuizModule,score,total:questions.length
+ });
+ if(error)el('quiz-feedback').textContent+=' · შედეგის ანგარიშზე შენახვა ვერ მოხერხდა';
+ else el('quiz-feedback').textContent+=' · შენახულია შენს ანგარიშზე';
+}
 const lessonId=i=>lessons[i]?.id||'none';
 const status=(message)=>{const box=el('auth-status');box.textContent=message;box.hidden=!message};
 const notebookKey=id=>'notebook-v1-'+(user?.id||'guest')+'-'+id;
@@ -340,6 +418,7 @@ async function initAuth(){
   if(!data){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
   el('auth-container').replaceChildren();
   await loadCurriculumForStudent();
+  await loadModuleQuizQuestions();
   el('course-content').classList.remove('lt-access-hidden');
   await fetchNotes();
   await loadSecureVideo();
@@ -379,11 +458,13 @@ function renderLesson(preserveDraft=false){
      const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration==='0:00'?'':lesson.duration;info.append(title,time);b.append(num,info);
      b.addEventListener('click',()=>chooseLesson(index));content.append(b);
    });
+   const questionCount=quizQuestions.get(group.id)?.length||0;
+   if(questionCount){const quiz=document.createElement('button');quiz.type='button';quiz.className='lt-quiz-trigger';quiz.textContent='◇ მოდულის ტესტი · '+questionCount+' კითხვა';quiz.addEventListener('click',()=>openModuleQuiz(group.id));content.append(quiz)}
    panel.append(head,content);target.append(panel);
  });
  if(!preserveDraft)showNotebook()
 }
-function chooseLesson(i){if(!lessons[i])return;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
+function chooseLesson(i){if(!lessons[i])return;el('module-quiz-panel').hidden=true;activeQuizModule=null;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
 function insertNoteText(value){
  const input=el('new-note');const a=input.selectionStart,b=input.selectionEnd;
  input.setRangeText(value,a,b,'end');input.focus();captureNotebook();
@@ -434,6 +515,8 @@ el('export-notes').addEventListener('click',()=>{
  const blob=new Blob([(lessons[selected]||fallbackLesson).title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
+el('quiz-close').addEventListener('click',()=>{el('module-quiz-panel').hidden=true;activeQuizModule=null});
+el('quiz-submit').addEventListener('click',gradeModuleQuiz);
 el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
 el('tab-notes').addEventListener('click',()=>switchTab('notes'));
 el('prev').addEventListener('click',()=>chooseLesson(Math.max(0,selected-1)));
