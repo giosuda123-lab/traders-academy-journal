@@ -445,7 +445,11 @@ function renderLesson(preserveDraft=false){
    const isOpen=Boolean(search)||expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));panel.classList.toggle('lt-module-open',isOpen);
    const contentId='lt-module-'+groupIndex;head.setAttribute('aria-controls',contentId);
    const name=document.createElement('span');name.className='lt-module-name';name.textContent=String(groupIndex+1).padStart(2,'0')+' · '+group.title;
-   const count=document.createElement('span');count.className='lt-module-count';count.textContent=group.items.length+' გაკვეთილი';
+   const count=document.createElement('span');count.className='lt-module-count';
+   const moduleLessons=lessons.filter(item=>item.moduleId===group.id);
+   const moduleDone=moduleLessons.filter(item=>progress.get(item.id)?.completed).length;
+   const modulePercent=moduleLessons.length?Math.round(100*moduleDone/moduleLessons.length):0;
+   count.textContent=moduleDone+'/'+moduleLessons.length+' დასრულებული · '+modulePercent+'%';
    name.append(count);
    const chevron=document.createElement('span');chevron.className='lt-module-chevron';chevron.textContent='⌄';chevron.setAttribute('aria-hidden','true');
    head.append(name,chevron);
