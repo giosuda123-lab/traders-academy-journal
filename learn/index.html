@@ -263,7 +263,7 @@ async function loadSecureVideo(){
          if(requestId!==playRequest)return;
          player.getCurrentTime(time=>{
            const n=Number(time);
-           if(requestId===playRequest&&Number.isFinite(n)&&n>=0)videoSeconds=Math.floor(n);
+           if(requestId===playRequest&&Number.isFinite(n)&&n>=0){videoSeconds=Math.floor(n);updateLearningProgress(lessonId(selected),{last_position_seconds:videoSeconds})}
          });
        });
      }catch(e){console.warn('Bunny Player.js integration failed:',e)}
@@ -311,6 +311,7 @@ async function updateLearningProgress(id,changes){
  if(error){console.warn('Progress save error:',error.message);progress.set(id,previous);refreshLearningProgress();}
 }
 function seekToVideo(seconds){
+ if(!Number.isFinite(seconds)||seconds<0)return;
  if(!activeBunnyPlayer||!bunnyPlayerReady||typeof activeBunnyPlayer.setCurrentTime!=='function'){
    el('draft-status').textContent='ვიდეო ჯერ არ არის მზად. გახსენი გაკვეთილი და სცადე თავიდან.';
    return;
@@ -465,11 +466,12 @@ function renderLesson(preserveDraft=false){
 function chooseLesson(i){if(!lessons[i])return;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;el('lesson-filter').value='';write('lesson',i);renderLesson();loadSecureVideo();updateLearningProgress(lessonId(selected),{})}
 function renderTimeBookmarks(){
  const container=el('note-time-links');container.replaceChildren();
- const entries=[...el('new-note').value.matchAll(/\\[(\\d{1,2}:)?\\d{1,2}:\\d{2}\\]/g)].slice(0,80);
+ const entries=[...el('new-note').value.matchAll(/\[(?:\d{1,2}:)?\d{1,2}:\d{2}\]/g)].slice(0,80);
  for(const entry of entries){
    const time=entry[0].slice(1,-1);
    const parts=time.split(':').map(Number);
    if(parts.some(x=>!Number.isFinite(x)))continue;
+   if(parts.length<2||parts.slice(1).some(x=>x>=60))continue;
    const seconds=parts.reduce((sum,x)=>sum*60+x,0);
    const button=document.createElement('button');
    button.type='button';button.className='lt-time-link';button.textContent=time;
