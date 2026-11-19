@@ -152,6 +152,7 @@
         <button id="tab-posts" class="btn btn-sm" style="${adminTab==='posts' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">სტატიები</button>
         <button id="tab-testimonials" class="btn btn-sm" style="${adminTab==='testimonials' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეო-რევიუები</button>
         <button id="tab-curriculum" class="btn btn-sm" style="${adminTab==='curriculum' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">ვიდეოკურსის მართვა</button>
+        <button id="tab-quizzes" class="btn btn-sm">მოდულის ტესტები</button>
         <button id="tab-users" class="btn btn-sm" style="${adminTab==='users' ? 'border-color:var(--accent); background:rgba(var(--accent-rgb),0.16);' : ''}">მომხმარებლები</button>
       </div>
       <div id="tab-content"></div>
@@ -159,10 +160,12 @@
     document.getElementById('tab-posts').onclick = () => { adminTab = 'posts'; renderList(); };
     document.getElementById('tab-testimonials').onclick = () => { adminTab = 'testimonials'; renderList(); };
     document.getElementById('tab-curriculum').onclick = () => {adminTab='curriculum';renderList();};
+    document.getElementById('tab-quizzes').onclick = () => {adminTab='quizzes';renderList();};
     document.getElementById('tab-users').onclick = () => { adminTab = 'users'; viewingUserId = null; renderList(); };
     if (adminTab === 'posts') renderPostsList();
     else if (adminTab === 'testimonials') renderTestimonialsList();
     else if(adminTab==='curriculum')renderCurriculum();
+    else if(adminTab==='quizzes')renderQuizManager();
     else renderUsersTab();
   }
 
@@ -251,6 +254,60 @@
       });
       tc.append(card);
     });
+  }
+
+
+  async function renderQuizManager(){
+    const root=document.getElementById('tab-content');root.textContent='ტესტები იტვირთება...';
+    const {data:mods,error:me}=await TA.sb.from('course_modules').select('id,title').eq('course_id',COURSE_ID).order('sort_order');
+    if(me){root.textContent=me.message;return}
+    const {data:qs,error:qe}=(mods||[]).length
+      ?await TA.sb.from('course_module_quiz_questions').select('*').in('module_id',mods.map(m=>m.id)).order('sort_order')
+      :{data:[],error:null};
+    if(qe){root.textContent=qe.message+' — ჯერ გაუშვი supabase/module-quiz.sql';return}
+    if(adminTab!=='quizzes')return;
+    root.replaceChildren();
+    const h=document.createElement('h2');h.textContent='მოდულის შემაჯამებელი ტესტები';h.className='serif';root.append(h);
+    const intro=document.createElement('p');intro.textContent='დაამატე 3–5 კითხვა თითო მოდულზე. კითხვები არ გამოჩნდება, სანამ არ გამოაქვეყნებ.';root.append(intro);
+    const makeButton=(label,callback)=>{const b=document.createElement('button');b.className='btn btn-sm';b.textContent=label;b.onclick=callback;return b};
+    async function editQuestion(m,q){
+      const question=prompt('კითხვა:',q?.question||'');if(question===null)return;
+      if(!question.trim())return alert('შეიყვანე კითხვა');
+      const options=[];
+      for(let i=0;i<4;i++){
+        const answer=prompt('პასუხი '+(i+1),q?.options?.[i]||'');
+        if(answer===null)return;if(!answer.trim())return alert('ოთხივე პასუხი აუცილებელია');
+        options.push(answer.trim());
+      }
+      const correct=prompt('სწორი პასუხის ნომერი (1–4)',q?String(q.correct_index+1):'1');
+      if(correct===null)return;
+      const n=Number(correct)-1;if(!Number.isInteger(n)||n<0||n>3)return alert('აირჩიე ნომერი 1–4');
+      const explanation=prompt('სწორი პასუხის ახსნა:',q?.explanation||'');if(explanation===null)return;
+      const published=confirm('გამოვაქვეყნოთ? OK — კი, Cancel — Draft');
+      const data={module_id:m.id,question:question.trim(),options,correct_index:n,explanation,sort_order:q?.sort_order??(qs||[]).filter(x=>x.module_id===m.id).length,published};
+      const res=q?await TA.sb.from('course_module_quiz_questions').update(data).eq('id',q.id)
+        :await TA.sb.from('course_module_quiz_questions').insert(data);
+      if(res.error)alert(res.error.message);else renderQuizManager();
+    }
+    for(const m of mods||[]){
+      const card=document.createElement('div');card.className='card';card.style.marginBottom='14px';
+      const header=document.createElement('div');header.style.cssText='display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap';
+      const title=document.createElement('strong');title.textContent=m.title;header.append(title,makeButton('+ კითხვა',()=>editQuestion(m,null)));card.append(header);
+      const list=(qs||[]).filter(x=>x.module_id===m.id);
+      if(!list.length){const p=document.createElement('p');p.textContent='კითხვები ჯერ არ არის';card.append(p)}
+      for(const q of list){
+        const row=document.createElement('div');row.style.cssText='border-top:1px solid var(--border);padding:11px 0;display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap';
+        const name=document.createElement('span');name.style.fontSize='13px';name.textContent=q.question+' · '+(q.published?'გამოქვეყნებულია':'Draft');
+        const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px';
+        controls.append(makeButton('შეცვლა',()=>editQuestion(m,q)),makeButton('წაშლა',async()=>{
+          if(!confirm('წავშალოთ კითხვა?'))return;
+          const {error}=await TA.sb.from('course_module_quiz_questions').delete().eq('id',q.id);
+          if(error)alert(error.message);else renderQuizManager();
+        }));
+        row.append(name,controls);card.append(row);
+      }
+      root.append(card);
+    }
   }
 
   // ================= USERS (მომხმარებლები) =================
