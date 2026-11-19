@@ -113,6 +113,26 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 @keyframes ltReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:850px){.lt{padding:15px 14px 45px}.lt-grid{grid-template-columns:1fr}.lt-sidebar{position:static}.lt-sidebox{max-height:min(68dvh,640px);min-height:320px}.lt-pane{min-height:0}.lt-h1{font-size:30px}}
 @media(prefers-reduced-motion:reduce){.lt-module-lessons{animation:none}.lt-module,.lt-lesson,.lt-btn,.lt-tab{transition:none}.lt-lesson:hover,.lt-btn:hover:not(:disabled){transform:none}}
+
+/* Learning journey: meaningful progress, searchable lessons, functional bookmarks */
+.lt-studybar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 18px;padding:15px 17px;border:1px solid #54452e;border-radius:13px;background:linear-gradient(115deg,#292217,#211d17)}
+.lt-study-info{flex:1;min-width:175px}
+.lt-study-eyebrow{display:block;color:#b7a27d;font-size:10.5px;letter-spacing:.08em;margin-bottom:3px}
+.lt-study-info strong{font-size:13px;color:#f0ead8}
+.lt-studytrack{height:4px;background:#403628;border-radius:10px;overflow:hidden;margin-top:10px}
+.lt-studytrack span{display:block;height:100%;background:linear-gradient(90deg,#b78b35,#edca75);border-radius:inherit;width:0;transition:width .35s ease}
+.lt-study-cta{display:flex;gap:8px;flex-wrap:wrap}
+.lt-study-cta .lt-btn{padding:8px 10px;font-size:11.5px}
+#complete-lesson[aria-pressed=true]{background:rgba(79,158,118,.18);border-color:#4f9e76}
+.lt-lesson-search{margin-bottom:12px;font-size:12px;padding:10px 12px}
+.lt-lesson-completed{color:#78bb90;font-size:12px;flex:none}
+.lt-module-search-highlight{color:#e6b94d}
+.lt-bookmarks{border-top:1px solid var(--border);padding-top:17px;margin-top:20px}
+.lt-bookmarks strong{font-size:12px;color:var(--text)}
+.lt-time-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.lt-time-link{color:#e6b94d;border:1px solid #66502d;border-radius:7px;background:#2b2418;padding:7px 9px;cursor:pointer;font:11px 'IBM Plex Mono',monospace}
+.lt-time-link:hover{background:#3a2f1c}
+@media(max-width:850px){.lt-studybar{padding:13px}.lt-study-cta{width:100%}.lt-study-cta .lt-btn{flex:1}}
 </style>
 </head>
 <body>
@@ -124,6 +144,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 <div class="lt-meta" id="breadcrumb">LEARNING TERMINAL</div>
 <h1 class="lt-h1" id="lesson-title">ვიდეოგაკვეთილი</h1>
 <div class="lt-sub" id="lesson-subtitle"></div>
+<div class="lt-studybar" aria-label="სასწავლო პროგრესი"><div class="lt-study-info"><span class="lt-study-eyebrow">შენი სასწავლო გზა</span><strong id="learning-summary">პროგრესი იტვირთება...</strong><div class="lt-studytrack"><span id="learning-progress-bar"></span></div></div><div class="lt-study-cta"><button class="lt-btn" type="button" id="continue-lesson" hidden>▶ გაგრძელება</button><button class="lt-btn" type="button" id="complete-lesson" aria-pressed="false">✓ დასრულებულად მონიშვნა</button></div></div>
 <div class="lt-player">
 <div class="lt-screen" id="lt-video-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერი</strong><small>ლექციის არჩევის შემდეგ ჩაიტვირთება ვიდეო, თუ მასზე წვდომა გაქვს.</small></div>
 <div class="lt-playerfoot"><div class="lt-footrow"><span id="video-duration">მოლოდინი...</span><span id="video-status">დაცული ვიდეო არ არის ჩატვირთული</span></div></div>
@@ -134,7 +155,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 <aside class="lt-sidebar"><div class="lt-sidebox"><div class="lt-tabs" role="tablist" aria-label="გაკვეთილები და ჩანაწერები">
 <button class="lt-tab" id="tab-lessons" role="tab" aria-selected="true" aria-controls="panel-lessons">☷ &nbsp; გაკვეთილები</button>
 <button class="lt-tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="panel-notes">✎ &nbsp; ჩანაწერები</button></div>
-<section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow" style="margin-bottom:12px"><strong style="font-size:14px">კურსის მოდულები</strong><span class="lt-meta" id="module-summary">0 მოდული</span></div><div id="lesson-list"></div></section>
+<section class="lt-pane" id="panel-lessons" role="tabpanel" aria-labelledby="tab-lessons"><div class="lt-footrow" style="margin-bottom:12px"><strong style="font-size:14px">კურსის მოდულები</strong><span class="lt-meta" id="module-summary">0 მოდული</span></div><label class="lt-label" for="lesson-filter">გაკვეთილის ძებნა</label><input id="lesson-filter" type="search" class="lt-input lt-lesson-search" placeholder="მოძებნე თემა ან სათაური..." autocomplete="off"/><div id="lesson-list"></div></section>
 <section class="lt-pane" id="panel-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
 <div class="lt-notebook-head">
   <div><strong>ჩემი ჩანაწერი ამ გაკვეთილზე</strong><small>ერთი ნოუთი · ავტომატური შენახვა</small></div>
@@ -151,7 +172,7 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
  <small id="draft-status" role="status" aria-live="polite">ნოუთი იტვირთება...</small>
  <button class="lt-btn" id="save-notebook" type="button">შენახვა</button>
 </div>
-<p class="lt-notebook-help">ნოუთი მხოლოდ შენ გეკუთვნის. სხვადასხვა გაკვეთილს საკუთარი ნოუთი აქვს.</p>
+<p class="lt-notebook-help">ნოუთი მხოლოდ შენ გეკუთვნის. სხვადასხვა გაკვეთილს საკუთარი ნოუთი აქვს.</p><div class="lt-bookmarks"><div class="lt-footrow"><strong>დროის ნიშნულები</strong><span class="lt-meta">დააჭირე გადასასვლელად</span></div><div id="note-time-links" class="lt-time-links"></div></div>
 <div class="lt-alert" id="legacy-note-warning" hidden>ამ ბრაუზერში ძველი სატესტო ჩანაწერებია; ისინი წაშლილი არ არის.</div>
 </section></div></aside>
 </div></main>
