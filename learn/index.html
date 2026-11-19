@@ -209,9 +209,11 @@ const COURSE_ID='price-action-preview';
 let playRequest=0;
 let activeBunnyPlayer=null;
 let bunnyPlayerReady=false;
+let progress=new Map();let progressWriteAt=0;let resumePosition=null;let currentSeekRequest=null;
 async function loadSecureVideo(){
  const requestId=++playRequest;
  videoSeconds=null;
+ resumePosition=null;
  activeBunnyPlayer=null;
  bunnyPlayerReady=false;
  const screen=el('lt-video-screen');
@@ -238,9 +240,12 @@ async function loadSecureVideo(){
        player.on('ready',()=>{
          if(requestId!==playRequest)return;
          bunnyPlayerReady=true;
+         const resumeAt=progress.get(lessonId(selected))?.last_position_seconds||0;
+         resumePosition=resumeAt>0?resumeAt:null;
          player.getCurrentTime(value=>{
            const n=Number(value);
-           if(requestId===playRequest&&Number.isFinite(n)&&n>=0)videoSeconds=Math.floor(n);
+           if(requestId===playRequest&&Number.isFinite(n)&&n>=0){videoSeconds=Math.floor(n);updateLearningProgress(lessonId(selected),{last_position_seconds:videoSeconds})}
+           if(requestId===playRequest&&resumeAt>5&&typeof player.setCurrentTime==='function')player.setCurrentTime(resumeAt);
          });
        });
        player.on('timeupdate',value=>{
@@ -248,7 +253,10 @@ async function loadSecureVideo(){
          try{
            const event=typeof value==='string'?JSON.parse(value):value;
            const seconds=Number(event?.seconds);
-           if(Number.isFinite(seconds)&&seconds>=0)videoSeconds=Math.floor(seconds);
+           if(Number.isFinite(seconds)&&seconds>=0){
+             videoSeconds=Math.floor(seconds);
+             if(Date.now()-progressWriteAt>20000){progressWriteAt=Date.now();updateLearningProgress(lessonId(selected),{last_position_seconds:videoSeconds})}
+           }
          }catch{}
        });
        player.on('pause',()=>{
@@ -266,17 +274,62 @@ async function loadSecureVideo(){
  }catch(e){if(requestId!==playRequest)return;msg.textContent='ვიდეო ვერ ჩაიტვირთა: '+e.message;el('video-status').textContent='დაკავშირება ვერ მოხერხდა'}
 }
 
+// Progress is private per authenticated student and lives in Supabase.
+async function loadLearningProgress(){
+ if(!user)return;
+ const {data,error}=await TA.sb.from('course_lesson_progress')
+   .select('lesson_id,last_position_seconds,completed,updated_at').eq('user_id',user.id);
+ if(error){console.warn('Progress unavailable:',error.message);el('learning-summary').textContent='პროგრესი დროებით მიუწვდომელია';return}
+ progress=new Map((data||[]).filter(row=>lessons.some(l=>l.id===row.lesson_id)).map(row=>[row.lesson_id,row]));
+ const latest=[...progress.values()].sort((a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at))[0];
+ if(latest){const i=lessons.findIndex(l=>l.id===latest.lesson_id);if(i>=0){selected=i;expandedModuleId=lessons[i].moduleId}}
+ renderLesson();
+}
+function refreshLearningProgress(){
+ const done=lessons.filter(l=>progress.get(l.id)?.completed).length;
+ const pct=lessons.length?Math.round(done/lessons.length*100):0;
+ el('learning-summary').textContent=done+' / '+lessons.length+' გაკვეთილი დასრულებულია · '+pct+'%';
+ el('learning-progress-bar').style.width=pct+'%';
+ const current=progress.get(lessonId(selected));
+ const completed=Boolean(current?.completed);
+ el('complete-lesson').setAttribute('aria-pressed',String(completed));
+ el('complete-lesson').textContent=completed?'✓ დასრულებულია':'✓ დასრულებულად მონიშვნა';
+ const position=current?.last_position_seconds||0;
+ el('continue-lesson').hidden=position<=5;
+ if(position>5)el('continue-lesson').textContent='▶ '+timestampValue(position)+'-დან';
+}
+async function updateLearningProgress(id,changes){
+ if(!user||!id||id==='none')return;
+ const previous=progress.get(id)||{completed:false,last_position_seconds:0};
+ const next={...previous,...changes};
+ progress.set(id,next);
+ refreshLearningProgress();
+ const {error}=await TA.sb.from('course_lesson_progress').upsert({
+   user_id:user.id,lesson_id:id,last_position_seconds:next.last_position_seconds,
+   completed:next.completed,updated_at:new Date().toISOString()
+ },{onConflict:'user_id,lesson_id'});
+ if(error){console.warn('Progress save error:',error.message);progress.set(id,previous);refreshLearningProgress();}
+}
+function seekToVideo(seconds){
+ if(!activeBunnyPlayer||!bunnyPlayerReady||typeof activeBunnyPlayer.setCurrentTime!=='function'){
+   el('draft-status').textContent='ვიდეო ჯერ არ არის მზად. გახსენი გაკვეთილი და სცადე თავიდან.';
+   return;
+ }
+ activeBunnyPlayer.setCurrentTime(seconds);
+ videoSeconds=seconds;
+}
 const lessonId=i=>lessons[i]?.id||'none';
 const status=(message)=>{const box=el('auth-status');box.textContent=message;box.hidden=!message};
 const notebookKey=id=>'notebook-v1-'+(user?.id||'guest')+'-'+id;
 function notebookText(id){return notebooks.get(id)||''}
-function showNotebook(){const id=lessonId(selected);el('new-note').value=notebookText(id);el('draft-status').textContent=noteDirty.has(id)?'შენახვა საჭიროა':'ავტომატური შენახვა ჩართულია'}
+function showNotebook(){const id=lessonId(selected);el('new-note').value=notebookText(id);el('draft-status').textContent=noteDirty.has(id)?'შენახვა საჭიროა':'ავტომატური შენახვა ჩართულია';renderTimeBookmarks()}
 function captureNotebook(){
  const id=lessonId(selected);
  if(id==='none'||!user)return;
  const value=el('new-note').value;
  if(value===notebookText(id))return;
  notebooks.set(id,value);noteDirty.add(id);write(notebookKey(id),value);
+ renderTimeBookmarks();
  scheduleNotebookSave(id);
 }
 let notebookTimer=null;
@@ -361,6 +414,7 @@ async function initAuth(){
   if(!data){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
   el('auth-container').replaceChildren();
   await loadCurriculumForStudent();
+  await loadLearningProgress();
   el('course-content').classList.remove('lt-access-hidden');
   await fetchNotes();
   await loadSecureVideo();
@@ -371,20 +425,23 @@ function renderLesson(preserveDraft=false){
  const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
  el('breadcrumb').textContent=(l.module||'TRADER\'S ACADEMY').toLocaleUpperCase('ka')+' / LEARNING TERMINAL';
  el('video-duration').textContent=l.duration!=='0:00'?'ხანგრძლივობა: '+l.duration:'';el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
+ refreshLearningProgress();
  const target=el('lesson-list');target.replaceChildren();
+ const search=el('lesson-filter').value.trim().toLocaleLowerCase('ka');
  const groups=[];
  lessons.forEach((lesson,index)=>{
    let group=groups.find(g=>g.id===lesson.moduleId);
    if(!group){group={id:lesson.moduleId,title:lesson.module||'მოდული',items:[]};groups.push(group)}
-   group.items.push({lesson,index});
+   if(!search||(lesson.title+' '+lesson.module).toLocaleLowerCase('ka').includes(search))group.items.push({lesson,index});
  });
- el('module-summary').textContent=groups.length+' მოდული · '+lessons.length+' გაკვეთილი';
+ const visibleGroups=groups.filter(group=>group.items.length);
+ el('module-summary').textContent=search?visibleGroups.reduce((n,g)=>n+g.items.length,0)+' შედეგი':groups.length+' მოდული · '+lessons.length+' გაკვეთილი';
  const currentModuleId=lessons[selected]?.moduleId;
  if(expandedModuleId!==null&&!groups.some(g=>g.id===expandedModuleId))expandedModuleId=currentModuleId||groups[0]?.id||null;
- groups.forEach((group,groupIndex)=>{
+ visibleGroups.forEach((group,groupIndex)=>{
    const panel=document.createElement('div');panel.className='lt-module';
    const head=document.createElement('button');head.type='button';head.className='lt-module-head';
-   const isOpen=expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));panel.classList.toggle('lt-module-open',isOpen);
+   const isOpen=Boolean(search)||expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));panel.classList.toggle('lt-module-open',isOpen);
    const contentId='lt-module-'+groupIndex;head.setAttribute('aria-controls',contentId);
    const name=document.createElement('span');name.className='lt-module-name';name.textContent=String(groupIndex+1).padStart(2,'0')+' · '+group.title;
    const count=document.createElement('span');count.className='lt-module-count';count.textContent=group.items.length+' გაკვეთილი';
@@ -398,13 +455,30 @@ function renderLesson(preserveDraft=false){
      const num=document.createElement('span');num.className='lt-number';num.textContent=String(group.items.findIndex(x=>x.index===index)+1).padStart(2,'0');
      const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=lesson.title;
      const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration==='0:00'?'':lesson.duration;info.append(title,time);b.append(num,info);
+     if(progress.get(lesson.id)?.completed){const check=document.createElement('span');check.className='lt-lesson-completed';check.textContent='✓';check.title='დასრულებული';b.append(check)}
      b.addEventListener('click',()=>chooseLesson(index));content.append(b);
    });
    panel.append(head,content);target.append(panel);
  });
  if(!preserveDraft)showNotebook()
 }
-function chooseLesson(i){if(!lessons[i])return;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;write('lesson',i);renderLesson();loadSecureVideo()}
+function chooseLesson(i){if(!lessons[i])return;captureNotebook();selected=i;expandedModuleId=lessons[i].moduleId;el('lesson-filter').value='';write('lesson',i);renderLesson();loadSecureVideo();updateLearningProgress(lessonId(selected),{})}
+function renderTimeBookmarks(){
+ const container=el('note-time-links');container.replaceChildren();
+ const entries=[...el('new-note').value.matchAll(/\\[(\\d{1,2}:)?\\d{1,2}:\\d{2}\\]/g)].slice(0,80);
+ for(const entry of entries){
+   const time=entry[0].slice(1,-1);
+   const parts=time.split(':').map(Number);
+   if(parts.some(x=>!Number.isFinite(x)))continue;
+   const seconds=parts.reduce((sum,x)=>sum*60+x,0);
+   const button=document.createElement('button');
+   button.type='button';button.className='lt-time-link';button.textContent=time;
+   button.title='ვიდეოზე გადასვლა: '+time;
+   button.addEventListener('click',()=>seekToVideo(seconds));
+   container.append(button);
+ }
+ if(!container.children.length){const text=document.createElement('span');text.className='lt-notebook-help';text.textContent='⏱ ღილაკით დაამატე დროის ნიშნული';container.append(text)}
+}
 function insertNoteText(value){
  const input=el('new-note');const a=input.selectionStart,b=input.selectionEnd;
  input.setRangeText(value,a,b,'end');input.focus();captureNotebook();
@@ -455,6 +529,9 @@ el('export-notes').addEventListener('click',()=>{
  const blob=new Blob([(lessons[selected]||fallbackLesson).title+'\n\n'+(content||'ჩანაწერები არ არის')],{type:'text/plain;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
+el('lesson-filter').addEventListener('input',()=>renderLesson(true));
+el('complete-lesson').addEventListener('click',()=>updateLearningProgress(lessonId(selected),{completed:!progress.get(lessonId(selected))?.completed}));
+el('continue-lesson').addEventListener('click',()=>seekToVideo(progress.get(lessonId(selected))?.last_position_seconds||0));
 el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
 el('tab-notes').addEventListener('click',()=>switchTab('notes'));
 el('prev').addEventListener('click',()=>chooseLesson(Math.max(0,selected-1)));
