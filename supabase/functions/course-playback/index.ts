@@ -36,16 +36,22 @@ Deno.serve(async (req) => {
     const lessonId=body?.lesson_id;
     if(typeof lessonId!=="string" || !/^[0-9a-f-]{36}$/i.test(lessonId))return response("Invalid lesson",400);
     const {data:lesson,error:lessonError}=await userClient.from("course_lessons").select("id,module_id").eq("id",lessonId).maybeSingle();
-    if(lessonError||!lesson)return response("Lesson is not available",403);
-    const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
-    const {data:module,error:moduleError}=await admin.from("course_modules").select("course_id").eq("id",lesson.module_id).maybeSingle();
-    if(moduleError||!module)return response("Lesson is not available",404);
+    if(lessonError){console.error("Lesson lookup error:",lessonError.message);return response("Lesson lookup failed",500);}
+    if(!lesson)return response("Lesson is not available",403);
+    // The authenticated user already has RLS-limited visibility of the curriculum.
+    // Avoid a separate privileged client for the module read.
+    const {data:module,error:moduleError}=await userClient.from("course_modules").select("course_id").eq("id",lesson.module_id).maybeSingle();
+    if(moduleError){console.error("Module lookup error:",moduleError.message);return response("Module lookup failed",500);}
+    if(!module)return response("Course module is not available",403);
     const {data:grant,error:grantError}=await userClient.from("course_enrollments")
       .select("course_id").eq("course_id",module.course_id).eq("user_id",auth.user.id).maybeSingle();
-    if(grantError||!grant)return response("No course access",403);
+    if(grantError){console.error("Enrollment lookup error:",grantError.message);return response("Enrollment lookup failed",500);}
+    if(!grant)return response("No course access",403);
+    const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
     const {data:video,error:videoError}=await admin.from("course_lesson_videos")
       .select("bunny_video_id").eq("lesson_id",lessonId).maybeSingle();
-    if(videoError||!video)return response("Video is not attached",404);
+    if(videoError){console.error("Video lookup error:",videoError.message);return response("Video lookup failed",500);}
+    if(!video)return response("Video is not attached",404);
     const videoId=video.bunny_video_id;
     const expires=Math.floor(Date.now()/1000)+3600;
     const toSign=new TextEncoder().encode(signingKey+videoId+String(expires));
