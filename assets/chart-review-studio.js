@@ -15,6 +15,8 @@ function normalize(objects){
 }
 function open(options){
  if(current)current.destroy();
+ let storedMM=null;
+ try{storedMM=JSON.parse(localStorage.getItem('ta-chart-mm-settings-v1')||'null')}catch{}
  const host=options.mount;
  host.replaceChildren();
  host.style.cssText='flex:1;min-height:200px;display:flex;flex-direction:column;min-width:0;overflow:hidden';
@@ -35,8 +37,8 @@ function open(options){
  const image=new Image();
  const state={objects:normalize(options.objects),tool:'hand',color:PALETTE[0],width:3,
    selected:-1,zoom:1,ox:0,oy:0,active:null,preview:null,undo:[],redo:[],
-   mmLevels:Array.isArray(options.mmLevels)&&options.mmLevels.length===3?options.mmLevels.slice():[1,.5,0],
-   mmOpacity:.10,keysDown:new Set(),pointers:new Map(),pinch:null,dirty:false,disposed:false};
+   mmLevels:Array.isArray(options.mmLevels)&&options.mmLevels.length===3?options.mmLevels.slice():Array.isArray(storedMM?.levels)&&storedMM.levels.length===3?storedMM.levels.slice():[1,.5,0],
+   mmOpacity:typeof storedMM?.opacity==='number'?storedMM.opacity:.10,keysDown:new Set(),pointers:new Map(),pinch:null,dirty:false,disposed:false};
  const ctx=canvas.getContext('2d',{alpha:false});
  const writable=!options.readOnly&&typeof options.onSave==='function';
  let imageReady=false, resize=null;
@@ -79,7 +81,7 @@ function open(options){
    const input=document.createElement('input');input.type='number';input.step='.05';input.min='-3';input.max='3';input.value=String(state.mmLevels[i]);
    input.addEventListener('change',()=>{
      let n=Number(input.value);if(!Number.isFinite(n)||n < -3||n>3){input.value=String(state.mmLevels[i]);return}
-     state.mmLevels[i]=n;
+     state.mmLevels[i]=n;persistMM();
      if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){
        record();state.objects[state.selected].levels=state.mmLevels.slice();state.dirty=true;draw();
      }
@@ -87,9 +89,10 @@ function open(options){
    row.append(input);mmPanel.append(row);levels.push(input);
  });
  const opacity=node('label','tce-field','ფონის გამჭვირვალობა');
- const opacityInput=document.createElement('input');opacityInput.type='range';opacityInput.min='0';opacityInput.max='45';opacityInput.value='10';
- opacityInput.oninput=()=>{state.mmOpacity=Number(opacityInput.value)/100;if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){record();state.objects[state.selected].opacity=state.mmOpacity;state.dirty=true;draw()}};
+ const opacityInput=document.createElement('input');opacityInput.type='range';opacityInput.min='0';opacityInput.max='45';opacityInput.value=String(Math.round(state.mmOpacity*100));
+ opacityInput.oninput=()=>{state.mmOpacity=Number(opacityInput.value)/100;persistMM();if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){record();state.objects[state.selected].opacity=state.mmOpacity;state.dirty=true;draw()}};
  opacity.append(opacityInput);mmPanel.append(opacity);right.append(mmPanel);
+ function persistMM(){try{localStorage.setItem('ta-chart-mm-settings-v1',JSON.stringify({levels:state.mmLevels,opacity:state.mmOpacity}))}catch{}}
  const spacer=node('div','tce-spacer');right.append(spacer);
  const fit=action('⊡ მორგება',fitImage,'სრული ჩარტი');
  const zoomOut=action('−',()=>zoomAt(.8,stage.clientWidth/2,stage.clientHeight/2),'შეამცირე');
@@ -157,6 +160,13 @@ function open(options){
    return false;
  }
  function pick(p){for(let i=state.objects.length-1;i>=0;i--)if(hit(p,state.objects[i]))return i;return -1}
+ function pickHandle(p,shape){
+   if(!shape||shape.points)return null;
+   const t=12/state.zoom;
+   if(Math.hypot(p.x-shape.a.x,p.y-shape.a.y)<t)return 'a';
+   if(Math.hypot(p.x-shape.b.x,p.y-shape.b.y)<t)return 'b';
+   return null;
+ }
  function drawShape(c,shape,selected){
    c.strokeStyle=shape.color||PALETTE[0];c.lineWidth=Number(shape.width)||3;c.lineCap='round';c.lineJoin='round';
    const a=shape.a,b=shape.b;
@@ -190,7 +200,11 @@ function open(options){
      if(shape.points){
        const xs=shape.points.map(x=>x.x),ys=shape.points.map(x=>x.y);
        c.strokeRect(Math.min(...xs)-7,Math.min(...ys)-7,Math.max(...xs)-Math.min(...xs)+14,Math.max(...ys)-Math.min(...ys)+14);
-     }else c.strokeRect(Math.min(a.x,b.x)-7,Math.min(a.y,b.y)-7,Math.abs(b.x-a.x)+14,Math.abs(b.y-a.y)+14);
+     }else {
+       c.strokeRect(Math.min(a.x,b.x)-7,Math.min(a.y,b.y)-7,Math.abs(b.x-a.x)+14,Math.abs(b.y-a.y)+14);
+       c.setLineDash([]);c.fillStyle='#fff';c.strokeStyle=shape.color||PALETTE[0];c.lineWidth=2;
+       for(const handle of [a,b]){c.beginPath();c.arc(handle.x,handle.y,5.5,0,Math.PI*2);c.fill();c.stroke()}
+     }
      c.restore();
    }
  }
@@ -265,7 +279,10 @@ function open(options){
    if(isPan||!writable){
      state.active={kind:'pan',screen};
    }else if(state.tool==='select'){
-     state.selected=pick(p);state.active=state.selected>=0?{kind:'move',screen,start:clone(state.objects[state.selected]),recorded:false}:null;sync();draw();
+     const oldSelected=state.selected;
+     const handle=oldSelected>=0?pickHandle(p,state.objects[oldSelected]):null;
+     if(!handle)state.selected=pick(p);
+     state.active=state.selected>=0?{kind:handle?'resize':'move',handle,screen,start:clone(state.objects[state.selected]),recorded:false}:null;sync();draw();
    }else{
      record();
      state.active={kind:'draw',start:p};
@@ -296,11 +313,14 @@ function open(options){
      const p=world(screen);
      if(state.preview.type==='pen')state.preview.points.push(p);else state.preview.b=p;
      draw();
-   }else if(state.active.kind==='move'){
+   }else if(state.active.kind==='move'||state.active.kind==='resize'){
      const selected=state.selected;if(selected<0)return;
      const dx=(screen.x-state.active.screen.x)/state.zoom,dy=(screen.y-state.active.screen.y)/state.zoom;
      if(!state.active.recorded&&(Math.abs(dx)+Math.abs(dy)>1)){record();state.active.recorded=true}
-     state.objects[selected]=clone(state.active.start);translate(state.objects[selected],dx,dy);
+     state.objects[selected]=clone(state.active.start);
+     if(state.active.kind==='resize'){
+       const p=world(screen);state.objects[selected][state.active.handle]=p;
+     }else translate(state.objects[selected],dx,dy);
      state.dirty=true;draw();
    }
  });
@@ -308,6 +328,9 @@ function open(options){
    state.pointers.delete(e.pointerId);
    if(state.pointers.size<2)state.pinch=null;
    if(state.pointers.size>0)return;
+   if(state.active?.kind==='resize'||state.active?.kind==='move'){
+     // The resize/move is already persisted in the vector model; it can be undone.
+   }
    if(state.active?.kind==='draw'&&state.preview){
      const shape=state.preview;
      const distance=shape.points?shape.points.length:Math.hypot(shape.a.x-shape.b.x,shape.a.y-shape.b.y);
