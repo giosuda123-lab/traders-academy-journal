@@ -53,7 +53,7 @@ function open(options){
    const b=node('button',cls||'tce-button',label);b.type='button';b.title=tip||label;b.onclick=fn;return b;
  }
  function tool(name,label,tip){
-   const b=action(label,()=>{state.tool=name;state.selected=-1;state.active=null;sync();draw()},tip,'tce-tool');
+   const b=action(label,()=>{hideContext();state.tool=name;state.selected=-1;state.active=null;sync();draw()},tip,'tce-tool');
    b.dataset.tool=name;
    const captions={hand:'ხელი',select:'არჩევა',pen:'ფანქარი',line:'ტრენდი',arrow:'ისარი',rect:'ზონა',mm:'MM',text:'ტექსტი'};
    b.textContent='';b.append(node('span','tce-tool-icon',label),node('span','tce-tool-label',captions[name]||name));
@@ -92,7 +92,9 @@ function open(options){
    if(mmPanel.hidden){
      const anchor=settings.getBoundingClientRect(),bounds=root.getBoundingClientRect();
      mmPanel.style.left=Math.max(10,Math.min(root.clientWidth-390,anchor.left-bounds.left))+'px';
-     mmPanel.style.top=Math.max(55,(anchor.bottom||0)-bounds.top+6)+'px';
+     const popTop=Math.max(55,(anchor.bottom||0)-bounds.top+6);
+     mmPanel.style.top=popTop+'px';
+     mmPanel.style.maxHeight=Math.max(150,root.clientHeight-popTop-12)+'px';
    }
    mmPanel.hidden=!mmPanel.hidden;
  });
