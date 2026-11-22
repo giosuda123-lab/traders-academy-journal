@@ -2030,6 +2030,12 @@
       <div id="tj-analytics-sections">
         <div data-section="overview">
           <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;"><div style="font-size:13px; font-weight:500;">ძირითადი მაჩვენებლები</div>${sampleBadge(n)}</div>
+          <div class="tj-panelcard" style="padding:13px 16px;margin-bottom:18px;">
+            <div style="font-size:12px;color:var(--tj-text2);margin-bottom:9px;">ბაზრის ტიპი — ტრეიდების განაწილება</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${groupWinRate(closed,t=>t.marketTags,true).sort((a,b)=>b.n-a.n).slice(0,7).map(row=>`<span class="tj-badge">${escapeHtml(row.key)} · ${row.n} ტრეიდი</span>`).join('')||'<span style="font-size:12px;color:var(--tj-text3)">ბაზრის ტიპი ჯერ არ არის მონიშნული</span>'}
+            </div>
+          </div>
           <div class="tj-kpi-grid" style="margin-bottom:20px;">
             ${metricCard('სულ ტრეიდი', n, `${wins.length}W / ${losses.length}L`, null, 0, {cat:'indigo', icon:'▤'})}
             ${metricCard('Win Rate', winRate+'%', '', null, 1, {cat:'violet', icon:'◎'})}
