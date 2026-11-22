@@ -124,3 +124,14 @@ padding:12px;background:#232A34;border:1px solid #c79c4e;border-radius:12px;box-
 .tce-contextmenu{background:linear-gradient(145deg,#303238,#202227)}
 .tce-tool.active{background:linear-gradient(120deg,#FFE29A,#F5C542)}
 .tce-save{background:linear-gradient(110deg,#FFE29A,#F5C542)}
+
+/* Neutral onyx workstation: gold is the tool highlight, not a brown tint */
+.tce{--gold:#F5C542;--panel:#1D1D1D;--line:#3D3D3D;--ink:#F7F7F4;background:#111;border-color:#555}
+.tce-bar,.tce-right{background:#202020}
+.tce-rail{background:linear-gradient(180deg,#262626,#1B1B1B);border-right-color:#454545}
+.tce-stage{background:#0D0D0D}
+.tce-tool.active{background:linear-gradient(125deg,#FFE29A,#F5C542);color:#161616;border-color:#FFE29A}
+.tce-contextmenu{background:#292929;border-color:#8C783F}
+.tce-mmsettings{background:#252525;border-color:#8C783F}
+.tce-mm-row{background:#303030;border-color:#484848}
+.tce-save{background:linear-gradient(110deg,#FFDE86,#F5C542);color:#161616;border-color:#F5C542}
