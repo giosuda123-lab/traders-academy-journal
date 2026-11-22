@@ -1,5 +1,5 @@
 /* Trader's Academy — Chart Review Studio: focused, calm, premium workbench */
-.tce{position:relative;--line:#373129;--gold:#FFD05A;--panel:#1a1714;--ink:#f4ede0;
+.tce{position:relative;--line:#373129;--gold:#F5C542;--panel:#1a1714;--ink:#f4ede0;
 display:flex;flex-direction:column;min-width:0;min-height:430px;height:min(88dvh,1000px);background:#0c0b0a;
 border:1px solid #57462f;border-radius:16px;overflow:hidden;color:var(--ink);
 font-family:Inter,system-ui,-apple-system,sans-serif;box-shadow:0 22px 85px #000a,inset 0 1px #ffffff09}
@@ -25,7 +25,7 @@ font:500 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;t
 .tce-save{position:sticky;right:0;z-index:2;margin-left:auto;background:var(--gold);color:#21170b;border-color:#ecc56f;font-weight:750;box-shadow:0 3px 10px #0004}
 .tce-save:hover{background:#f3ca69}
 .tce-workbench{display:flex;flex:1;min-height:0;min-width:0;background:#080807}
-.tce-rail{flex:0 0 71px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#302417,#1B150F);border-right:1px solid #3b3024;scrollbar-width:thin;scrollbar-color:#665438 transparent}
+.tce-rail{flex:0 0 71px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#292B2E,#191B1F);border-right:1px solid #3b3024;scrollbar-width:thin;scrollbar-color:#665438 transparent}
 .tce-tools{padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .tce-tool{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;width:54px;padding:5px 3px;background:transparent;border-color:transparent;border-radius:10px}
 .tce-tool-icon{font-size:20px;line-height:23px;font-weight:600}
@@ -40,7 +40,7 @@ font:500 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;t
 .tce-speed{min-height:34px;flex:none;border:1px solid #574938;border-radius:7px;background:#232B35;color:#decdb0;font:11px Inter,system-ui,sans-serif;padding:6px;cursor:pointer}
 .tce-speed option{background:#232B35;color:#decdb0}
 .tce-mmsettings{position:absolute;z-index:35;top:calc(100% - 1px);left:10px;
-width:min(380px,calc(100vw - 44px));max-height:min(65vh,640px);overflow-y:auto;background:#241B13;
+width:min(380px,calc(100vw - 44px));max-height:min(65vh,640px);overflow-y:auto;background:#222428;
 border:1px solid #b08c4d;border-radius:13px;padding:18px;box-shadow:0 22px 60px #000b;scrollbar-width:thin}
 .tce-mmsettings p{font-size:12px;line-height:1.55;color:#d1c1a8;margin:0 0 14px}
 .tce-mm-row{display:grid;grid-template-columns:20px minmax(0,1fr) 34px 36px;align-items:center;gap:10px;margin:7px 0;padding:7px;background:#312417;border:1px solid #463929;border-radius:8px}
@@ -54,18 +54,18 @@ border:1px solid #b08c4d;border-radius:13px;padding:18px;box-shadow:0 22px 60px 
 .tce-stage{position:relative;flex:1;min-width:0;min-height:250px;background:#090909;touch-action:none;overflow:hidden;outline:none}
 .tce-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 .tce-stage:focus-visible{box-shadow:inset 0 0 0 2px var(--gold)}
-.tce-contextmenu{position:absolute;z-index:30;min-width:195px;padding:6px;background:linear-gradient(145deg,#29313C,#221A12);
+.tce-contextmenu{position:absolute;z-index:30;min-width:195px;padding:6px;background:linear-gradient(145deg,#29313C,#202226);
 border:1px solid #927348;border-radius:11px;box-shadow:0 14px 38px #000c}
 .tce-context-action{display:flex;align-items:center;gap:12px;width:100%;min-height:39px;background:transparent;color:#eee1ca;border:0;border-radius:7px;padding:7px 12px;text-align:left;font:12px Inter,system-ui,sans-serif;cursor:pointer}
 .tce-context-action:hover:not(:disabled){background:#4a3b28}
 .tce-context-action:disabled{opacity:.4;cursor:not-allowed}
 .tce-context-action:last-child{color:#f39a94}
-.tce-context-icon{width:20px;text-align:center;font-size:16px;color:#FFD05A}
+.tce-context-icon{width:20px;text-align:center;font-size:16px;color:#F5C542}
 .tce-context-separator{height:1px;margin:4px 5px;background:#544431}
 .tce-text-editor{position:absolute;z-index:32;display:flex;flex-direction:column;gap:10px;width:min(320px,calc(100% - 18px));max-width:calc(100% - 18px);
 padding:12px;background:#232A34;border:1px solid #c79c4e;border-radius:12px;box-shadow:0 15px 45px #000e}
 .tce-text-input{display:block;width:100%;min-height:95px;padding:12px;border:1px solid #695331;border-radius:8px;background:#15120e;color:#f5eadd;font:600 14px/1.5 Inter,system-ui,sans-serif;resize:vertical}
-.tce-text-input:focus{outline:2px solid #FFD05A}
+.tce-text-input:focus{outline:2px solid #F5C542}
 .tce-text-actions{display:flex;justify-content:flex-end;gap:9px}
 .tce-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:39px;padding:9px 14px;border-top:1px solid var(--line);background:#141B24}
 .tce-hint{font-size:10.5px;color:#aa9a83}
@@ -95,21 +95,32 @@ padding:12px;background:#232A34;border:1px solid #c79c4e;border-radius:12px;box-
 @media(prefers-reduced-motion:reduce){.tce-button,.tce-tool,.tce-color{transition:none}}
 
 /* Vivid graphite/gold overrides — studio keeps its functional layout intact */
-.tce{--gold:#FFD05A;--panel:#211A13;--ink:#FAF8F1;--line:#544231;
- border-color:#715738;background:#100E0B;box-shadow:0 23px 65px #0009,0 0 40px rgba(255,208,90,.045)}
-.tce-bar{background:linear-gradient(110deg,#2B2117,#211A13)}
-.tce-rail{background:linear-gradient(180deg,#2A2117,#17120E)}
-.tce-stage{background:#0D0B09}
+.tce{--gold:#F5C542;--panel:#1B1D21;--ink:#FAF8F1;--line:#544231;
+ border-color:#715738;background:#101114;box-shadow:0 23px 65px #0009,0 0 40px rgba(255,208,90,.045)}
+.tce-bar{background:linear-gradient(110deg,#292B2E,#1B1D21)}
+.tce-rail{background:linear-gradient(180deg,#25282C,#181A1D)}
+.tce-stage{background:#0D0F12}
 .tce-tool.active{background:linear-gradient(125deg,#FFE49A,#FFC343)}
-.tce-contextmenu{background:linear-gradient(140deg,#332718,#221A12);border-color:#B18A47}
-.tce-mmsettings{background:#281E14;border-color:#C69B50}
+.tce-contextmenu{background:linear-gradient(140deg,#2E3034,#202226);border-color:#B18A47}
+.tce-mmsettings{background:#25282C;border-color:#C69B50}
 .tce-save{background:linear-gradient(120deg,#FFDD82,#FFC242);color:#211809}
 
 /* Gold-forward studio atmosphere */
-.tce{--panel:#211A13;--line:#59452F;border-color:#8A683B;background:#100D09}
-.tce-bar{background:linear-gradient(110deg,#342716,#211A12)}
-.tce-rail{background:linear-gradient(180deg,#362819,#1C150E)}
-.tce-right{background:#241C13}
-.tce-contextmenu{background:linear-gradient(145deg,#382919,#211911)}
-.tce-mmsettings{background:#2A2016}
-.tce-stage{background:#0D0B09}
+.tce{--panel:#1B1D21;--line:#47494D;border-color:#7C6642;background:#100D09}
+.tce-bar{background:linear-gradient(110deg,#2A2C2F,#211A12)}
+.tce-rail{background:linear-gradient(180deg,#2C2E31,#191B1F)}
+.tce-right{background:#232529}
+.tce-contextmenu{background:linear-gradient(145deg,#303135,#1C1E21)}
+.tce-mmsettings{background:#26292D}
+.tce-stage{background:#0D0F12}
+
+/* Chart Review Studio — neutral, modern workstation with focused gold accents */
+.tce{--gold:#F5C542;--panel:#1B1D21;--line:#42464D;--ink:#FAFAF7;background:#101114;border-color:#54575B;box-shadow:0 20px 64px #0009}
+.tce-bar{background:linear-gradient(110deg,#25282D,#1B1D21)}
+.tce-right{background:#202227}
+.tce-rail{background:linear-gradient(180deg,#25282D,#191B1E)}
+.tce-stage{background:#0E1013}
+.tce-mmsettings{background:#25282D;border-color:#B3985D}
+.tce-contextmenu{background:linear-gradient(145deg,#303238,#202227)}
+.tce-tool.active{background:linear-gradient(120deg,#FFE29A,#F5C542)}
+.tce-save{background:linear-gradient(110deg,#FFE29A,#F5C542)}
