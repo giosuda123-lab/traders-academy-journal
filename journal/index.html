@@ -10,12 +10,12 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #101114; min-height: 100vh; }
+  html, body { margin: 0; padding: 0; background: #14120E; min-height: 100vh; }
   body { font-family: 'Inter', -apple-system, sans-serif; }
-  .tj { --tj-bg: #101114; --tj-panel: #1B1D21; --tj-panel2: #26292E; --tj-border: #454A50;
-    --tj-text: #FAF8F1; --tj-text2: #CFD1D3; --tj-text3: #A6AAAE;
-    --tj-accent: #F5C542; --tj-accent-light: #FFE4A0; --tj-accent-soft: #CC9A42;
-    --tj-green: #46D79A; --tj-red: #FA7880; --tj-amber: #F5B856;
+  .tj { --tj-bg: #14120E; --tj-panel: #1C1913; --tj-panel2: #221D16; --tj-border: #302A1F;
+    --tj-text: #F2EEE4; --tj-text2: #B4AB9A; --tj-text3: #8A8170;
+    --tj-accent: #E6B94D; --tj-accent-light: #F2D98A; --tj-accent-soft: #A9853C;
+    --tj-green: #5FA876; --tj-red: #C15D4C; --tj-amber: #D97D3D;
     /* motion system: consistent durations + one shared easing family across the app */
     --tj-ease: cubic-bezier(0.22,1,0.36,1);
     --tj-ease-in: cubic-bezier(0.4,0,1,1);
@@ -207,94 +207,6 @@
     .tj-kpi-grid { grid-template-columns:1fr 1fr; }
     .tj-table th:nth-child(n+7), .tj-table td:nth-child(n+7) { display:none; }
   }
-
-/* Vibrant Graphite / Gold visual refresh — no logic or chart data changes */
-.tj{background:
- radial-gradient(ellipse 920px 550px at 95% 0%,rgba(245,197,66,.06),transparent 72%),
- var(--tj-bg);color:var(--tj-text)}
-#tj-sidebar{background:linear-gradient(180deg,#202227 0%,#16181B 100%);
- border-right:1px solid rgba(255,208,90,.12)}
-#tj-sidebar-head{border-bottom-color:rgba(245,197,66,.12)}
-#tj-nav-indicator{background:linear-gradient(100deg,rgba(245,197,66,.15),rgba(255,208,90,.055))!important;
- border-color:rgba(255,208,90,.44)!important;box-shadow:inset 3px 0 0 var(--tj-accent)}
-.tj-nav-item:hover{background:rgba(255,208,90,.14)}
-.tj-nav-item.active{color:#FFF5D6}
-.tj-panelcard{background:linear-gradient(145deg,#272A30,#1B1D21 77%);
- border-color:rgba(230,195,138,.24);box-shadow:inset 0 1px 0 #ffffff08,0 12px 25px #0002}
-.tj-panelcard:hover{border-color:rgba(255,208,90,.3)}
-.tj :where(input,select,textarea){border-color:rgba(217,186,137,.28)}
-.tj :where(input,select,textarea):focus-visible{
- border-color:var(--tj-accent);box-shadow:0 0 0 3px rgba(255,208,90,.16);outline:none}
-.tj .tj-btn.primary{background:linear-gradient(115deg,#FFDA77,#FFC343)!important;
- border-color:#FFD66D!important;color:#21180B!important;font-weight:700!important;
- box-shadow:0 5px 20px rgba(255,194,56,.17),inset 0 1px 0 #fff6}
-.tj .tj-btn.primary:hover{box-shadow:0 9px 30px rgba(255,194,56,.24)}
-.tj .tj-badge{border-color:rgba(173,188,203,.15)}
-.tj ::selection{background:rgba(255,208,90,.31);color:#fff}
-@media(prefers-reduced-motion:reduce){.tj .tj-btn.primary{transition:none}}
-
-
-/* Refined neutral surfaces; no navy cast and no muddy bronze */
-.tj{--tj-bg:#101114;--tj-panel:#1B1D21;--tj-panel2:#26292E;--tj-border:#454A50;
---tj-text:#FAFAF7;--tj-text2:#CFD1D3;--tj-text3:#A6AAAE;
---tj-accent:#F5C542;--tj-accent-light:#FFE4A0;--tj-accent-soft:#C89B43;
-background:radial-gradient(ellipse 850px 480px at 90% -140px,rgba(245,197,66,.05),transparent 75%),var(--tj-bg)}
-#tj-sidebar{background:linear-gradient(180deg,#202226,#181A1D);border-right-color:rgba(195,200,205,.14)}
-#tj-nav-indicator{background:linear-gradient(100deg,rgba(245,197,66,.16),rgba(245,197,66,.04))!important;border-color:rgba(245,197,66,.45)!important;box-shadow:inset 3px 0 0 var(--tj-accent)}
-.tj-panelcard{background:linear-gradient(145deg,#272A30,#1B1D21 80%);border-color:rgba(185,192,202,.17)}
-.tj-panelcard:hover{border-color:rgba(245,197,66,.31)}
-.tj .tj-btn.primary{background:linear-gradient(115deg,#FBE095,#F5C542)!important;border-color:#F5C542!important;color:#211B0E!important;box-shadow:0 4px 16px rgba(245,197,66,.14)}
-.tj .tj-btn.primary:hover{box-shadow:0 8px 22px rgba(245,197,66,.2)}
-
-/* ===== Gold Canvas: journal has a real gold application background ===== */
-html,body{background:#C49A42!important}
-.tj{
- --tj-bg:#CAA04A;--tj-panel:#171717;--tj-panel2:#252525;
- --tj-border:rgba(247,215,122,.25);
- --tj-text:#F8F5EE;--tj-text2:#DBD6CD;--tj-text3:#B9B3A8;
- --tj-accent:#F7D77A;--tj-accent-light:#FFE8AD;--tj-accent-soft:#D9A848;
- background:linear-gradient(155deg,#E5C16A 0%,#CDA24B 48%,#A97D2F 100%)!important;
- background-attachment:fixed!important;
-}
-#tj-shell{background:transparent}
-#tj-sidebar{
- background:linear-gradient(180deg,#211E19,#151515)!important;
- border-right:1px solid rgba(255,226,148,.34);
- box-shadow:7px 0 24px rgba(47,29,8,.18)
-}
-#tj-sidebar-head,#tj-sidebar-foot{border-color:rgba(255,226,148,.22)}
-#tj-main{background:transparent}
-#tj-topbar{
- background:rgba(20,20,20,.94)!important;
- color:#F8F5EE;
- border-bottom:1px solid rgba(255,228,155,.36)!important;
- box-shadow:0 6px 16px rgba(63,38,7,.14)
-}
-#tj-body{
- margin:18px 22px 32px;
- padding:24px 26px 40px;
- min-height:calc(100vh - 145px);
- border-radius:15px;
- color:var(--tj-text);
- background:linear-gradient(148deg,rgba(22,22,22,.96),rgba(29,27,23,.97));
- border:1px solid rgba(255,228,163,.32);
- box-shadow:0 16px 42px rgba(57,37,9,.22),inset 0 1px rgba(255,255,255,.035);
-}
-.tj-panelcard{background:linear-gradient(145deg,#292824,#1E1E1D)!important;border-color:rgba(247,215,122,.19)!important}
-.tj-panelcard:hover{border-color:rgba(247,215,122,.51)!important}
-#tj-nav-indicator{
- background:linear-gradient(105deg,rgba(247,215,122,.30),rgba(247,215,122,.07))!important;
- border-color:rgba(247,215,122,.63)!important;
- box-shadow:inset 3px 0 0 #F7D77A
-}
-.tj-nav-item.active{color:#FFE9A8}
-.tj .tj-btn.primary{background:linear-gradient(110deg,#FFE7A3,#EBB94C)!important;color:#171717!important;
- border-color:#FFE6A0!important;box-shadow:0 6px 20px rgba(247,215,122,.19)!important}
-.tj .tj-btn.primary:hover{background:linear-gradient(110deg,#FFF0C4,#F7D77A)!important}
-.tj input,.tj select,.tj textarea{background:#272727;border-color:#514A3F;color:#F8F5EE}
-@media(max-width:760px){
- #tj-body{margin:10px;padding:18px 14px 30px;min-height:calc(100vh - 125px);border-radius:12px}
-}
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
