@@ -85,7 +85,17 @@ function open(options){
  const fontSizeInput=document.createElement('input');fontSizeInput.type='number';fontSizeInput.min='12';fontSizeInput.max='64';fontSizeInput.value='20';fontSizeInput.className='tce-font-size';fontSizeInput.title='ტექსტის ზომა';
  fontSizeInput.onchange=()=>{const n=Number(fontSizeInput.value);state.fontSize=Math.max(12,Math.min(64,Number.isFinite(n)?n:20));fontSizeInput.value=state.fontSize;if(state.selected>=0&&state.objects[state.selected]?.type==='text'&&writable){record();state.objects[state.selected].fontSize=state.fontSize;state.dirty=true;draw()}};
  fontSizeControl.append(fontSizeInput);right.append(fontSizeControl);
- const settings=action('⚙ MM პარამეტრები',()=>{if(mmPanel.hidden&&state.selected>=0&&state.objects[state.selected]?.type==='mm'){state.mmLevels=mmLevelList(state.objects[state.selected].levels);renderLevels()}mmPanel.hidden=!mmPanel.hidden});
+ const settings=action('⚙ MM პარამეტრები',()=>{
+   if(mmPanel.hidden&&state.selected>=0&&state.objects[state.selected]?.type==='mm'){
+     state.mmLevels=mmLevelList(state.objects[state.selected].levels);renderLevels();
+   }
+   if(mmPanel.hidden){
+     const anchor=settings.getBoundingClientRect(),bounds=root.getBoundingClientRect();
+     mmPanel.style.left=Math.max(10,Math.min(root.clientWidth-390,anchor.left-bounds.left))+'px';
+     mmPanel.style.top=Math.max(55,(anchor.bottom||0)-bounds.top+6)+'px';
+   }
+   mmPanel.hidden=!mmPanel.hidden;
+ });
  right.append(settings);
  const mmPanel=node('div','tce-mmsettings');mmPanel.hidden=true;
  const mmHelp=node('p','','MM — დონის დამატება/ამოღება, ხილვადობა და ფერი. რიცხვები ჩარტზე არ გამოისახება.');
@@ -123,7 +133,7 @@ function open(options){
  const opacity=node('label','tce-field','ფონის გამჭვირვალობა');
  const opacityInput=document.createElement('input');opacityInput.type='range';opacityInput.min='0';opacityInput.max='45';opacityInput.value=String(Math.round(state.mmOpacity*100));
  opacityInput.oninput=()=>{state.mmOpacity=Number(opacityInput.value)/100;persistMM();if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){record();state.objects[state.selected].opacity=state.mmOpacity;state.dirty=true;draw()}};
- opacity.append(opacityInput);mmPanel.append(opacity);right.append(mmPanel);
+ opacity.append(opacityInput);mmPanel.append(opacity);root.append(mmPanel);
  function persistMM(){try{localStorage.setItem('ta-chart-mm-settings-v1',JSON.stringify({levels:state.mmLevels,opacity:state.mmOpacity}))}catch{}}
  const spacer=node('div','tce-spacer');right.append(spacer);
  const fit=action('⊡ მორგება',fitImage,'სრული ჩარტი');
@@ -301,7 +311,7 @@ function open(options){
    contextMenu.hidden=false;
  }
  stage.addEventListener('contextmenu',e=>{
-   if(!imageReady)return;
+   if(!imageReady||e.target!==canvas)return;
    e.preventDefault();
    const at=coords(e),p=world(at);
    const i=pick(p);
