@@ -180,6 +180,41 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 .lt-studytrack span{background:linear-gradient(90deg,#E4AF2B,#F5C542)}
 .lt-btn{background:rgba(245,197,66,.13);border-color:rgba(245,197,66,.48)}
 .lt-btn:hover:not(:disabled){background:rgba(245,197,66,.22)}
+
+/* ===== Gold Canvas — Learning Terminal keeps its video area dark ===== */
+html,body{
+ min-height:100%;
+ background:
+   radial-gradient(ellipse 790px 540px at 20% 8%,rgba(255,251,223,.32),transparent 70%),
+   linear-gradient(155deg,#E5C16A,#CDA24B 52%,#A97D2F)!important;
+}
+.lt{
+ max-width:1540px;
+ margin:20px auto 34px;
+ padding:24px clamp(15px,2.2vw,32px) 52px;
+ background:linear-gradient(150deg,rgba(22,22,22,.96),rgba(29,27,23,.96));
+ border:1px solid rgba(255,227,154,.34);
+ border-radius:18px;
+ box-shadow:0 16px 48px rgba(48,29,7,.24),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.lt-player{background:#101010;border-color:rgba(247,215,122,.42)}
+.lt-screen{background:radial-gradient(circle at 50% 45%,#29261E,#0F0F0F 74%)}
+.lt-sidebox{background:#1D1D1C;border:1px solid rgba(247,215,122,.24);box-shadow:0 12px 24px #0005}
+.lt-module{background:#20201F;border-color:#494136}
+.lt-module-head{background:#292724}
+.lt-module-head:hover{background:#343028}
+.lt-lesson{background:#292824;border-color:#484137}
+.lt-lesson:hover,.lt-lesson[aria-current=true]{background:#383227;border-color:#F7D77A;box-shadow:inset 3px 0 0 #F7D77A}
+.lt-tab[aria-selected=true]{background:rgba(247,215,122,.14);border-bottom-color:#F7D77A;color:#F7D77A}
+.lt-btn{background:rgba(247,215,122,.15);border-color:rgba(247,215,122,.65)}
+.lt-btn:hover:not(:disabled){background:rgba(247,215,122,.27)}
+.lt-studybar{background:linear-gradient(110deg,#383020,#201E1B)!important;border-color:rgba(247,215,122,.5)!important}
+.lt-studytrack{background:#4C4436}
+.lt-studytrack span{background:linear-gradient(90deg,#C79530,#FFE293)}
+.lt-input{background:#282725;border-color:#51483D}
+@media(max-width:800px){
+ .lt{margin:10px 10px 20px;padding:16px 12px 32px;border-radius:12px}
+}
 </style>
 </head>
 <body>
