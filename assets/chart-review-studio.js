@@ -29,14 +29,17 @@ function open(options){
  const heading=node('div','tce-brand');
  heading.append(node('strong','','CHART REVIEW'),node('span','','STUDIO'));
  const toolbar=node('div','tce-tools');
- bar.append(heading,toolbar);
+ bar.append(heading);
  const right=node('div','tce-right');
  const stage=node('div','tce-stage');
  stage.tabIndex=0;stage.setAttribute('aria-label','ინტერაქტიული ჩარტის რედაქტორი');
  const canvas=document.createElement('canvas');
  stage.append(canvas);
  const bottombar=node('div','tce-footer');
- root.append(bar,right,stage,bottombar);
+ const workbench=node('div','tce-workbench');
+ const toolRail=node('div','tce-rail');toolRail.append(toolbar);
+ workbench.append(toolRail,stage);
+ root.append(bar,right,workbench,bottombar);
  const image=new Image();
  const state={objects:normalize(options.objects),tool:'hand',color:PALETTE[0],width:3,
    selected:-1,zoom:1,ox:0,oy:0,active:null,preview:null,undo:[],redo:[],
@@ -51,7 +54,10 @@ function open(options){
  }
  function tool(name,label,tip){
    const b=action(label,()=>{state.tool=name;state.selected=-1;state.active=null;sync();draw()},tip,'tce-tool');
-   b.dataset.tool=name;toolbar.append(b);return b;
+   b.dataset.tool=name;
+   const captions={hand:'ხელი',select:'არჩევა',pen:'ფანქარი',line:'ტრენდი',arrow:'ისარი',rect:'ზონა',mm:'MM',text:'ტექსტი'};
+   b.textContent='';b.append(node('span','tce-tool-icon',label),node('span','tce-tool-label',captions[name]||name));
+   b.setAttribute('aria-label',tip||label);toolbar.append(b);return b;
  }
  tool('hand','✋','გადაადგილება (H ან Space)');
  tool('select','↖','ობიექტის არჩევა/გადაწევა (V)');
@@ -75,6 +81,10 @@ function open(options){
  const strokeInput=document.createElement('input');strokeInput.type='range';strokeInput.min='1';strokeInput.max='12';strokeInput.value='3';
  strokeInput.oninput=()=>{state.width=Number(strokeInput.value);strokeValue.textContent=strokeInput.value;if(state.selected>=0&&writable){state.objects[state.selected].width=state.width;state.dirty=true;draw()}};
  const strokeValue=node('span','', '3');stroke.append(strokeInput,strokeValue);right.append(stroke);
+ const fontSizeControl=node('label','tce-width','ტექსტი ');
+ const fontSizeInput=document.createElement('input');fontSizeInput.type='number';fontSizeInput.min='12';fontSizeInput.max='64';fontSizeInput.value='20';fontSizeInput.className='tce-font-size';fontSizeInput.title='ტექსტის ზომა';
+ fontSizeInput.onchange=()=>{const n=Number(fontSizeInput.value);state.fontSize=Math.max(12,Math.min(64,Number.isFinite(n)?n:20));fontSizeInput.value=state.fontSize;if(state.selected>=0&&state.objects[state.selected]?.type==='text'&&writable){record();state.objects[state.selected].fontSize=state.fontSize;state.dirty=true;draw()}};
+ fontSizeControl.append(fontSizeInput);right.append(fontSizeControl);
  const settings=action('⚙ MM პარამეტრები',()=>{if(mmPanel.hidden&&state.selected>=0&&state.objects[state.selected]?.type==='mm'){state.mmLevels=mmLevelList(state.objects[state.selected].levels);renderLevels()}mmPanel.hidden=!mmPanel.hidden});
  right.append(settings);
  const mmPanel=node('div','tce-mmsettings');mmPanel.hidden=true;
@@ -232,6 +242,7 @@ function open(options){
        c.moveTo(b.x,b.y);c.lineTo(b.x-len*Math.cos(angle+.5),b.y-len*Math.sin(angle+.5));c.stroke();
      }
    }else if(shape.type==='rect'){
+     c.save();c.globalAlpha=.09;c.fillStyle=shape.color||PALETTE[0];c.fillRect(a.x,a.y,b.x-a.x,b.y-a.y);c.restore();
      c.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);
    }else if(shape.type==='mm'){
      // MM is a chart-image measurement tool, not a Fibonacci calculation.
@@ -368,8 +379,9 @@ function open(options){
    zoomVal.textContent=Math.round(state.zoom*100)+'%';
    undoBtn.disabled=!writable||!state.undo.length;redoBtn.disabled=!writable||!state.redo.length;
    deleteBtn.disabled=duplicateBtn.disabled=!writable||state.selected<0;
-   stage.style.cursor=state.tool==='hand'?'grab':state.tool==='select'?'default':'crosshair';
+   canvas.style.cursor=state.tool==='hand'?'grab':state.tool==='select'?'default':'crosshair';
    if(!writable)toolbar.querySelectorAll('[data-tool]').forEach(b=>{if(b.dataset.tool!=='hand'&&b.dataset.tool!=='select')b.disabled=true});
+   fontSizeControl.style.display=state.tool==='text'||state.objects[state.selected]?.type==='text'?'flex':'none';
  }
  async function copyImage(){
    try{
