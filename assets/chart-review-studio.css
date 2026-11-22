@@ -1,5 +1,5 @@
 /* Trader's Academy — Chart Review Studio: focused, calm, premium workbench */
-.tce{--line:#373129;--gold:#e6b94d;--panel:#1a1714;--ink:#f4ede0;
+.tce{position:relative;--line:#373129;--gold:#e6b94d;--panel:#1a1714;--ink:#f4ede0;
 display:flex;flex-direction:column;min-width:0;min-height:430px;height:min(88dvh,1000px);background:#0c0b0a;
 border:1px solid #57462f;border-radius:16px;overflow:hidden;color:var(--ink);
 font-family:Inter,system-ui,-apple-system,sans-serif;box-shadow:0 22px 85px #000a,inset 0 1px #ffffff09}
@@ -22,7 +22,7 @@ font:500 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;t
 .tce-button:active:not(:disabled),.tce-tool:active:not(:disabled){transform:scale(.98)}
 .tce-button:focus-visible,.tce-tool:focus-visible,.tce-save:focus-visible,.tce-color:focus-visible,.tce-context-action:focus-visible{outline:2px solid #ffdf8c;outline-offset:2px}
 .tce-button:disabled,.tce-tool:disabled{opacity:.35;cursor:default}
-.tce-save{margin-left:auto;background:var(--gold);color:#21170b;border-color:#ecc56f;font-weight:750;box-shadow:0 3px 10px #0004}
+.tce-save{position:sticky;right:0;z-index:2;margin-left:auto;background:var(--gold);color:#21170b;border-color:#ecc56f;font-weight:750;box-shadow:0 3px 10px #0004}
 .tce-save:hover{background:#f3ca69}
 .tce-workbench{display:flex;flex:1;min-height:0;min-width:0;background:#080807}
 .tce-rail{flex:0 0 71px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#201b15,#171410);border-right:1px solid #3b3024;scrollbar-width:thin;scrollbar-color:#665438 transparent}
