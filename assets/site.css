@@ -4,13 +4,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg: #0C0E12;
-  --panel: #15191F;
-  --panel2: #1E242C;
-  --border: #343B45;
+  --bg: #110F0D;
+  --panel: #201A14;
+  --panel2: #2A2219;
+  --border: #574735;
   --text: #FAF8F1;
-  --text2: #CCD1D4;
-  --text3: #9CA6B2;
+  --text2: #E2D4BB;
+  --text3: #B6A388;
   --accent: #FFD05A;
   --accent-rgb: 255,208,90;
   --accent-deep: #E6A923;
@@ -53,7 +53,7 @@ a { color: inherit; }
 /* ===== ნავიგაცია ===== */
 .nav {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(13,16,22,0.86);
+  background: rgba(21,17,13,0.88);
   backdrop-filter: blur(10px);
   border-bottom: 0.5px solid var(--border);
   transition: box-shadow 0.3s var(--ta-ease), border-color 0.3s var(--ta-ease);
@@ -405,7 +405,7 @@ textarea.input { resize: vertical; }
 
 /* ===== VIBRANT GOLD 2026: same brand, modern contrast and restrained glow ===== */
 body{
-  background:radial-gradient(ellipse 1050px 520px at 78% -160px,rgba(255,208,90,.075),transparent 74%),var(--bg);
+  background:radial-gradient(ellipse 1050px 520px at 78% -160px,rgba(255,208,90,.13),transparent 74%),var(--bg);
 }
 .nav{
   -webkit-backdrop-filter:blur(20px) saturate(145%);
@@ -423,13 +423,13 @@ body{
   box-shadow:0 7px 30px rgba(255,190,64,.13),inset 0 1px 0 rgba(255,238,187,.15);
 }
 .card{
-  background:linear-gradient(145deg,rgba(29,35,44,.92),var(--panel) 77%);
-  border:1px solid rgba(155,171,190,.16);
+  background:linear-gradient(145deg,rgba(54,42,27,.92),var(--panel) 77%);
+  border:1px solid rgba(230,192,127,.18);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 12px 32px rgba(0,0,0,.15);
 }
 .card:hover{border-color:rgba(255,208,90,.47);box-shadow:0 18px 45px #0006,0 0 32px rgba(255,208,90,.065)}
 .input,.field-input,input.input,textarea.input,select.input{
-  border-color:rgba(150,164,181,.24);
+  border-color:rgba(202,171,124,.25);
   transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
 }
 .input:focus-visible,select.input:focus-visible,textarea.input:focus-visible{
@@ -439,3 +439,9 @@ body{
 ::selection{background:rgba(var(--accent-rgb),.3);color:var(--text)}
 :focus-visible{outline-color:var(--accent)}
 @media(prefers-reduced-motion:reduce){.card,.btn,.input{transition:none}}
+
+/* Warm gold-first balance: no navy cast on application chrome */
+:root{color-scheme:dark}
+.nav{background:rgba(21,17,13,.88)}
+.btn-primary{background:linear-gradient(110deg,rgba(255,208,90,.26),rgba(201,143,42,.11))}
+.card{border-color:rgba(230,188,118,.21)}

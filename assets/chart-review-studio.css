@@ -25,7 +25,7 @@ font:500 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;t
 .tce-save{position:sticky;right:0;z-index:2;margin-left:auto;background:var(--gold);color:#21170b;border-color:#ecc56f;font-weight:750;box-shadow:0 3px 10px #0004}
 .tce-save:hover{background:#f3ca69}
 .tce-workbench{display:flex;flex:1;min-height:0;min-width:0;background:#080807}
-.tce-rail{flex:0 0 71px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#202832,#151B23);border-right:1px solid #3b3024;scrollbar-width:thin;scrollbar-color:#665438 transparent}
+.tce-rail{flex:0 0 71px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(180deg,#302417,#1B150F);border-right:1px solid #3b3024;scrollbar-width:thin;scrollbar-color:#665438 transparent}
 .tce-tools{padding:11px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .tce-tool{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;width:54px;padding:5px 3px;background:transparent;border-color:transparent;border-radius:10px}
 .tce-tool-icon{font-size:20px;line-height:23px;font-weight:600}
@@ -40,10 +40,10 @@ font:500 12px/1.2 Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap;t
 .tce-speed{min-height:34px;flex:none;border:1px solid #574938;border-radius:7px;background:#232B35;color:#decdb0;font:11px Inter,system-ui,sans-serif;padding:6px;cursor:pointer}
 .tce-speed option{background:#232B35;color:#decdb0}
 .tce-mmsettings{position:absolute;z-index:35;top:calc(100% - 1px);left:10px;
-width:min(380px,calc(100vw - 44px));max-height:min(65vh,640px);overflow-y:auto;background:#1C232C;
+width:min(380px,calc(100vw - 44px));max-height:min(65vh,640px);overflow-y:auto;background:#241B13;
 border:1px solid #b08c4d;border-radius:13px;padding:18px;box-shadow:0 22px 60px #000b;scrollbar-width:thin}
 .tce-mmsettings p{font-size:12px;line-height:1.55;color:#d1c1a8;margin:0 0 14px}
-.tce-mm-row{display:grid;grid-template-columns:20px minmax(0,1fr) 34px 36px;align-items:center;gap:10px;margin:7px 0;padding:7px;background:#292319;border:1px solid #463929;border-radius:8px}
+.tce-mm-row{display:grid;grid-template-columns:20px minmax(0,1fr) 34px 36px;align-items:center;gap:10px;margin:7px 0;padding:7px;background:#312417;border:1px solid #463929;border-radius:8px}
 .tce-mm-row input[type=checkbox]{accent-color:var(--gold);width:15px;height:15px;cursor:pointer}
 .tce-mm-row input[type=number]{min-width:0;width:100%;padding:7px 8px;color:#fff;background:#181410;border:1px solid #60513d;border-radius:6px;font:12px Inter,sans-serif}
 .tce-mm-row input[type=color]{width:29px;height:28px;border:0;padding:0;background:none;cursor:pointer}
@@ -54,7 +54,7 @@ border:1px solid #b08c4d;border-radius:13px;padding:18px;box-shadow:0 22px 60px 
 .tce-stage{position:relative;flex:1;min-width:0;min-height:250px;background:#090909;touch-action:none;overflow:hidden;outline:none}
 .tce-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 .tce-stage:focus-visible{box-shadow:inset 0 0 0 2px var(--gold)}
-.tce-contextmenu{position:absolute;z-index:30;min-width:195px;padding:6px;background:linear-gradient(145deg,#29313C,#18202A);
+.tce-contextmenu{position:absolute;z-index:30;min-width:195px;padding:6px;background:linear-gradient(145deg,#29313C,#221A12);
 border:1px solid #927348;border-radius:11px;box-shadow:0 14px 38px #000c}
 .tce-context-action{display:flex;align-items:center;gap:12px;width:100%;min-height:39px;background:transparent;color:#eee1ca;border:0;border-radius:7px;padding:7px 12px;text-align:left;font:12px Inter,system-ui,sans-serif;cursor:pointer}
 .tce-context-action:hover:not(:disabled){background:#4a3b28}
@@ -95,12 +95,21 @@ padding:12px;background:#232A34;border:1px solid #c79c4e;border-radius:12px;box-
 @media(prefers-reduced-motion:reduce){.tce-button,.tce-tool,.tce-color{transition:none}}
 
 /* Vivid graphite/gold overrides — studio keeps its functional layout intact */
-.tce{--gold:#FFD05A;--panel:#171E27;--ink:#FAF8F1;--line:#39424D;
- border-color:#57616C;background:#0C1016;box-shadow:0 23px 65px #0009,0 0 40px rgba(255,208,90,.045)}
-.tce-bar{background:linear-gradient(110deg,#1E2630,#171E27)}
-.tce-rail{background:linear-gradient(180deg,#212B37,#141B25)}
-.tce-stage{background:#090C10}
+.tce{--gold:#FFD05A;--panel:#211A13;--ink:#FAF8F1;--line:#544231;
+ border-color:#715738;background:#100E0B;box-shadow:0 23px 65px #0009,0 0 40px rgba(255,208,90,.045)}
+.tce-bar{background:linear-gradient(110deg,#2B2117,#211A13)}
+.tce-rail{background:linear-gradient(180deg,#2A2117,#17120E)}
+.tce-stage{background:#0D0B09}
 .tce-tool.active{background:linear-gradient(125deg,#FFE49A,#FFC343)}
-.tce-contextmenu{background:linear-gradient(140deg,#2A3441,#1B222C);border-color:#8E7543}
-.tce-mmsettings{background:#1D2630;border-color:#AD8B4C}
+.tce-contextmenu{background:linear-gradient(140deg,#332718,#221A12);border-color:#B18A47}
+.tce-mmsettings{background:#281E14;border-color:#C69B50}
 .tce-save{background:linear-gradient(120deg,#FFDD82,#FFC242);color:#211809}
+
+/* Gold-forward studio atmosphere */
+.tce{--panel:#211A13;--line:#59452F;border-color:#8A683B;background:#100D09}
+.tce-bar{background:linear-gradient(110deg,#342716,#211A12)}
+.tce-rail{background:linear-gradient(180deg,#362819,#1C150E)}
+.tce-right{background:#241C13}
+.tce-contextmenu{background:linear-gradient(145deg,#382919,#211911)}
+.tce-mmsettings{background:#2A2016}
+.tce-stage{background:#0D0B09}
