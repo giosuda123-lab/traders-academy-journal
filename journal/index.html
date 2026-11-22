@@ -10,12 +10,12 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #14120E; min-height: 100vh; }
+  html, body { margin: 0; padding: 0; background: #0C0E12; min-height: 100vh; }
   body { font-family: 'Inter', -apple-system, sans-serif; }
-  .tj { --tj-bg: #14120E; --tj-panel: #1C1913; --tj-panel2: #221D16; --tj-border: #302A1F;
-    --tj-text: #F2EEE4; --tj-text2: #B4AB9A; --tj-text3: #8A8170;
-    --tj-accent: #E6B94D; --tj-accent-light: #F2D98A; --tj-accent-soft: #A9853C;
-    --tj-green: #5FA876; --tj-red: #C15D4C; --tj-amber: #D97D3D;
+  .tj { --tj-bg: #0C0E12; --tj-panel: #15191F; --tj-panel2: #1E242C; --tj-border: #343B45;
+    --tj-text: #FAF8F1; --tj-text2: #CCD1D4; --tj-text3: #9CA6B2;
+    --tj-accent: #FFD05A; --tj-accent-light: #FFE6A1; --tj-accent-soft: #CC9A42;
+    --tj-green: #46D79A; --tj-red: #FA7880; --tj-amber: #F5B856;
     /* motion system: consistent durations + one shared easing family across the app */
     --tj-ease: cubic-bezier(0.22,1,0.36,1);
     --tj-ease-in: cubic-bezier(0.4,0,1,1);
@@ -207,6 +207,32 @@
     .tj-kpi-grid { grid-template-columns:1fr 1fr; }
     .tj-table th:nth-child(n+7), .tj-table td:nth-child(n+7) { display:none; }
   }
+
+/* Vibrant Graphite / Gold visual refresh — no logic or chart data changes */
+.tj{background:
+ radial-gradient(ellipse 920px 550px at 95% 0%,rgba(255,208,90,.055),transparent 72%),
+ var(--tj-bg);color:var(--tj-text)}
+#tj-sidebar{background:linear-gradient(180deg,#1A2028 0%,#12171D 100%);
+ border-right:1px solid rgba(255,208,90,.12)}
+#tj-sidebar-head{border-bottom-color:rgba(255,208,90,.14)}
+#tj-nav-indicator{background:linear-gradient(100deg,rgba(255,208,90,.21),rgba(255,208,90,.055))!important;
+ border-color:rgba(255,208,90,.44)!important;box-shadow:inset 3px 0 0 var(--tj-accent)}
+.tj-nav-item:hover{background:rgba(255,208,90,.075)}
+.tj-nav-item.active{color:#FFF5D6}
+.tj-panelcard{background:linear-gradient(145deg,#1D242D,#151A21 77%);
+ border-color:rgba(154,171,189,.19);box-shadow:inset 0 1px 0 #ffffff08,0 12px 25px #0002}
+.tj-panelcard:hover{border-color:rgba(255,208,90,.3)}
+.tj :where(input,select,textarea){border-color:rgba(160,171,186,.24)}
+.tj :where(input,select,textarea):focus-visible{
+ border-color:var(--tj-accent);box-shadow:0 0 0 3px rgba(255,208,90,.16);outline:none}
+.tj .tj-btn.primary{background:linear-gradient(115deg,#FFDA77,#FFC343)!important;
+ border-color:#FFD66D!important;color:#21180B!important;font-weight:700!important;
+ box-shadow:0 5px 20px rgba(255,194,56,.17),inset 0 1px 0 #fff6}
+.tj .tj-btn.primary:hover{box-shadow:0 9px 30px rgba(255,194,56,.24)}
+.tj .tj-badge{border-color:rgba(173,188,203,.15)}
+.tj ::selection{background:rgba(255,208,90,.31);color:#fff}
+@media(prefers-reduced-motion:reduce){.tj .tj-btn.primary{transition:none}}
+
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
