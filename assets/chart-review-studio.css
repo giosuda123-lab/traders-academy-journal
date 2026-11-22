@@ -1,0 +1,41 @@
+/* Trader's Academy | Chart Review Studio */
+.tce{display:flex;flex-direction:column;min-height:380px;height:min(82vh,900px);overflow:hidden;background:#11100e;border:1px solid #433624;border-radius:12px;color:#f0ead8;font-family:Inter,system-ui,sans-serif}
+.tce *{box-sizing:border-box}
+.tce-bar,.tce-right{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:1px solid #383029;background:#1c1915}
+.tce-bar{gap:14px}
+.tce-brand{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.tce-brand strong{font-size:12px;letter-spacing:.10em;font-weight:800}
+.tce-brand span{font-size:10px;letter-spacing:.14em;color:#d6b469}
+.tce-tools{display:flex;gap:4px;flex-wrap:wrap}
+.tce-button,.tce-tool,.tce-save{border:1px solid #4c4031;background:#252119;color:#e9e2d3;font-size:12px;line-height:1.2;min-height:32px;padding:7px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:background .13s,border-color .13s}
+.tce-tool{font-size:14px;min-width:36px;font-weight:700}
+.tce-button:hover:not(:disabled),.tce-tool:hover:not(:disabled){background:#383024;border-color:#887147}
+.tce-tool.active{color:#18140d;background:#e6b94d;border-color:#e6b94d}
+.tce-button:focus-visible,.tce-tool:focus-visible,.tce-save:focus-visible,.tce-color:focus-visible{outline:2px solid #f6d67e;outline-offset:2px}
+.tce-button:disabled,.tce-tool:disabled{opacity:.35;cursor:default}
+.tce-colors{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.tce-color{width:20px;height:20px;border:2px solid transparent;outline:1px solid #554c41;border-radius:50%;cursor:pointer;flex:none}
+.tce-color.active{outline:2px solid #fff;outline-offset:2px}
+.tce-customcolor{height:25px;width:29px;padding:0;border:0;background:none;cursor:pointer}
+.tce-right{position:relative;padding:7px 12px;gap:7px}
+.tce-width{display:flex;align-items:center;gap:8px;color:#ae9d83;font-size:11px;white-space:nowrap}
+.tce-width input{width:88px;accent-color:#e6b94d}
+.tce-spacer{flex:1}
+.tce-zoom{min-width:43px;text-align:center;color:#c9bba3;font-size:11px;font-variant-numeric:tabular-nums}
+.tce-save{background:#e6b94d;color:#211b12;font-weight:750;border-color:#e6b94d}
+.tce-save:hover{background:#f1c765}
+.tce-mmsettings{position:absolute;z-index:20;top:calc(100% - 2px);left:12px;background:#262119;border:1px solid #83663c;border-radius:10px;padding:16px;max-width:min(320px,90vw);box-shadow:0 12px 35px #0009}
+.tce-mmsettings[hidden]{display:none}
+.tce-mmsettings p{font-size:12px;line-height:1.55;color:#d4c5ac;margin:0 0 12px}
+.tce-field{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#e9dfca;font-size:12px;margin:9px 0}
+.tce-field input[type=number]{max-width:95px;border:1px solid #665237;border-radius:6px;padding:7px;background:#161310;color:#fff}
+.tce-field input[type=range]{accent-color:#e6b94d}
+.tce-stage{position:relative;flex:1;min-height:220px;background:#090909;touch-action:none;overflow:hidden;outline:none}
+.tce-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.tce-stage:focus-visible{box-shadow:inset 0 0 0 2px #e6b94d}
+.tce-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:#1b1712;border-top:1px solid #3b3225;min-height:37px}
+.tce-hint{font-size:10.5px;color:#a8997d}
+.tce-notice{font-size:11px;color:#edcc77;text-align:right}
+@media(max-width:900px){.tce{height:min(76dvh,760px)}.tce-bar,.tce-right{padding:7px;gap:5px}.tce-brand{display:none}.tce-tool{min-width:34px}.tce-button{padding:7px}.tce-hint{display:none}}
+@media(max-width:520px){.tce{height:73dvh}.tce-width{display:none}.tce-tool{font-size:12px;min-width:30px;padding:6px}.tce-button{min-height:30px;font-size:11px}.tce-footer{min-height:27px}}
+@media(prefers-reduced-motion:reduce){.tce-button,.tce-tool{transition:none}}
