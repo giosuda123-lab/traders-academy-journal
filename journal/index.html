@@ -10,11 +10,11 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #110F0D; min-height: 100vh; }
+  html, body { margin: 0; padding: 0; background: #101114; min-height: 100vh; }
   body { font-family: 'Inter', -apple-system, sans-serif; }
-  .tj { --tj-bg: #110F0D; --tj-panel: #201A14; --tj-panel2: #2A2219; --tj-border: #574735;
-    --tj-text: #FAF8F1; --tj-text2: #E2D4BB; --tj-text3: #B6A388;
-    --tj-accent: #FFD05A; --tj-accent-light: #FFE6A1; --tj-accent-soft: #CC9A42;
+  .tj { --tj-bg: #101114; --tj-panel: #1B1D21; --tj-panel2: #26292E; --tj-border: #454A50;
+    --tj-text: #FAF8F1; --tj-text2: #CFD1D3; --tj-text3: #A6AAAE;
+    --tj-accent: #F5C542; --tj-accent-light: #FFE4A0; --tj-accent-soft: #CC9A42;
     --tj-green: #46D79A; --tj-red: #FA7880; --tj-amber: #F5B856;
     /* motion system: consistent durations + one shared easing family across the app */
     --tj-ease: cubic-bezier(0.22,1,0.36,1);
@@ -210,16 +210,16 @@
 
 /* Vibrant Graphite / Gold visual refresh — no logic or chart data changes */
 .tj{background:
- radial-gradient(ellipse 920px 550px at 95% 0%,rgba(255,208,90,.12),transparent 72%),
+ radial-gradient(ellipse 920px 550px at 95% 0%,rgba(245,197,66,.06),transparent 72%),
  var(--tj-bg);color:var(--tj-text)}
-#tj-sidebar{background:linear-gradient(180deg,#261E15 0%,#18140F 100%);
+#tj-sidebar{background:linear-gradient(180deg,#202227 0%,#16181B 100%);
  border-right:1px solid rgba(255,208,90,.12)}
-#tj-sidebar-head{border-bottom-color:rgba(255,208,90,.14)}
-#tj-nav-indicator{background:linear-gradient(100deg,rgba(255,208,90,.21),rgba(255,208,90,.055))!important;
+#tj-sidebar-head{border-bottom-color:rgba(245,197,66,.12)}
+#tj-nav-indicator{background:linear-gradient(100deg,rgba(245,197,66,.15),rgba(255,208,90,.055))!important;
  border-color:rgba(255,208,90,.44)!important;box-shadow:inset 3px 0 0 var(--tj-accent)}
 .tj-nav-item:hover{background:rgba(255,208,90,.14)}
 .tj-nav-item.active{color:#FFF5D6}
-.tj-panelcard{background:linear-gradient(145deg,#30271C,#201A14 77%);
+.tj-panelcard{background:linear-gradient(145deg,#272A30,#1B1D21 77%);
  border-color:rgba(230,195,138,.24);box-shadow:inset 0 1px 0 #ffffff08,0 12px 25px #0002}
 .tj-panelcard:hover{border-color:rgba(255,208,90,.3)}
 .tj :where(input,select,textarea){border-color:rgba(217,186,137,.28)}
@@ -233,6 +233,18 @@
 .tj ::selection{background:rgba(255,208,90,.31);color:#fff}
 @media(prefers-reduced-motion:reduce){.tj .tj-btn.primary{transition:none}}
 
+
+/* Refined neutral surfaces; no navy cast and no muddy bronze */
+.tj{--tj-bg:#101114;--tj-panel:#1B1D21;--tj-panel2:#26292E;--tj-border:#454A50;
+--tj-text:#FAFAF7;--tj-text2:#CFD1D3;--tj-text3:#A6AAAE;
+--tj-accent:#F5C542;--tj-accent-light:#FFE4A0;--tj-accent-soft:#C89B43;
+background:radial-gradient(ellipse 850px 480px at 90% -140px,rgba(245,197,66,.05),transparent 75%),var(--tj-bg)}
+#tj-sidebar{background:linear-gradient(180deg,#202226,#181A1D);border-right-color:rgba(195,200,205,.14)}
+#tj-nav-indicator{background:linear-gradient(100deg,rgba(245,197,66,.16),rgba(245,197,66,.04))!important;border-color:rgba(245,197,66,.45)!important;box-shadow:inset 3px 0 0 var(--tj-accent)}
+.tj-panelcard{background:linear-gradient(145deg,#272A30,#1B1D21 80%);border-color:rgba(185,192,202,.17)}
+.tj-panelcard:hover{border-color:rgba(245,197,66,.31)}
+.tj .tj-btn.primary{background:linear-gradient(115deg,#FBE095,#F5C542)!important;border-color:#F5C542!important;color:#211B0E!important;box-shadow:0 4px 16px rgba(245,197,66,.14)}
+.tj .tj-btn.primary:hover{box-shadow:0 8px 22px rgba(245,197,66,.2)}
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
