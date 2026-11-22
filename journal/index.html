@@ -208,6 +208,8 @@
     .tj-table th:nth-child(n+7), .tj-table td:nth-child(n+7) { display:none; }
   }
 </style>
+<link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
+<script src="/assets/chart-review-studio.js?v=1"></script>
 </head>
 <body>
 
@@ -261,7 +263,7 @@
   <div id="tj-toasts"></div>
 
   <div class="tj-lightbox" id="tj-lightbox">
-    <div style="position:relative; max-width:min(1100px,94vw); max-height:90vh; width:100%; background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
+    <div style="position:relative; max-width:98vw; max-height:96dvh; width:100%; background:var(--tj-panel); border:0.5px solid var(--tj-border); border-radius:12px; padding:14px; display:flex; flex-direction:column;">
       <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
         <button id="tj-lightbox-close" type="button" style="border:none; background:var(--tj-panel2); color:var(--tj-text); border-radius:6px; width:28px; height:28px; cursor:pointer;">✕</button>
       </div>
@@ -336,70 +338,30 @@
   document.getElementById('tj-lightbox-close').onclick = closeLightbox;
   lightbox.addEventListener('click', (e)=>{ if (e.target===lightbox) closeLightbox(); });
   window.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeLightbox(); closeDrawer(); } });
-  // Zoomable chart image review with an optional non-destructive pen.
-  function openImageModal(dataUrl, captionHtml, onSave){
+  // Reusable, precision chart annotation studio. Original screenshots stay untouched;
+  // editable vector objects are saved with each trade's JSON data.
+  function openImageModal(dataUrl, captionHtml, onSave, annotationObjects){
     lightbox.style.display='flex';
     lightboxContent.replaceChildren();
-    lightboxContent.style.cssText='flex:1;min-height:200px;display:flex;flex-direction:column;align-items:stretch;overflow:hidden';
-    const controls=document.createElement('div');
-    controls.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px';
-    const btn=(label,fn)=>{const b=document.createElement('button');b.className='tj-btn';b.type='button';b.textContent=label;b.onclick=fn;controls.append(b);return b};
-    const zoomLabel=document.createElement('span');zoomLabel.style.cssText='font:12px Inter,sans-serif;color:var(--tj-text2)';
-    const viewport=document.createElement('div');
-    viewport.style.cssText='overflow:auto;flex:1;min-height:240px;max-height:74vh;border-radius:8px;background:#090909;touch-action:pan-x pan-y';
-    const canvas=document.createElement('canvas');
-    canvas.style.cssText='display:block;margin:auto;max-width:none;cursor:crosshair;touch-action:none';
-    canvas.setAttribute('aria-label','ჩარტის ფოტო — მონიშვნისთვის გამოიყენე ფანქარი');
-    viewport.append(canvas);lightboxContent.append(controls,viewport);
-    const img=new Image();const ctx=canvas.getContext('2d');
-    let zoom=1,pen=false,drawing=false,strokes=[],stroke=null;
-    function redraw(){
-      if(!img.complete||!img.naturalWidth)return;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img,0,0);
-      ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=Math.max(2,canvas.width/350);
-      ctx.strokeStyle='#E6B94D';
-      for(const path of strokes.concat(stroke?[stroke]:[])){
-        if(!path.length)continue;
-        ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);
-        for(let i=1;i<path.length;i++)ctx.lineTo(path[i].x,path[i].y);
-        if(path.length===1)ctx.lineTo(path[0].x+0.1,path[0].y+0.1);
-        ctx.stroke();
-      }
+    lightboxContent.style.cssText='flex:1;min-height:200px;min-width:0;display:flex;align-items:stretch;overflow:hidden';
+    if(!window.TAChartEditor?.open){
+      lightboxContent.textContent='Chart Review Studio ვერ ჩაიტვირთა. განაახლე გვერდი.';
+      return;
     }
-    function setZoom(next){
-      zoom=Math.min(4,Math.max(.5,next));
-      canvas.style.width=Math.round(canvas.width*zoom)+'px';
-      canvas.style.height=Math.round(canvas.height*zoom)+'px';
-      zoomLabel.textContent=Math.round(zoom*100)+'%';
-    }
-    btn('−',()=>setZoom(zoom/1.25));
-    btn('+',()=>setZoom(zoom*1.25));
-    btn('100%',()=>setZoom(1));
-    const penBtn=btn('✎ ფანქარი: გამორთული',()=>{pen=!pen;penBtn.textContent='✎ ფანქარი: '+(pen?'ჩართული':'გამორთული');canvas.style.cursor=pen?'crosshair':'grab'});
-    btn('↶ უკან',()=>{strokes.pop();redraw()});
-    btn('გასუფთავება',()=>{if(strokes.length&&confirm('წავშალოთ მხოლოდ ახლად დახატული მონიშვნები?')){strokes=[];redraw()}});
-    controls.append(zoomLabel);
-    if(onSave&&!readOnlyMode){
-      const save=btn('✓ მონიშვნების შენახვა',async()=>{
-        if(!strokes.length)return showToast('ახალი მონიშვნები ჯერ არ არის','error');
-        save.disabled=true;save.textContent='ინახება…';
-        try{const ok=await onSave(canvas.toDataURL('image/jpeg',0.84));if(ok!==false)closeLightbox();else save.disabled=false}
-        catch(err){save.disabled=false;showToast('შენახვა ვერ მოხერხდა','error')}
-        if(save.isConnected)save.textContent='✓ მონიშვნების შენახვა';
-      });
-    }
-    function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
-    canvas.addEventListener('pointerdown',e=>{if(!pen||(!onSave)||readOnlyMode)return;drawing=true;stroke=[point(e)];canvas.setPointerCapture(e.pointerId);redraw()});
-    canvas.addEventListener('pointermove',e=>{if(!drawing||!stroke)return;stroke.push(point(e));redraw()});
-    const end=()=>{if(drawing&&stroke){strokes.push(stroke);stroke=null;drawing=false;redraw()}};
-    canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
-    img.onload=()=>{canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;redraw();setZoom(Math.min(1,(viewport.clientWidth-12)/canvas.width))};
-    img.onerror=()=>{zoomLabel.textContent='ფოტო ვერ გაიხსნა'};
-    img.src=dataUrl;
-    if(captionHtml){const note=document.createElement('div');note.style.cssText='padding:8px;color:var(--tj-text2);font-size:12px';note.textContent='ფოტოსთან დაკავშირებული შენიშვნა';lightboxContent.append(note)}
+    window.TAChartEditor.open({
+      mount:lightboxContent,
+      image:dataUrl,
+      objects:annotationObjects||[],
+      readOnly:readOnlyMode||typeof onSave!=='function',
+      onSave,
+      afterSave:()=>showToast('ჩარტის მონიშვნები შენახულია','ok')
+    });
   }
-  function closeLightbox(){ lightbox.style.display='none'; lightboxContent.innerHTML=''; }
+  function closeLightbox(){
+    window.TAChartEditor?.close();
+    lightbox.style.display='none';
+    lightboxContent.replaceChildren();
+  }
 
   function fileToCompressedBase64(file, maxW){
     maxW = maxW || 1280;
@@ -784,7 +746,7 @@
       riskPct:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
       planAdherence:'yes', confidence:'', discipline:'', execution:'',
       emotionalState:'', qEntry:'', qRisk:'', qExit:'', qDiscipline:'',
-      screenshots:{before:null, entry:null, after:null}, notes:''
+      screenshots:{before:null, entry:null, after:null}, chartAnnotations:{before:[],entry:[],after:[]}, notes:''
     }, prefill || {});
   }
   function historicalStatFor(arrKey, values){
@@ -914,7 +876,7 @@
               <div>
                 ${fieldLabel(slot==='before'?'ტრეიდამდე':slot==='entry'?'შესვლისას':'ტრეიდის შემდეგ')}
                 <label class="tj-btn" style="display:inline-flex; cursor:pointer;">ატვირთვა<input type="file" accept="image/*" data-shot="${slot}" style="display:none;"/></label>
-                <div data-shot-preview="${slot}" style="margin-top:6px;">${d.screenshots[slot] ? `<img src="${d.screenshots[slot]}" style="height:50px; border-radius:6px; border:0.5px solid var(--tj-border); cursor:pointer;" data-shot-view="${slot}"/> <button type="button" data-shot-remove="${slot}" style="font-size:11px; color:var(--tj-red); background:none; border:none; cursor:pointer;">წაშლა</button>` : `<span style="font-size:11px; color:var(--tj-text3);">არ არის</span>`}</div>
+                <div data-shot-preview="${slot}" style="margin-top:6px;">${d.screenshots[slot] ? `<img src="${d.screenshots[slot]}" style="height:50px; border-radius:6px; border:0.5px solid var(--tj-border); cursor:pointer;" data-shot-view="${slot}"/> ${d.chartAnnotations?.[slot]?.length?`<span style="display:block;font-size:10px;color:var(--tj-accent)">✎ ${d.chartAnnotations[slot].length} მონიშვნა</span>`:""} <button type="button" data-shot-remove="${slot}" style="font-size:11px; color:var(--tj-red); background:none; border:none; cursor:pointer;">წაშლა</button>` : `<span style="font-size:11px; color:var(--tj-text3);">არ არის</span>`}</div>
               </div>`).join('')}
           </div>
         </div>
@@ -975,12 +937,16 @@
         const file = input.files[0];
         if (!file) return;
         d.screenshots[slot] = await fileToCompressedBase64(file);
+        d.chartAnnotations=d.chartAnnotations||{};d.chartAnnotations[slot]=[];
         renderNewTrade();
+        // Start chart review immediately after upload, without a second click.
+        const newPreview=bodyEl.querySelector('[data-shot-view="'+slot+'"]');
+        if(newPreview)newPreview.click();
       };
       const view = form.querySelector(`[data-shot-view="${slot}"]`);
-      if (view) view.onclick = () => openImageModal(d.screenshots[slot],null,async updated=>{d.screenshots[slot]=updated;renderNewTrade();return true});
+      if (view) view.onclick = () => openImageModal(d.screenshots[slot],null,async objects=>{d.chartAnnotations=d.chartAnnotations||{};d.chartAnnotations[slot]=objects;return true},d.chartAnnotations?.[slot]||[]);
       const rm = form.querySelector(`[data-shot-remove="${slot}"]`);
-      if (rm) rm.onclick = () => { d.screenshots[slot] = null; renderNewTrade(); };
+      if (rm) rm.onclick = () => { d.screenshots[slot] = null;d.chartAnnotations=d.chartAnnotations||{};d.chartAnnotations[slot]=[]; renderNewTrade(); };
     });
 
     const cancelBtn = bodyEl.querySelector('#tj-cancel-edit');
@@ -1002,7 +968,7 @@
         outcome: d.outcome||'', planAdherence: fd.get('planAdherence')||'yes',
         confidence: fd.get('confidence')||'', discipline: fd.get('discipline')||'', execution: fd.get('execution')||'',
         emotionalState: d.emotionalState||'', qEntry: d.qEntry||'', qRisk: d.qRisk||'', qExit: d.qExit||'', qDiscipline: d.qDiscipline||'',
-        screenshots: Object.assign({}, d.screenshots), notes: fd.get('notes')||''
+        screenshots: Object.assign({}, d.screenshots), chartAnnotations:Object.assign({},d.chartAnnotations), notes: fd.get('notes')||''
       };
       if (!tradeData.instrument){ msg.style.color='var(--tj-red)'; msg.textContent='ინსტრუმენტის ველი აუცილებელია.'; return; }
       msg.textContent='';
@@ -1153,7 +1119,7 @@
       ${t.marketNote ? `<div style="margin-top:14px; font-size:12.5px; color:var(--tj-text2);"><strong style="color:var(--tj-text3);">ბაზარი:</strong> ${escapeHtml(t.marketNote)}</div>` : ''}
       ${t.notes ? `<div style="margin-top:10px; font-size:12.5px; color:var(--tj-text2);">${escapeHtml(t.notes)}</div>` : ''}
       ${(shots.before||shots.entry||shots.after) ? `<div style="margin-top:16px;"><div style="font-size:12px; color:var(--tj-text3); margin-bottom:8px;">სქრინშოტები</div><div style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${['before','entry','after'].map(k=>shots[k]?`<img src="${shots[k]}" data-shotview="${k}" style="width:100px; height:70px; object-fit:cover; border-radius:6px; border:0.5px solid var(--tj-border); cursor:pointer;"/>`:'').join('')}
+        ${['before','entry','after'].map(k=>shots[k]?`<img src="${shots[k]}" data-shotview="${k}" title="${t.chartAnnotations?.[k]?.length?`მონიშნულია: ${t.chartAnnotations[k].length}`:"გახსენი ჩარტის რედაქტორი"}" style="width:100px; height:70px; object-fit:cover; border-radius:6px; border:0.5px solid var(--tj-border); cursor:pointer;"/>`:'').join('')}
       </div></div>` : ''}
       ${readOnlyMode ? '' : `
       <div style="display:flex; gap:8px; margin-top:24px;">
@@ -1163,12 +1129,22 @@
       `}
     `);
     drawerEl.querySelector('#tj-drawer-close-btn').onclick = closeDrawer;
-    drawerEl.querySelectorAll('[data-shotview]').forEach(img=>{ img.onclick = () => openImageModal(img.getAttribute('src'),null,readOnlyMode?null:async updated=>{ const newer={...t,screenshots:{...t.screenshots,[img.dataset.shotview]:updated}};const ok=await updateTradeRemote(t.id,newer);if(ok){showToast('ჩარტის მონიშვნები შენახულია','ok');openTradeDrawer(t.id)}return ok; }); });
+    drawerEl.querySelectorAll('[data-shotview]').forEach(img=>{ img.onclick = () => {
+      const slot=img.dataset.shotview;
+      const original=t.screenshots?.[slot];
+      const objects=t.chartAnnotations?.[slot]||[];
+      openImageModal(original,null,readOnlyMode?null:async annotations=>{
+        const updated={...t,chartAnnotations:{...(t.chartAnnotations||{}),[slot]:annotations}};
+        const ok=await updateTradeRemote(t.id,updated);
+        if(ok)openTradeDrawer(t.id);
+        return ok;
+      },objects);
+    }; });
     const drawerEditBtn = drawerEl.querySelector('#tj-drawer-edit');
     if (drawerEditBtn) drawerEditBtn.onclick = () => {
       closeDrawer();
       editingTradeId = t.id;
-      draftTrade = defaultDraftTrade(Object.assign({}, t, { screenshots: Object.assign({before:null,entry:null,after:null}, t.screenshots||{}) }));
+      draftTrade = defaultDraftTrade(Object.assign({}, t, { screenshots: Object.assign({before:null,entry:null,after:null}, t.screenshots||{}), chartAnnotations:Object.assign({before:[],entry:[],after:[]},t.chartAnnotations||{}) }));
       goToPage('new');
     };
     const drawerDelBtn = drawerEl.querySelector('#tj-drawer-del');
