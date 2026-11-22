@@ -138,10 +138,10 @@ function open(options){
  function message(text){notice.textContent=text;}
  function snapshot(){return clone(state.objects)}
  function record(){if(!writable)return;state.undo.push(snapshot());if(state.undo.length>60)state.undo.shift();state.redo=[]}
- function undo(){if(!writable||!state.undo.length)return;state.redo.push(snapshot());state.objects=state.undo.pop();state.selected=-1;state.dirty=true;sync();draw()}
- function redo(){if(!writable||!state.redo.length)return;state.undo.push(snapshot());state.objects=state.redo.pop();state.selected=-1;state.dirty=true;sync();draw()}
- function removeSelected(){if(!writable||state.selected<0)return;record();state.objects.splice(state.selected,1);state.selected=-1;state.dirty=true;sync();draw()}
- function duplicate(){if(!writable||state.selected<0)return;record();const copied=clone(state.objects[state.selected]);translate(copied,18,18);state.objects.push(copied);state.selected=state.objects.length-1;state.dirty=true;sync();draw()}
+ function undo(){hideContext();if(!writable||!state.undo.length)return;state.redo.push(snapshot());state.objects=state.undo.pop();state.selected=-1;state.dirty=true;sync();draw()}
+ function redo(){hideContext();if(!writable||!state.redo.length)return;state.undo.push(snapshot());state.objects=state.redo.pop();state.selected=-1;state.dirty=true;sync();draw()}
+ function removeSelected(){hideContext();if(!writable||state.selected<0)return;record();state.objects.splice(state.selected,1);state.selected=-1;state.dirty=true;sync();draw()}
+ function duplicate(){hideContext();if(!writable||state.selected<0)return;record();const copied=clone(state.objects[state.selected]);translate(copied,18,18);state.objects.push(copied);state.selected=state.objects.length-1;state.dirty=true;sync();draw()}
  function translate(shape,dx,dy){
    if(shape.points){for(const p of shape.points){p.x+=dx;p.y+=dy}}
    else if(shape.type==='text'){shape.a.x+=dx;shape.a.y+=dy}
@@ -171,7 +171,11 @@ function open(options){
    return Math.hypot(p.x-(a.x+dx*t),p.y-(a.y+dy*t));
  }
  function hit(p,shape){
-   const tolerance=12/state.zoom;
+   const tolerance=18/state.zoom;
+   if(shape.type==='text'){
+     const metrics=measureTextShape(shape);
+     return p.x>=shape.a.x-tolerance&&p.x<=shape.a.x+metrics.width+tolerance&&p.y>=shape.a.y-metrics.lineHeight-tolerance&&p.y<=shape.a.y+(metrics.rows-1)*metrics.lineHeight+tolerance;
+   }
    if(shape.type==='pen')return shape.points.some((a,i)=>i>0&&distToSegment(p,shape.points[i-1],a)<tolerance);
    const a=shape.a,b=shape.b;
    if(shape.type==='line'||shape.type==='arrow')return distToSegment(p,a,b)<tolerance;
@@ -181,21 +185,40 @@ function open(options){
      Math.abs(p.y-t)<tolerance&&p.x>=l-tolerance&&p.x<=r+tolerance||
      Math.abs(p.y-bottom)<tolerance&&p.x>=l-tolerance&&p.x<=r+tolerance;
    if(shape.type==='mm'){
-     return p.x>=l-tolerance&&p.x<=r+tolerance&&shape.levels.some(level=>Math.abs(p.y-(a.y+(b.y-a.y)*(1-level)))<tolerance);
+     const levels=mmLevelList(shape.levels);
+     return p.x>=l-tolerance&&p.x<=r+tolerance&&levels.some(level=>level.visible&&Math.abs(p.y-(a.y+(b.y-a.y)*(1-level.value)))<tolerance)
+       ||(p.x>=l&&p.x<=r&&p.y>=t&&p.y<=bottom);
    }
    return false;
  }
  function pick(p){for(let i=state.objects.length-1;i>=0;i--)if(hit(p,state.objects[i]))return i;return -1}
  function pickHandle(p,shape){
-   if(!shape||shape.points)return null;
+   if(!shape||shape.points||shape.type==='text')return null;
    const t=12/state.zoom;
    if(Math.hypot(p.x-shape.a.x,p.y-shape.a.y)<t)return 'a';
    if(Math.hypot(p.x-shape.b.x,p.y-shape.b.y)<t)return 'b';
    return null;
  }
+ function measureTextShape(shape){
+   const fontSize=Math.max(12,Math.min(64,Number(shape.fontSize)||20));
+   const lines=String(shape.text||'').split('\n');
+   const measure=ctx;
+   measure.save();measure.font='600 '+fontSize+'px Inter,Arial,sans-serif';
+   const width=Math.max(18,...lines.map(line=>measure.measureText(line).width));
+   measure.restore();
+   return {width,lineHeight:fontSize*1.35,rows:lines.length,fontSize,lines};
+ }
  function drawShape(c,shape,selected){
    c.strokeStyle=shape.color||PALETTE[0];c.lineWidth=Number(shape.width)||3;c.lineCap='round';c.lineJoin='round';
    const a=shape.a,b=shape.b;
+   if(shape.type==='text'){
+     const m=measureTextShape(shape);
+     c.save();c.font='600 '+m.fontSize+'px Inter,Arial,sans-serif';c.textBaseline='alphabetic';
+     c.lineWidth=Math.max(2,m.fontSize/6);c.strokeStyle='rgba(12,10,8,.9)';
+     m.lines.forEach((line,i)=>{const y=a.y+i*m.lineHeight;c.strokeText(line,a.x,y);c.fillStyle=shape.color||PALETTE[0];c.fillText(line,a.x,y)});
+     if(selected){c.strokeStyle='#fff';c.lineWidth=1.5;c.setLineDash([5,5]);c.strokeRect(a.x-5,a.y-m.lineHeight-5,m.width+10,m.lineHeight*m.rows+10)}
+     c.restore();return;
+   }
    if(shape.type==='pen'){
      const ps=shape.points;if(!ps?.length)return;
      c.beginPath();c.moveTo(ps[0].x,ps[0].y);for(let i=1;i<ps.length;i++)c.lineTo(ps[i].x,ps[i].y);
@@ -213,12 +236,14 @@ function open(options){
    }else if(shape.type==='mm'){
      // MM is a chart-image measurement tool, not a Fibonacci calculation.
      const left=Math.min(a.x,b.x),right=Math.max(a.x,b.x);
-     const values=shape.levels||[1,.5,0];
-     const ys=values.map(level=>a.y+(b.y-a.y)*(1-level));
-     const top=Math.min(...ys),bottom=Math.max(...ys);
-     c.save();c.globalAlpha=Number.isFinite(shape.opacity)?shape.opacity:.1;
-     c.fillStyle=shape.color||PALETTE[0];c.fillRect(left,top,right-left,bottom-top);c.restore();
-     ys.forEach(y=>{c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke()});
+     const values=mmLevelList(shape.levels).filter(level=>level.visible);
+     const ys=values.map(level=>a.y+(b.y-a.y)*(1-level.value));
+     if(ys.length){
+       const top=Math.min(...ys),bottom=Math.max(...ys);
+       c.save();c.globalAlpha=Number.isFinite(shape.opacity)?shape.opacity:.1;
+       c.fillStyle=shape.color||PALETTE[0];c.fillRect(left,top,right-left,bottom-top);c.restore();
+       values.forEach((level,i)=>{c.beginPath();c.strokeStyle=level.color||shape.color||PALETTE[0];c.moveTo(left,ys[i]);c.lineTo(right,ys[i]);c.stroke()});
+     }
      // Intentionally never render numeric level captions.
    }
    if(selected){
@@ -286,7 +311,10 @@ function open(options){
  const wheel=e=>{
    e.preventDefault();
    const pos=coords(e);
-   zoomAt(e.deltaY<0?1.13:1/1.13,pos.x,pos.y);
+   // Normalized, damped zoom centered at the pointer, including trackpads.
+   const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?stage.clientHeight:1);
+   const bounded=Math.max(-120,Math.min(120,delta));
+   zoomAt(Math.exp(-bounded*state.zoomSensitivity),pos.x,pos.y);
  };
  stage.addEventListener('wheel',wheel,{passive:false});
  stage.addEventListener('pointerdown',e=>{
@@ -314,7 +342,7 @@ function open(options){
      state.active={kind:'draw',start:p};
      const base={type:state.tool,color:state.color,width:state.width};
      state.preview=state.tool==='pen'?{...base,points:[p]}:{...base,a:p,b:p};
-     if(state.tool==='mm'){state.preview.levels=state.mmLevels.slice();state.preview.opacity=state.mmOpacity}
+     if(state.tool==='mm'){state.preview.levels=clone(state.mmLevels);state.preview.opacity=state.mmOpacity}
      draw();
    }
  });
