@@ -336,9 +336,68 @@
   document.getElementById('tj-lightbox-close').onclick = closeLightbox;
   lightbox.addEventListener('click', (e)=>{ if (e.target===lightbox) closeLightbox(); });
   window.addEventListener('keydown', (e)=>{ if (e.key==='Escape'){ closeLightbox(); closeDrawer(); } });
-  function openImageModal(dataUrl, captionHtml){
-    lightboxContent.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:78vh; border-radius:8px;"/>${captionHtml ? `<div style="max-width:640px; margin:14px auto 0; text-align:left; font-size:13px; color:var(--tj-text2); line-height:1.6; max-height:22vh; overflow:auto;">${captionHtml}</div>` : ''}`;
+  // Zoomable chart image review with an optional non-destructive pen.
+  function openImageModal(dataUrl, captionHtml, onSave){
     lightbox.style.display='flex';
+    lightboxContent.replaceChildren();
+    lightboxContent.style.cssText='flex:1;min-height:200px;display:flex;flex-direction:column;align-items:stretch;overflow:hidden';
+    const controls=document.createElement('div');
+    controls.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px';
+    const btn=(label,fn)=>{const b=document.createElement('button');b.className='tj-btn';b.type='button';b.textContent=label;b.onclick=fn;controls.append(b);return b};
+    const zoomLabel=document.createElement('span');zoomLabel.style.cssText='font:12px Inter,sans-serif;color:var(--tj-text2)';
+    const viewport=document.createElement('div');
+    viewport.style.cssText='overflow:auto;flex:1;min-height:240px;max-height:74vh;border-radius:8px;background:#090909;touch-action:pan-x pan-y';
+    const canvas=document.createElement('canvas');
+    canvas.style.cssText='display:block;margin:auto;max-width:none;cursor:crosshair;touch-action:none';
+    canvas.setAttribute('aria-label','ჩარტის ფოტო — მონიშვნისთვის გამოიყენე ფანქარი');
+    viewport.append(canvas);lightboxContent.append(controls,viewport);
+    const img=new Image();const ctx=canvas.getContext('2d');
+    let zoom=1,pen=false,drawing=false,strokes=[],stroke=null;
+    function redraw(){
+      if(!img.complete||!img.naturalWidth)return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0);
+      ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=Math.max(2,canvas.width/350);
+      ctx.strokeStyle='#E6B94D';
+      for(const path of strokes.concat(stroke?[stroke]:[])){
+        if(!path.length)continue;
+        ctx.beginPath();ctx.moveTo(path[0].x,path[0].y);
+        for(let i=1;i<path.length;i++)ctx.lineTo(path[i].x,path[i].y);
+        if(path.length===1)ctx.lineTo(path[0].x+0.1,path[0].y+0.1);
+        ctx.stroke();
+      }
+    }
+    function setZoom(next){
+      zoom=Math.min(4,Math.max(.5,next));
+      canvas.style.width=Math.round(canvas.width*zoom)+'px';
+      canvas.style.height=Math.round(canvas.height*zoom)+'px';
+      zoomLabel.textContent=Math.round(zoom*100)+'%';
+    }
+    btn('−',()=>setZoom(zoom/1.25));
+    btn('+',()=>setZoom(zoom*1.25));
+    btn('100%',()=>setZoom(1));
+    const penBtn=btn('✎ ფანქარი: გამორთული',()=>{pen=!pen;penBtn.textContent='✎ ფანქარი: '+(pen?'ჩართული':'გამორთული');canvas.style.cursor=pen?'crosshair':'grab'});
+    btn('↶ უკან',()=>{strokes.pop();redraw()});
+    btn('გასუფთავება',()=>{if(strokes.length&&confirm('წავშალოთ მხოლოდ ახლად დახატული მონიშვნები?')){strokes=[];redraw()}});
+    controls.append(zoomLabel);
+    if(onSave&&!readOnlyMode){
+      const save=btn('✓ მონიშვნების შენახვა',async()=>{
+        if(!strokes.length)return showToast('ახალი მონიშვნები ჯერ არ არის','error');
+        save.disabled=true;save.textContent='ინახება…';
+        try{const ok=await onSave(canvas.toDataURL('image/jpeg',0.84));if(ok!==false)closeLightbox();else save.disabled=false}
+        catch(err){save.disabled=false;showToast('შენახვა ვერ მოხერხდა','error')}
+        if(save.isConnected)save.textContent='✓ მონიშვნების შენახვა';
+      });
+    }
+    function point(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
+    canvas.addEventListener('pointerdown',e=>{if(!pen||(!onSave)||readOnlyMode)return;drawing=true;stroke=[point(e)];canvas.setPointerCapture(e.pointerId);redraw()});
+    canvas.addEventListener('pointermove',e=>{if(!drawing||!stroke)return;stroke.push(point(e));redraw()});
+    const end=()=>{if(drawing&&stroke){strokes.push(stroke);stroke=null;drawing=false;redraw()}};
+    canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
+    img.onload=()=>{canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;redraw();setZoom(Math.min(1,(viewport.clientWidth-12)/canvas.width))};
+    img.onerror=()=>{zoomLabel.textContent='ფოტო ვერ გაიხსნა'};
+    img.src=dataUrl;
+    if(captionHtml){const note=document.createElement('div');note.style.cssText='padding:8px;color:var(--tj-text2);font-size:12px';note.textContent='ფოტოსთან დაკავშირებული შენიშვნა';lightboxContent.append(note)}
   }
   function closeLightbox(){ lightbox.style.display='none'; lightboxContent.innerHTML=''; }
 
@@ -919,7 +978,7 @@
         renderNewTrade();
       };
       const view = form.querySelector(`[data-shot-view="${slot}"]`);
-      if (view) view.onclick = () => openImageModal(d.screenshots[slot]);
+      if (view) view.onclick = () => openImageModal(d.screenshots[slot],null,async updated=>{d.screenshots[slot]=updated;renderNewTrade();return true});
       const rm = form.querySelector(`[data-shot-remove="${slot}"]`);
       if (rm) rm.onclick = () => { d.screenshots[slot] = null; renderNewTrade(); };
     });
@@ -1031,7 +1090,7 @@
   function renderTrades(){
     const filtered = getFilteredTrades();
     bodyEl.innerHTML = renderFilterBar() + (filtered.length ? `<div class="tj-panelcard tj-table-wrap"><table class="tj-table" id="tj-trades-table">
-      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>სესია</th><th>რისკი</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
+      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>ბაზრის ტიპი</th><th>სესია</th><th>რისკი</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
       <tbody></tbody></table></div>` : `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">${trades.length ? 'ფილტრით ვერაფერი მოიძებნა.' : 'ჯერ არცერთი ტრეიდი არ დამატებულა. დაამატეთ "ახალი ტრეიდი" გვერდიდან.'}</div>`);
     wireFilterBar(renderTrades);
     const tbody = bodyEl.querySelector('#tj-trades-table tbody');
@@ -1043,6 +1102,7 @@
         <td style="font-weight:600;">${escapeHtml(t.instrument)}</td>
         <td>${t.direction==='long'?'Long':'Short'}</td>
         <td>${(t.setups&&t.setups[0]) ? escapeHtml(t.setups[0])+(t.setups.length>1?` +${t.setups.length-1}`:'') : '-'}</td>
+        <td>${t.marketTags&&t.marketTags.length?escapeHtml(t.marketTags.join(', ')):'-'}</td>
         <td>${sessionLabel(t.session)||'-'}</td>
         <td class="tj-mono">${t.riskPct?t.riskPct+'%':'-'}</td>
         <td class="tj-mono" style="color:${outcomeColor(t.outcome)};">${t.outcome?fmtR(num(t.resultR)):'-'}</td>
@@ -1103,7 +1163,7 @@
       `}
     `);
     drawerEl.querySelector('#tj-drawer-close-btn').onclick = closeDrawer;
-    drawerEl.querySelectorAll('[data-shotview]').forEach(img=>{ img.onclick = () => openImageModal(img.getAttribute('src')); });
+    drawerEl.querySelectorAll('[data-shotview]').forEach(img=>{ img.onclick = () => openImageModal(img.getAttribute('src'),null,readOnlyMode?null:async updated=>{ const newer={...t,screenshots:{...t.screenshots,[img.dataset.shotview]:updated}};const ok=await updateTradeRemote(t.id,newer);if(ok){showToast('ჩარტის მონიშვნები შენახულია','ok');openTradeDrawer(t.id)}return ok; }); });
     const drawerEditBtn = drawerEl.querySelector('#tj-drawer-edit');
     if (drawerEditBtn) drawerEditBtn.onclick = () => {
       closeDrawer();
@@ -1123,7 +1183,7 @@
 
   // ================= DAILY REPORT CARD =================
   function getReport(date){ return dailyReports.find(r=>r.date===date) || null; }
-  function defaultReport(date){ return { date, bedtime:'', wakeTime:'', processGoal:'', goalResult:'', energy:'', stress:'', tradedToday:'', easiestMoney:'', whatWorked:'', toImprove:'', tomorrowFocus:'' }; }
+  function defaultReport(date){ return { date, bedtime:'', wakeTime:'', processGoal:'', goalResult:'', energy:'', stress:'', tradedToday:'', easiestMoney:'', easiestMoneyTradeId:'', whatWorked:'', toImprove:'', tomorrowFocus:'' }; }
   function rateChips(name, value, max){
     let html = '<div style="display:flex; gap:6px;">';
     for (let i=1;i<=max;i++) html += `<button type="button" class="tj-rate ${Number(value)===i?'sel':''}" data-rate="${name}" data-val="${i}">${i}</button>`;
@@ -1185,6 +1245,13 @@
             <div style="display:flex; gap:8px;"><button type="button" data-traded="yes" class="tj-btn ${rep.tradedToday==='yes'?'active':''}">დიახ</button><button type="button" data-traded="no" class="tj-btn ${rep.tradedToday==='no'?'active':''}">არა</button></div>
           </div>
           <div style="margin-bottom:12px;">${fieldLabel('რომელი ტრეიდი იყო დღეს ყველაზე მარტივი ფული?')}<textarea name="easiestMoney" rows="2" style="resize:vertical;">${escapeHtml(rep.easiestMoney||'')}</textarea></div>
+          <div style="margin-bottom:12px;">
+            ${fieldLabel('დღის ტრეიდის მიბმა')}
+            <select name="easiestMoneyTradeId" style="max-width:100%;"><option value="">— აირჩიე დღის ტრეიდი —</option>
+            ${trades.filter(t=>t.date===drcDate).sort((a,b)=>(a.time||'').localeCompare(b.time||'')).map(t=>`<option value="${escapeHtml(t.id)}" ${rep.easiestMoneyTradeId===t.id?'selected':''}>${escapeHtml((t.time||'—')+' · '+(t.instrument||'ტრეიდი')+' · '+(t.direction||'')+' · '+fmtR(num(t.resultR)))}</option>`).join('')}
+            </select>
+            ${rep.easiestMoneyTradeId&&trades.some(t=>t.id===rep.easiestMoneyTradeId)?`<button type="button" class="tj-btn" id="tj-easy-trade-open" style="margin-top:8px;">↗ მიბმული ტრეიდის გახსნა</button>`:''}
+          </div>
           <div style="margin-bottom:12px;">${fieldLabel('რა გამოვიდა კარგად?')}<textarea name="whatWorked" rows="2" style="resize:vertical;">${escapeHtml(rep.whatWorked)}</textarea></div>
           <div style="margin-bottom:12px;">${fieldLabel('რა უნდა გამოვასწორო?')}<textarea name="toImprove" rows="2" style="resize:vertical;">${escapeHtml(rep.toImprove)}</textarea></div>
           <div>${fieldLabel('ხვალინდელი ფოკუსი')}<textarea name="tomorrowFocus" rows="2" style="resize:vertical;">${escapeHtml(rep.tomorrowFocus)}</textarea></div>
@@ -1204,11 +1271,13 @@
     function syncAndRerender(r){
       const form = bodyEl.querySelector('#tj-drc-form');
       const fd = new FormData(form);
-      ['bedtime','wakeTime','processGoal','easiestMoney','whatWorked','toImprove','tomorrowFocus'].forEach(k=>{ r[k] = fd.get(k) || r[k] || ''; });
+      ['bedtime','wakeTime','processGoal','easiestMoney','easiestMoneyTradeId','whatWorked','toImprove','tomorrowFocus'].forEach(k=>{ r[k] = fd.get(k) || r[k] || ''; });
       dailyReports = dailyReports.filter(x=>x.date!==r.date);
       dailyReports.push(r);
       renderDRC();
     }
+    const linkedTradeButton=bodyEl.querySelector('#tj-easy-trade-open');
+    if(linkedTradeButton)linkedTradeButton.onclick=()=>openTradeDrawer(rep.easiestMoneyTradeId);
     const form = bodyEl.querySelector('#tj-drc-form');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1217,7 +1286,7 @@
       const full = { date: drcDate, bedtime: fd.get('bedtime')||'', wakeTime: fd.get('wakeTime')||'',
         sleepHours: sleepHoursBetween(fd.get('bedtime'), fd.get('wakeTime')),
         processGoal: fd.get('processGoal')||'', goalResult: rep.goalResult||'', energy: rep.energy||'', stress: rep.stress||'',
-        tradedToday: rep.tradedToday||'', easiestMoney: fd.get('easiestMoney')||'', whatWorked: fd.get('whatWorked')||'', toImprove: fd.get('toImprove')||'', tomorrowFocus: fd.get('tomorrowFocus')||'' };
+        tradedToday: rep.tradedToday||'', easiestMoney: fd.get('easiestMoney')||'', easiestMoneyTradeId: trades.some(t=>t.id===fd.get('easiestMoneyTradeId')&&t.date===drcDate)?fd.get('easiestMoneyTradeId'):'', whatWorked: fd.get('whatWorked')||'', toImprove: fd.get('toImprove')||'', tomorrowFocus: fd.get('tomorrowFocus')||'' };
       msg.textContent='';
       const submitBtn = form.querySelector('button[type="submit"]');
       setBtnLoading(submitBtn, true, 'ინახება…');
@@ -1953,7 +2022,7 @@
     let cumR=0; const eqSeries = closed.map(t=>(cumR+=num(t.resultR)));
 
     const sections = [
-      ['overview','ზოგადი სურათი'], ['setup','სტრატეგიები'], ['session','სესია/ინსტრუმენტი'], ['timing','დრო'], ['risk','რისკი'],
+      ['overview','ზოგადი სურათი'], ['market','ბაზრის ტიპი'], ['setup','სტრატეგიები'], ['session','სესია/ინსტრუმენტი'], ['timing','დრო'], ['risk','რისკი'],
       ['breakdown','გარჩევა'], ['mistakes','შეცდომები'], ['psychology','ფსიქოლოგია'], ['insights','დასკვნები'], ['sleep','ძილი']
     ];
     inner.innerHTML = `
@@ -1987,12 +2056,14 @@
           </div>
           ${outlierDropPct?`<div class="tj-panelcard tj-cat-orange" style="padding:12px 16px; margin-bottom:20px; font-size:12.5px; color:var(--tj-text2); display:flex; align-items:center; gap:10px;"><span class="tj-cat-icon">⚠</span>Expectancy მნიშვნელოვნად არის დამოკიდებული ერთ საუკეთესო ტრეიდზე - მისი გამორიცხვისას Expectancy იკლებს ${outlierDropPct}%-ით.</div>`:''}
         </div>
+        <div data-section="market" style="display:none;">${renderBreakdownTable('ბაზრის ტიპის მიხედვით',groupWinRate(closed,t=>t.marketTags,true),1,true)||'ბაზრის ტიპები ჯერ არ არის მითითებული.'}</div>
         <div data-section="setup" style="display:none;">${renderSetupCards(closed)}</div>
         <div data-section="session" style="display:none;">${renderSessionInstrument(closed)}</div>
         <div data-section="timing" style="display:none;">${renderTimingSection(closed)}</div>
         <div data-section="risk" style="display:none;">${renderRiskSection(closed)}</div>
         <div data-section="breakdown" style="display:none;">
           ${renderBreakdownTable('Setup-ების მიხედვით', groupWinRate(closed,t=>t.setups,true), 3, true)}
+          ${renderBreakdownTable('ბაზრის ტიპის მიხედვით', groupWinRate(closed,t=>t.marketTags,true), 1, true)}
           ${renderBreakdownTable('ინსტრუმენტების მიხედვით', groupWinRate(closed,t=>t.instrument,false), 3, true)}
           ${renderBreakdownTable('მიმართულების მიხედვით', groupWinRate(closed,t=>t.direction==='long'?'Long':'Short',false), 1, true)}
           ${renderBreakdownTable('სესიის მიხედვით', groupWinRate(closed,t=>sessionLabel(t.session),false), 1, true)}
