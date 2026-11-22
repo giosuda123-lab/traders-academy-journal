@@ -180,7 +180,7 @@
     }
     let videoIds=[];
     if(lessons.length){
-      const v=await TA.sb.from('course_lesson_videos').select('lesson_id,bunny_video_id').in('lesson_id',lessons.map(x=>x.id));
+      const v=await TA.sb.from('course_lesson_videos').select('lesson_id,bunny_video_id,youtube_video_id').in('lesson_id',lessons.map(x=>x.id));
       if(v.error)throw v.error;videoIds=v.data||[];
     }
     return {modules,lessons,videoIds};
@@ -194,7 +194,7 @@
     const {modules,lessons,videoIds}=structure;
     tc.replaceChildren();
     const heading=document.createElement('h2');heading.className='serif';heading.textContent='ვიდეოკურსის მოდულები';tc.append(heading);
-    const subtitle=document.createElement('p');subtitle.style.color='var(--text2)';subtitle.style.fontSize='13px';subtitle.textContent='აქ შეგიძლია მოდულების, გაკვეთილების და Bunny Video ID-ების მართვა. დაცული პლეერი ცალკე ჩაირთვება.';tc.append(subtitle);
+    const subtitle=document.createElement('p');subtitle.style.color='var(--text2)';subtitle.style.fontSize='13px';subtitle.textContent='მართე მოდულები და გაკვეთილები; მიაბი Bunny Stream ან YouTube ვიდეო. YouTube-ის ბმული გაზიარებადია და არ არის დაცული Bunny-ის ტოკენით.';tc.append(subtitle);
     const create=document.createElement('button');create.className='btn btn-primary';create.textContent='+ ახალი მოდული';create.style.marginBottom='22px';create.onclick=()=>editModule();tc.append(create);
     if(!modules.length){const empty=document.createElement('p');empty.textContent='მოდულები ჯერ არ არის. დაამატე პირველი მოდული.';tc.append(empty)}
     function button(label,fn){const b=document.createElement('button');b.className='btn btn-sm';b.textContent=label;b.onclick=fn;return b}
@@ -224,15 +224,46 @@
         if(result.error)alert(result.error.message);else renderCurriculum();
       })();
     }
+    function parseYouTubeId(input){
+      const raw=input.trim();
+      if(/^[A-Za-z0-9_-]{11}$/.test(raw))return raw;
+      try{
+        const url=new URL(raw);
+        const host=url.hostname.toLowerCase().replace(/^www\./,'');
+        let id='';
+        if(host==='youtu.be')id=url.pathname.split('/')[1]||'';
+        else if(host==='youtube.com'||host==='m.youtube.com'||host==='youtube-nocookie.com'){
+          const parts=url.pathname.split('/');
+          id=url.pathname==='/watch'?url.searchParams.get('v')||'':(['embed','shorts','live'].includes(parts[1])?parts[2]||'':'');
+        }
+        return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
+      }catch{return null}
+    }
     async function changeVideo(l){
-      const old=videoIds.find(v=>v.lesson_id===l.id)?.bunny_video_id||'';
-      const id=prompt('ჩასვი Bunny Stream ვიდეოს ID (UUID). წასაშლელად დატოვე ცარიელი:',old);if(id===null)return;
-      const value=id.trim();
-      if(value&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))return alert('ვიდეოს ID უნდა იყოს UUID ფორმატში, არა ბმული ან API გასაღები');
-      const r=value
-        ?await TA.sb.from('course_lesson_videos').upsert({lesson_id:l.id,bunny_video_id:value})
-        :await TA.sb.from('course_lesson_videos').delete().eq('lesson_id',l.id);
-      if(r.error)alert(r.error.message);else renderCurriculum();
+      const old=videoIds.find(v=>v.lesson_id===l.id)||{};
+      const provider=prompt('ვიდეოს წყარო: 1 = Bunny Stream, 2 = YouTube, 0 = ვიდეოს მოხსნა',old.youtube_video_id?'2':'1');
+      if(provider===null)return;
+      const choice=provider.trim();
+      let payload;
+      if(choice==='0'){
+        if(!confirm('ამ გაკვეთილს ვიდეოს მიბმა მოვუხსნათ?'))return;
+        const {error}=await TA.sb.from('course_lesson_videos').delete().eq('lesson_id',l.id);
+        if(error)alert(error.message);else renderCurriculum();return;
+      }
+      if(choice==='1'){
+        const raw=prompt('ჩასვი Bunny Video ID:',old.bunny_video_id||'');
+        if(raw===null)return;const id=raw.trim();
+        if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return alert('Bunny-ის Video ID უნდა იყოს UUID ფორმატში');
+        payload={lesson_id:l.id,bunny_video_id:id,youtube_video_id:null};
+      }else if(choice==='2'){
+        const raw=prompt('ჩასვი YouTube ვიდეოს ბმული ან Video ID:',old.youtube_video_id||'');
+        if(raw===null)return;
+        const id=parseYouTubeId(raw);
+        if(!id)return alert('არასწორი YouTube ბმულია. გამოიყენე watch, shorts, embed ან youtu.be ფორმატი');
+        payload={lesson_id:l.id,bunny_video_id:null,youtube_video_id:id};
+      }else return alert('აირჩიე 1, 2 ან 0');
+      const {error}=await TA.sb.from('course_lesson_videos').upsert(payload,{onConflict:'lesson_id'});
+      if(error)alert(error.message);else renderCurriculum();
     }
     modules.forEach(m=>{
       const card=document.createElement('div');card.className='card';card.style.marginBottom='16px';card.style.padding='20px';
@@ -244,9 +275,9 @@
       lessons.filter(x=>x.module_id===m.id).forEach(l=>{
         const item=document.createElement('div');item.style.cssText='border-top:1px solid var(--border);padding-top:13px;margin-top:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
         const info=document.createElement('div');const label=document.createElement('div');label.style.fontSize='14px';label.textContent=l.title+' · #'+l.sort_order;
-        const status=document.createElement('small');status.style.color='var(--text3)';status.textContent=videoIds.some(v=>v.lesson_id===l.id)?'Bunny ვიდეო მიმაგრებულია':'ვიდეო ჯერ არ არის მიმაგრებული';info.append(label,status);
+        const status=document.createElement('small');status.style.color='var(--text3)';status.textContent=videoIds.find(v=>v.lesson_id===l.id)?.youtube_video_id?'YouTube ვიდეო მიმაგრებულია':videoIds.find(v=>v.lesson_id===l.id)?.bunny_video_id?'Bunny ვიდეო მიმაგრებულია':'ვიდეო ჯერ არ არის მიმაგრებული';info.append(label,status);
         const controls=document.createElement('div');controls.style.cssText='display:flex;gap:7px;flex-wrap:wrap';
-        controls.append(button('ვიდეოს ID',()=>changeVideo(l)),button('შეცვლა',()=>editLesson(l,m.id)),button('წაშლა',async()=>{if(!confirm('წავშალოთ ლექცია?'))return;const r=await TA.sb.from('course_lessons').delete().eq('id',l.id);if(r.error)alert(r.error.message);else renderCurriculum()}));
+        controls.append(button('ვიდეოს მიბმა',()=>changeVideo(l)),button('შეცვლა',()=>editLesson(l,m.id)),button('წაშლა',async()=>{if(!confirm('წავშალოთ ლექცია?'))return;const r=await TA.sb.from('course_lessons').delete().eq('id',l.id);if(r.error)alert(r.error.message);else renderCurriculum()}));
         item.append(info,controls);card.append(item)
       });
       tc.append(card);

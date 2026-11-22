@@ -223,6 +223,23 @@ async function loadSecureVideo(){
  el('video-status').textContent='წვდომა მოწმდება...';
  if(!user||!lessons[selected]?.id){msg.textContent='ამ გაკვეთილის ვიდეო ჯერ არ არის დამატებული';el('video-status').textContent='ვიდეო არ არის';return}
  try{
+   // The user's active course enrollment is already verified before the UI opens.
+   // Database RPC repeats the enrollment check before revealing the YouTube ID.
+   const {data:youtubeId,error:youtubeError}=await TA.sb.rpc('ta_course_youtube_id',{p_lesson_id:lessons[selected].id});
+   if(requestId!==playRequest)return;
+   if(youtubeError)throw new Error('ვიდეოს წყაროს შემოწმება ვერ მოხერხდა: '+youtubeError.message);
+   if(youtubeId){
+     if(!/^[A-Za-z0-9_-]{11}$/.test(youtubeId))throw new Error('YouTube-ის ვიდეოს ID არასწორია');
+     const iframe=document.createElement('iframe');
+     iframe.src='https://www.youtube-nocookie.com/embed/'+youtubeId+'?rel=0&playsinline=1&enablejsapi=1';
+     iframe.title=lessons[selected].title;
+     iframe.allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+     iframe.allowFullscreen=true;
+     iframe.referrerPolicy='strict-origin-when-cross-origin';
+     screen.replaceChildren(iframe);
+     el('video-status').textContent='';
+     return;
+   }
    const {data,error}=await TA.sb.functions.invoke('course-playback',{body:{lesson_id:lessons[selected].id}});
    if(requestId!==playRequest)return;
    if(error||!data?.url){throw new Error(data?.message||error?.message||'ვიდეო დროებით მიუწვდომელია')}
