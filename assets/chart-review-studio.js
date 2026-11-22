@@ -3,7 +3,10 @@
 (function(){
 'use strict';
 const PALETTE=['#E6B94D','#65B8FF','#52D5A3','#FF6F76','#D89AFF','#FFFFFF','#111111'];
-const COPY_LIMIT=1200;
+const COPY_LIMIT=1200,MAX_MM_LEVELS=16;
+const DEFAULT_MM=[1,.5,0].map(value=>({value,visible:true,color:null}));
+const cleanLevel=x=>({value:Number.isFinite(Number(typeof x==='number'?x:x?.value))?Math.max(-5,Math.min(5,Number(typeof x==='number'?x:x?.value))):0,visible:typeof x==='number'?true:x?.visible!==false,color:typeof x==='number'?null:(/^#[0-9a-fA-F]{6}$/.test(x?.color||'')?x.color:null)});
+const mmLevelList=xs=>Array.isArray(xs)&&xs.length?xs.slice(0,MAX_MM_LEVELS).map(cleanLevel):clone(DEFAULT_MM);
 let current=null;
 function node(tag,cls,text){
  const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;
@@ -11,7 +14,7 @@ function node(tag,cls,text){
 const clone=value=>JSON.parse(JSON.stringify(value));
 function normalize(objects){
  if(!Array.isArray(objects))return [];
- return objects.filter(x=>x&&['pen','line','rect','arrow','mm'].includes(x.type)).slice(0,COPY_LIMIT).map(x=>clone(x));
+ return objects.filter(x=>x&&['pen','line','rect','arrow','mm','text'].includes(x.type)).slice(0,COPY_LIMIT).map(x=>clone(x));
 }
 function open(options){
  if(current)current.destroy();
@@ -37,7 +40,8 @@ function open(options){
  const image=new Image();
  const state={objects:normalize(options.objects),tool:'hand',color:PALETTE[0],width:3,
    selected:-1,zoom:1,ox:0,oy:0,active:null,preview:null,undo:[],redo:[],
-   mmLevels:Array.isArray(options.mmLevels)&&options.mmLevels.length===3?options.mmLevels.slice():Array.isArray(storedMM?.levels)&&storedMM.levels.length===3?storedMM.levels.slice():[1,.5,0],
+   mmLevels:mmLevelList(options.mmLevels||storedMM?.levels),
+   fontSize:20,zoomSensitivity:.00052,
    mmOpacity:typeof storedMM?.opacity==='number'?storedMM.opacity:.10,keysDown:new Set(),pointers:new Map(),pinch:null,dirty:false,disposed:false};
  const ctx=canvas.getContext('2d',{alpha:false});
  const writable=!options.readOnly&&typeof options.onSave==='function';
@@ -55,7 +59,8 @@ function open(options){
  tool('line','╱','ტრენდლაინი (L)');
  tool('arrow','➜','ისარი (A)');
  tool('rect','▭','მართკუთხედი (R)');
- tool('mm','MM','MM — სამი დონე (M)');
+ tool('mm','MM','MM — მრავალი დონე (M)');
+ tool('text','T','ტექსტის დამატება (T)');
  const colors=node('div','tce-colors');bar.append(colors);
  PALETTE.forEach(color=>{
    const b=node('button','tce-color');b.type='button';b.style.background=color;b.title='ფერი: '+color;
@@ -73,21 +78,38 @@ function open(options){
  const settings=action('⚙ MM პარამეტრები',()=>mmPanel.hidden=!mmPanel.hidden);
  right.append(settings);
  const mmPanel=node('div','tce-mmsettings');mmPanel.hidden=true;
- const mmHelp=node('p','','MM-ის სამი დონე და ფერი. ციფრები გრაფიკზე არ ჩანს.');
+ const mmHelp=node('p','','MM — დონის დამატება/ამოღება, ხილვადობა და ფერი. რიცხვები ჩარტზე არ გამოისახება.');
  mmPanel.append(mmHelp);
- const levels=[];
- ['ზედა დონე','შუა დონე','ქვედა დონე'].forEach((caption,i)=>{
-   const row=node('label','tce-field',caption);
-   const input=document.createElement('input');input.type='number';input.step='.05';input.min='-3';input.max='3';input.value=String(state.mmLevels[i]);
-   input.addEventListener('change',()=>{
-     let n=Number(input.value);if(!Number.isFinite(n)||n < -3||n>3){input.value=String(state.mmLevels[i]);return}
-     state.mmLevels[i]=n;persistMM();
-     if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){
-       record();state.objects[state.selected].levels=state.mmLevels.slice();state.dirty=true;draw();
-     }
+ const levelList=node('div','tce-level-list');
+ mmPanel.append(levelList);
+ function editMMLevels(next){
+   state.mmLevels=mmLevelList(next);persistMM();
+   if(state.selected>=0&&state.objects[state.selected]?.type==='mm'&&writable){
+     record();state.objects[state.selected].levels=clone(state.mmLevels);state.dirty=true;draw();
+   }
+   renderLevels();
+ }
+ function renderLevels(){
+   levelList.replaceChildren();
+   state.mmLevels.forEach((item,i)=>{
+     const row=node('div','tce-mm-row');
+     const visible=document.createElement('input');visible.type='checkbox';visible.checked=item.visible;visible.title='დონის ჩვენება';
+     visible.onchange=()=>{const levels=clone(state.mmLevels);levels[i].visible=visible.checked;editMMLevels(levels)};
+     const input=document.createElement('input');input.type='number';input.step='.05';input.min='-5';input.max='5';input.value=String(item.value);input.title='დონის კოეფიციენტი';
+     input.onchange=()=>{const n=Number(input.value);if(!Number.isFinite(n)||n < -5||n>5){input.value=item.value;return}const levels=clone(state.mmLevels);levels[i].value=n;editMMLevels(levels)};
+     const color=document.createElement('input');color.type='color';color.value=item.color||state.color;color.title='დონის ხაზის ფერი';
+     color.onchange=()=>{const levels=clone(state.mmLevels);levels[i].color=color.value;editMMLevels(levels)};
+     const remove=action('×',()=>{if(state.mmLevels.length===1)return;const levels=clone(state.mmLevels);levels.splice(i,1);editMMLevels(levels)},'დონის წაშლა');
+     remove.disabled=state.mmLevels.length<=1;
+     row.append(visible,input,color,remove);levelList.append(row);
    });
-   row.append(input);mmPanel.append(row);levels.push(input);
- });
+ }
+ const addLevel=action('＋ დონის დამატება',()=>{
+   if(state.mmLevels.length>=MAX_MM_LEVELS){message('მაქსიმუმ '+MAX_MM_LEVELS+' დონეა');return}
+   const levels=clone(state.mmLevels);levels.push({value:0,visible:true,color:null});editMMLevels(levels);
+ },'ახალი MM დონე','tce-button tce-add-level');
+ mmPanel.append(addLevel);
+ renderLevels();
  const opacity=node('label','tce-field','ფონის გამჭვირვალობა');
  const opacityInput=document.createElement('input');opacityInput.type='range';opacityInput.min='0';opacityInput.max='45';opacityInput.value=String(Math.round(state.mmOpacity*100));
  opacityInput.oninput=()=>{state.mmOpacity=Number(opacityInput.value)/100;persistMM();if(state.selected>=0&&state.objects[state.selected].type==='mm'&&writable){record();state.objects[state.selected].opacity=state.mmOpacity;state.dirty=true;draw()}};
@@ -95,19 +117,22 @@ function open(options){
  function persistMM(){try{localStorage.setItem('ta-chart-mm-settings-v1',JSON.stringify({levels:state.mmLevels,opacity:state.mmOpacity}))}catch{}}
  const spacer=node('div','tce-spacer');right.append(spacer);
  const fit=action('⊡ მორგება',fitImage,'სრული ჩარტი');
- const zoomOut=action('−',()=>zoomAt(.8,stage.clientWidth/2,stage.clientHeight/2),'შეამცირე');
- const zoomIn=action('+',()=>zoomAt(1.25,stage.clientWidth/2,stage.clientHeight/2),'გაადიდე');
+ const zoomOut=action('−',()=>zoomAt(.89,stage.clientWidth/2,stage.clientHeight/2),'შეამცირე');
+ const zoomIn=action('+',()=>zoomAt(1.12,stage.clientWidth/2,stage.clientHeight/2),'გაადიდე');
  const zoomVal=node('span','tce-zoom','100%');
+ const zoomSpeed=node('select','tce-speed');zoomSpeed.title='ზუმის სიჩქარე';
+ [['slow','ნელი'],['medium','საშუალო'],['fast','სწრაფი']].forEach(([value,title])=>{const option=node('option','',title);option.value=value;zoomSpeed.append(option)});
+ zoomSpeed.value='medium';zoomSpeed.onchange=()=>{state.zoomSensitivity={slow:.00028,medium:.00052,fast:.0009}[zoomSpeed.value]};
  const undoBtn=action('↶',undo,'Undo (Ctrl+Z)');
  const redoBtn=action('↷',redo,'Redo (Ctrl+Shift+Z)');
  const duplicateBtn=action('⧉','', '');duplicateBtn.onclick=duplicate;
  const deleteBtn=action('⌫',removeSelected,'არჩეულის წაშლა');
  const copyImageBtn=action('⧉ PNG',copyImage,'სურათის დაკოპირება');
  const downloadBtn=action('↓ PNG',download,'ჩამოტვირთე');
- right.append(fit,zoomOut,zoomIn,zoomVal,undoBtn,redoBtn,duplicateBtn,deleteBtn,copyImageBtn,downloadBtn);
+ right.append(fit,zoomOut,zoomIn,zoomVal,zoomSpeed,undoBtn,redoBtn,duplicateBtn,deleteBtn,copyImageBtn,downloadBtn);
  let saveBtn=null;
  if(writable){saveBtn=action('შენახვა',save,'შეინახე მონიშვნები','tce-save');right.append(saveBtn)}
- const hint=node('span','tce-hint','Scroll — კურსორზე ზუმი · ხელით გადაადგილება · Ctrl+C / Ctrl+V — ფიგურის კოპირება');
+ const hint=node('span','tce-hint','მაუსის ბორბალი — რბილი ზუმი · ფიგურაზე დაჭერა — გადატანა · მარჯვენა ღილაკი — მოქმედებები');
  bottombar.append(hint);
  const notice=node('span','tce-notice','');bottombar.append(notice);
  function message(text){notice.textContent=text;}
@@ -119,6 +144,7 @@ function open(options){
  function duplicate(){if(!writable||state.selected<0)return;record();const copied=clone(state.objects[state.selected]);translate(copied,18,18);state.objects.push(copied);state.selected=state.objects.length-1;state.dirty=true;sync();draw()}
  function translate(shape,dx,dy){
    if(shape.points){for(const p of shape.points){p.x+=dx;p.y+=dy}}
+   else if(shape.type==='text'){shape.a.x+=dx;shape.a.y+=dy}
    else {shape.a.x+=dx;shape.a.y+=dy;shape.b.x+=dx;shape.b.y+=dy}
  }
  function fitImage(){
