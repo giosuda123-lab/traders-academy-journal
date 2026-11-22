@@ -75,7 +75,7 @@ function open(options){
  const strokeInput=document.createElement('input');strokeInput.type='range';strokeInput.min='1';strokeInput.max='12';strokeInput.value='3';
  strokeInput.oninput=()=>{state.width=Number(strokeInput.value);strokeValue.textContent=strokeInput.value;if(state.selected>=0&&writable){state.objects[state.selected].width=state.width;state.dirty=true;draw()}};
  const strokeValue=node('span','', '3');stroke.append(strokeInput,strokeValue);right.append(stroke);
- const settings=action('⚙ MM პარამეტრები',()=>mmPanel.hidden=!mmPanel.hidden);
+ const settings=action('⚙ MM პარამეტრები',()=>{if(mmPanel.hidden&&state.selected>=0&&state.objects[state.selected]?.type==='mm'){state.mmLevels=mmLevelList(state.objects[state.selected].levels);renderLevels()}mmPanel.hidden=!mmPanel.hidden});
  right.append(settings);
  const mmPanel=node('div','tce-mmsettings');mmPanel.hidden=true;
  const mmHelp=node('p','','MM — დონის დამატება/ამოღება, ხილვადობა და ფერი. რიცხვები ჩარტზე არ გამოისახება.');
@@ -404,7 +404,8 @@ function open(options){
  };
  stage.addEventListener('wheel',wheel,{passive:false});
  stage.addEventListener('pointerdown',e=>{
-   if(!imageReady)return;
+   if(!imageReady||e.button===2||e.target!==canvas||!editor.hidden)return;
+   hideContext();
    stage.focus({preventScroll:true});
    const screen=coords(e);const p=world(screen);
    state.pointers.set(e.pointerId,screen);
@@ -415,14 +416,25 @@ function open(options){
        center:{x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2}};
      state.active=null;state.preview=null;draw();return;
    }
-   const isPan=state.tool==='hand'||e.button===1||state.keysDown.has(' ');
-   if(isPan||!writable){
+   const isPan=state.keysDown.has(' ')||e.button===1;
+   const oldSelected=state.selected;
+   const handle=oldSelected>=0?pickHandle(p,state.objects[oldSelected]):null;
+   const hitIndex=handle?oldSelected:pick(p);
+   // Drag any existing drawing directly. Alt bypasses picking for overlapping shapes.
+   if(!isPan&&writable&&hitIndex>=0&&!e.altKey){
+     state.selected=hitIndex;
+     state.active={kind:handle?'resize':'move',handle,screen,start:clone(state.objects[hitIndex]),recorded:false};
+     state.tool='select';sync();draw();return;
+   }
+   if(state.tool==='text'&&!isPan&&writable){
+     state.pointers.delete(e.pointerId);
+     try{stage.releasePointerCapture(e.pointerId)}catch{}
+     createText(p);return;
+   }
+   if(isPan||state.tool==='hand'||!writable){
      state.active={kind:'pan',screen};
    }else if(state.tool==='select'){
-     const oldSelected=state.selected;
-     const handle=oldSelected>=0?pickHandle(p,state.objects[oldSelected]):null;
-     if(!handle)state.selected=pick(p);
-     state.active=state.selected>=0?{kind:handle?'resize':'move',handle,screen,start:clone(state.objects[state.selected]),recorded:false}:null;sync();draw();
+     state.selected=-1;state.active=null;sync();draw();
    }else{
      record();
      state.active={kind:'draw',start:p};
@@ -461,7 +473,8 @@ function open(options){
      if(state.active.kind==='resize'){
        const p=world(screen);state.objects[selected][state.active.handle]=p;
      }else translate(state.objects[selected],dx,dy);
-     state.dirty=true;draw();
+     if(state.active.recorded)state.dirty=true;
+     draw();
    }
  });
  function endPointer(e){
@@ -494,8 +507,9 @@ function open(options){
      return;
    }
    if(key===' '){e.preventDefault();state.keysDown.add(' ');stage.style.cursor='grab';return}
+   if(key==='escape'){hideContext();if(!editor.hidden)closeTextEditor();else{state.selected=-1;state.tool='hand';sync();draw()}return}
    if(key==='delete'||key==='backspace'){e.preventDefault();removeSelected();return}
-   const shortcuts={h:'hand',v:'select',p:'pen',l:'line',a:'arrow',r:'rect',m:'mm'};
+   const shortcuts={h:'hand',v:'select',p:'pen',l:'line',a:'arrow',r:'rect',m:'mm',t:'text'};
    if(shortcuts[key]){state.tool=shortcuts[key];state.selected=-1;sync();draw()}
  }
  function keyup(e){if(e.key===' '){state.keysDown.delete(' ');sync()}}
