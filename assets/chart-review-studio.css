@@ -124,3 +124,18 @@ padding:12px;background:#232A34;border:1px solid #c79c4e;border-radius:12px;box-
 .tce-contextmenu{background:linear-gradient(145deg,#303238,#202227)}
 .tce-tool.active{background:linear-gradient(120deg,#FFE29A,#F5C542)}
 .tce-save{background:linear-gradient(110deg,#FFE29A,#F5C542)}
+
+/* Chart editor remains a dark precision canvas against the gold site background. */
+.tce{
+ --gold:#F7D77A;--panel:#191919;--line:#504432;--ink:#F8F5EE;
+ background:#121212;border:1px solid #D9AC55;
+ box-shadow:0 22px 65px rgba(32,23,8,.48),0 0 0 3px rgba(255,218,134,.13);
+}
+.tce-bar{background:linear-gradient(120deg,#29251D,#1A1A19);border-bottom-color:rgba(247,215,122,.34)}
+.tce-right{background:#211F1A}
+.tce-rail{background:linear-gradient(180deg,#29251D,#171717);border-right-color:rgba(247,215,122,.25)}
+.tce-stage{background:#0B0B0B}
+.tce-tool.active{background:linear-gradient(115deg,#FFE8AE,#EAB64B);color:#191919}
+.tce-mmsettings{background:#24211B;border-color:#D9AC55}
+.tce-contextmenu{background:#26231E;border-color:#CFA653}
+.tce-save{background:linear-gradient(115deg,#FFE9AF,#EAB74E);color:#171717;border-color:#FFE5A1}
