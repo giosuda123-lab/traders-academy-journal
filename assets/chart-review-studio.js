@@ -259,6 +259,92 @@ function open(options){
      c.restore();
    }
  }
+ const contextMenu=node('div','tce-contextmenu');
+ contextMenu.hidden=true;stage.append(contextMenu);
+ function hideContext(){contextMenu.hidden=true;contextMenu.replaceChildren()}
+ function showContext(x,y){
+   hideContext();
+   contextMenu.style.left=Math.max(7,Math.min(stage.clientWidth-210,x))+'px';
+   contextMenu.style.top=Math.max(7,Math.min(stage.clientHeight-220,y))+'px';
+   const add=(title,icon,fn,disabled)=>{
+     const b=node('button','tce-context-action');
+     b.type='button';b.disabled=Boolean(disabled);
+     b.append(node('span','tce-context-icon',icon),node('span','',title));
+     b.addEventListener('click',()=>{hideContext();fn()});
+     contextMenu.append(b);
+   };
+   if(state.selected>=0){
+     add('გადაადგილება','↖',()=>{state.tool='select';sync();draw()});
+     add('დუბლირება','⧉',duplicate,!writable);
+     add('ფერის შეცვლა','◉',()=>customColor.click(),!writable);
+     if(state.objects[state.selected].type==='text')add('ტექსტის შეცვლა','T',()=>editText(state.selected),!writable);
+     if(state.objects[state.selected].type==='mm')add('MM დონეები','≋',()=>{state.mmLevels=mmLevelList(state.objects[state.selected].levels);renderLevels();mmPanel.hidden=false},!writable);
+     const separator=node('div','tce-context-separator');contextMenu.append(separator);
+     add('წაშლა','⌫',removeSelected,!writable);
+   }else{
+     add('აქ ტექსტის დამატება','T',()=>createText(world({x,y})),!writable);
+     add('ჩარტის მორგება','⊡',fitImage);
+     add('გაზრდა','+',()=>zoomAt(1.12,x,y));
+     add('შემცირება','−',()=>zoomAt(.89,x,y));
+   }
+   contextMenu.hidden=false;
+ }
+ stage.addEventListener('contextmenu',e=>{
+   if(!imageReady)return;
+   e.preventDefault();
+   const at=coords(e),p=world(at);
+   const i=pick(p);
+   if(i>=0)state.selected=i;
+   else state.selected=-1;
+   state.active=null;state.preview=null;
+   showContext(at.x,at.y);sync();draw();
+ });
+ const editor=node('div','tce-text-editor');editor.hidden=true;stage.append(editor);
+ let editTarget=null;
+ const textInput=node('textarea','tce-text-input');textInput.rows=3;textInput.maxLength=1500;
+ textInput.placeholder='შეიყვანე ტექსტი ჩარტზე...';
+ const textActions=node('div','tce-text-actions');
+ const textSave=action('დამატება',()=>commitText(),'ტექსტის შენახვა','tce-save');
+ const textCancel=action('გაუქმება',closeTextEditor);
+ textActions.append(textCancel,textSave);editor.append(textInput,textActions);
+ function closeTextEditor(){editor.hidden=true;editTarget=null;stage.focus({preventScroll:true})}
+ function createText(at){if(!writable)return;editTarget={at,index:-1};showTextEditor('',at)}
+ function editText(index){
+   if(!writable||index<0||state.objects[index]?.type!=='text')return;
+   const shape=state.objects[index];editTarget={at:shape.a,index};showTextEditor(shape.text,shape.a);
+ }
+ function showTextEditor(value,at){
+   hideContext();
+   textInput.value=value||'';
+   textSave.textContent=editTarget.index>=0?'შენახვა':'დამატება';
+   const sx=at.x*state.zoom+state.ox,sy=at.y*state.zoom+state.oy;
+   editor.style.left=Math.max(8,Math.min(stage.clientWidth-320,sx))+'px';
+   editor.style.top=Math.max(8,Math.min(stage.clientHeight-160,sy-28))+'px';
+   editor.hidden=false;textInput.focus();textInput.select();
+ }
+ function commitText(){
+   if(!editTarget)return;
+   const value=textInput.value.trim();
+   if(!value){closeTextEditor();return}
+   record();
+   if(editTarget.index>=0){
+     state.objects[editTarget.index].text=value;state.selected=editTarget.index;
+   }else{
+     if(state.objects.length>=COPY_LIMIT)return;
+     state.objects.push({type:'text',a:editTarget.at,text:value,color:state.color,fontSize:state.fontSize});
+     state.selected=state.objects.length-1;
+   }
+   state.dirty=true;closeTextEditor();state.tool='select';sync();draw();
+ }
+ textInput.addEventListener('keydown',e=>{
+   if(e.key==='Escape'){e.stopPropagation();closeTextEditor()}
+   if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();commitText()}
+ });
+ stage.addEventListener('dblclick',e=>{
+   const i=pick(world(coords(e)));
+   if(i>=0&&state.objects[i].type==='text')editText(i);
+ });
+ stage.addEventListener('pointerdown',e=>{if(!contextMenu.hidden&&!contextMenu.contains(e.target))hideContext()},true);
  function imageCanvas(includeSelection){
    const result=document.createElement('canvas');result.width=image.naturalWidth;result.height=image.naturalHeight;
    const c=result.getContext('2d');c.drawImage(image,0,0);
