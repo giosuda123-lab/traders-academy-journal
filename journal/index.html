@@ -245,6 +245,56 @@ background:radial-gradient(ellipse 850px 480px at 90% -140px,rgba(245,197,66,.05
 .tj-panelcard:hover{border-color:rgba(245,197,66,.31)}
 .tj .tj-btn.primary{background:linear-gradient(115deg,#FBE095,#F5C542)!important;border-color:#F5C542!important;color:#211B0E!important;box-shadow:0 4px 16px rgba(245,197,66,.14)}
 .tj .tj-btn.primary:hover{box-shadow:0 8px 22px rgba(245,197,66,.2)}
+
+/* ===== Gold Canvas: journal has a real gold application background ===== */
+html,body{background:#C49A42!important}
+.tj{
+ --tj-bg:#CAA04A;--tj-panel:#171717;--tj-panel2:#252525;
+ --tj-border:rgba(247,215,122,.25);
+ --tj-text:#F8F5EE;--tj-text2:#DBD6CD;--tj-text3:#B9B3A8;
+ --tj-accent:#F7D77A;--tj-accent-light:#FFE8AD;--tj-accent-soft:#D9A848;
+ background:linear-gradient(155deg,#E5C16A 0%,#CDA24B 48%,#A97D2F 100%)!important;
+ background-attachment:fixed!important;
+}
+#tj-shell{background:transparent}
+#tj-sidebar{
+ background:linear-gradient(180deg,#211E19,#151515)!important;
+ border-right:1px solid rgba(255,226,148,.34);
+ box-shadow:7px 0 24px rgba(47,29,8,.18)
+}
+#tj-sidebar-head,#tj-sidebar-foot{border-color:rgba(255,226,148,.22)}
+#tj-main{background:transparent}
+#tj-topbar{
+ background:rgba(20,20,20,.94)!important;
+ color:#F8F5EE;
+ border-bottom:1px solid rgba(255,228,155,.36)!important;
+ box-shadow:0 6px 16px rgba(63,38,7,.14)
+}
+#tj-body{
+ margin:18px 22px 32px;
+ padding:24px 26px 40px;
+ min-height:calc(100vh - 145px);
+ border-radius:15px;
+ color:var(--tj-text);
+ background:linear-gradient(148deg,rgba(22,22,22,.96),rgba(29,27,23,.97));
+ border:1px solid rgba(255,228,163,.32);
+ box-shadow:0 16px 42px rgba(57,37,9,.22),inset 0 1px rgba(255,255,255,.035);
+}
+.tj-panelcard{background:linear-gradient(145deg,#292824,#1E1E1D)!important;border-color:rgba(247,215,122,.19)!important}
+.tj-panelcard:hover{border-color:rgba(247,215,122,.51)!important}
+#tj-nav-indicator{
+ background:linear-gradient(105deg,rgba(247,215,122,.30),rgba(247,215,122,.07))!important;
+ border-color:rgba(247,215,122,.63)!important;
+ box-shadow:inset 3px 0 0 #F7D77A
+}
+.tj-nav-item.active{color:#FFE9A8}
+.tj .tj-btn.primary{background:linear-gradient(110deg,#FFE7A3,#EBB94C)!important;color:#171717!important;
+ border-color:#FFE6A0!important;box-shadow:0 6px 20px rgba(247,215,122,.19)!important}
+.tj .tj-btn.primary:hover{background:linear-gradient(110deg,#FFF0C4,#F7D77A)!important}
+.tj input,.tj select,.tj textarea{background:#272727;border-color:#514A3F;color:#F8F5EE}
+@media(max-width:760px){
+ #tj-body{margin:10px;padding:18px 14px 30px;min-height:calc(100vh - 125px);border-radius:12px}
+}
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
