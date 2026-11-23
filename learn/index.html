@@ -133,6 +133,24 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 .lt-time-link{color:#e6b94d;border:1px solid #66502d;border-radius:7px;background:#2b2418;padding:7px 9px;cursor:pointer;font:11px 'IBM Plex Mono',monospace}
 .lt-time-link:hover{background:#3a2f1c}
 @media(max-width:850px){.lt-studybar{padding:13px}.lt-study-cta{width:100%}.lt-study-cta .lt-btn{flex:1}}
+
+.lt-description{margin:15px 0 19px;padding:15px 17px;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.lt-description[hidden]{display:none}
+.lt-description-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.lt-description-head strong{font-size:13px;color:var(--accent)}
+.lt-description-body{font-size:13px;line-height:1.85;color:var(--text2);white-space:pre-wrap;overflow-wrap:anywhere;min-height:22px}
+.lt-progress-message{font-size:11px;line-height:1.4;color:var(--accent-light);flex-basis:100%}
+.lt-inline-admin-panel{padding:16px 18px;background:linear-gradient(145deg,#262015,#1B1813);border:1px solid var(--accent-soft);border-radius:12px;margin-bottom:16px}
+.lt-inline-admin-panel[hidden]{display:none}
+.lt-inline-admin-panel strong{color:var(--accent);font-size:13px}
+.lt-admin-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.lt-admin-fields label{font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:6px}
+.lt-admin-fields label:last-child{grid-column:1/-1}
+.lt-admin-editing #lesson-title,.lt-admin-editing #lesson-description,.lt-admin-editing #lesson-module-name{outline:1px dashed var(--accent-soft);outline-offset:5px;border-radius:3px;cursor:text}
+.lt-admin-editing #lesson-title:focus,.lt-admin-editing #lesson-description:focus,.lt-admin-editing #lesson-module-name:focus{outline:2px solid var(--accent)}
+.lt-admin-editing #lesson-description:empty::before{content:'დააჭირე და დაწერე გაკვეთილის აღწერა...';color:var(--text3)}
+@media(max-width:640px){.lt-admin-fields{grid-template-columns:1fr}.lt-description{padding:12px}}
+
 </style>
 </head>
 <body>
@@ -143,8 +161,10 @@ textarea.lt-notebook{min-height:clamp(320px,49vh,680px);font-size:13.5px;line-he
 <section class="lt-main" aria-label="ვიდეოგაკვეთილი">
 <div class="lt-meta" id="breadcrumb">LEARNING TERMINAL</div>
 <h1 class="lt-h1" id="lesson-title">ვიდეოგაკვეთილი</h1>
-<div class="lt-sub" id="lesson-subtitle"></div>
-<div class="lt-studybar" aria-label="სასწავლო პროგრესი"><div class="lt-study-info"><span class="lt-study-eyebrow">შენი სასწავლო გზა</span><strong id="learning-summary">პროგრესი იტვირთება...</strong><div class="lt-studytrack"><span id="learning-progress-bar"></span></div></div><div class="lt-study-cta"><button class="lt-btn" type="button" id="continue-lesson" hidden>▶ გაგრძელება</button><button class="lt-btn" type="button" id="complete-lesson" aria-pressed="false">✓ დასრულებულად მონიშვნა</button></div></div>
+<div class="lt-sub" id="lesson-subtitle"><span id="lesson-module-name"></span><span id="lesson-index"></span></div>
+<section class="lt-description" id="lesson-description-panel"><div class="lt-description-head"><strong>გაკვეთილის აღწერა</strong><span class="lt-meta">რაზეა ეს გაკვეთილი</span></div><div id="lesson-description" class="lt-description-body"></div></section>
+<div class="lt-studybar" aria-label="სასწავლო პროგრესი"><div class="lt-study-info"><span class="lt-study-eyebrow">შენი სასწავლო გზა</span><strong id="learning-summary">პროგრესი იტვირთება...</strong><div class="lt-studytrack"><span id="learning-progress-bar"></span></div></div><div class="lt-study-cta"><button class="lt-btn" type="button" id="continue-lesson" hidden>▶ გაგრძელება</button><button class="lt-btn" type="button" id="complete-lesson" aria-pressed="false">✓ დასრულებულად მონიშვნა</button></div><span class="lt-progress-message" id="progress-save-status" role="status" aria-live="polite"></span></div>
+<div class="lt-inline-admin-panel" id="lt-admin-panel" hidden><div class="lt-footrow"><strong>✎ გაკვეთილის რედაქტირება</strong><span class="lt-meta">ცვლილებები პირდაპირ ამ გვერდზე</span></div><div class="lt-admin-fields"><label>ხანგრძლივობა (წუთი:წამი)<input id="admin-lesson-duration" class="lt-input" placeholder="00:00" inputmode="numeric"/></label><label>ვიდეოს წყარო<select id="admin-video-provider" class="lt-input"><option value="unchanged">უცვლელი</option><option value="bunny">Bunny Stream</option><option value="youtube">YouTube</option><option value="none">ვიდეოს მოხსნა</option></select></label><label>ვიდეოს ID ან ბმული<input id="admin-video-id" class="lt-input" placeholder="Bunny Video ID ან YouTube URL"/></label></div><p class="lt-meta">სათაური, აღწერა და მოდულის სახელი უშუალოდ ზემოთ შეცვალე. შენახვის შემდეგ ცვლილება მოსწავლეებსაც გამოუჩნდებათ.</p><div class="lt-footrow"><button class="lt-btn" id="admin-save-lesson" type="button">✓ ცვლილებების შენახვა</button><span id="admin-course-status" role="status" class="lt-progress-message"></span></div></div>
 <div class="lt-player">
 <div class="lt-screen" id="lt-video-screen"><div class="lt-screen-icon">▶</div><strong>დაცული ვიდეოპლეერი</strong><small>ლექციის არჩევის შემდეგ ჩაიტვირთება ვიდეო, თუ მასზე წვდომა გაქვს.</small></div>
 <div class="lt-playerfoot"><div class="lt-footrow"><span id="video-duration">მოლოდინი...</span><span id="video-status">დაცული ვიდეო არ არის ჩატვირთული</span></div></div>
@@ -191,9 +211,9 @@ async function loadCurriculumForStudent(){
  if(m.error)throw m.error;
  const modules=m.data||[];
  if(!modules.length){lessons=[];selected=0;renderLesson();return}
- const l=await TA.sb.from('course_lessons').select('id,module_id,title,duration_seconds,sort_order').in('module_id',modules.map(x=>x.id)).order('sort_order').order('created_at');
+ const l=await TA.sb.from('course_lessons').select('id,module_id,title,description,duration_seconds,sort_order').in('module_id',modules.map(x=>x.id)).order('sort_order').order('created_at');
  if(l.error)throw l.error;
- lessons=modules.flatMap(mod=>(l.data||[]).filter(x=>x.module_id===mod.id).map(x=>({id:x.id,title:x.title,duration:Math.floor(x.duration_seconds/60)+':'+String(x.duration_seconds%60).padStart(2,'0'),module:mod.title,moduleId:mod.id})));
+ lessons=modules.flatMap(mod=>(l.data||[]).filter(x=>x.module_id===mod.id).map(x=>({id:x.id,title:x.title,description:x.description||'',durationSeconds:x.duration_seconds||0,duration:Math.floor(x.duration_seconds/60)+':'+String(x.duration_seconds%60).padStart(2,'0'),module:mod.title,moduleId:mod.id})));
  selected=Math.min(selected,Math.max(lessons.length-1,0));
  expandedModuleId=lessons[selected]?.moduleId||null;
  renderLesson();
@@ -210,6 +230,8 @@ let playRequest=0;
 let activeBunnyPlayer=null;
 let bunnyPlayerReady=false;
 let progress=new Map();let progressWriteAt=0;let resumePosition=null;let currentSeekRequest=null;
+let adminMode=false,adminVerified=false,courseEnrolled=false;
+let progressQueue=new Map(),progressSaveVersion=new Map();
 async function loadSecureVideo(){
  const requestId=++playRequest;
  videoSeconds=null;
@@ -296,7 +318,7 @@ async function loadLearningProgress(){
  if(!user)return;
  const {data,error}=await TA.sb.from('course_lesson_progress')
    .select('lesson_id,last_position_seconds,completed,updated_at').eq('user_id',user.id);
- if(error){console.warn('Progress unavailable:',error.message);el('learning-summary').textContent='პროგრესი დროებით მიუწვდომელია';return}
+ if(error){console.warn('Progress unavailable:',error.message);el('progress-save-status').textContent='პროგრესის მონაცემთა ბაზა მიუწვდომელია: '+error.message;progress=new Map();refreshLearningProgress();return}
  progress=new Map((data||[]).filter(row=>lessons.some(l=>l.id===row.lesson_id)).map(row=>[row.lesson_id,row]));
  const latest=[...progress.values()].sort((a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at))[0];
  if(latest){const i=lessons.findIndex(l=>l.id===latest.lesson_id);if(i>=0){selected=i;expandedModuleId=lessons[i].moduleId}}
@@ -440,7 +462,13 @@ async function initAuth(){
 }
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')showNotebook()}
 function renderLesson(preserveDraft=false){
- const l=lessons[selected]||fallbackLesson;el('lesson-title').textContent=l.title;el('lesson-subtitle').textContent=(l.module||'კურსის მოდულები')+' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
+ const l=lessons[selected]||fallbackLesson;
+ el('lesson-title').textContent=l.title;
+ el('lesson-module-name').textContent=l.module||'კურსის მოდულები';
+ el('lesson-index').textContent=' · გაკვეთილი '+(lessons.length?selected+1:0)+' / '+lessons.length;
+ el('lesson-description').textContent=l.description||'';
+ el('lesson-description-panel').hidden=!l.description&&!adminMode;
+ setLessonInlineEditor();
  el('breadcrumb').textContent=(l.module||'TRADER\'S ACADEMY').toLocaleUpperCase('ka')+' / LEARNING TERMINAL';
  el('video-duration').textContent=l.duration!=='0:00'?'ხანგრძლივობა: '+l.duration:'';el('prev').disabled=selected===0;el('next').disabled=selected>=lessons.length-1;
  refreshLearningProgress();
@@ -462,7 +490,7 @@ function renderLesson(preserveDraft=false){
    const isOpen=Boolean(search)||expandedModuleId===group.id;head.setAttribute('aria-expanded',String(isOpen));panel.classList.toggle('lt-module-open',isOpen);
    const contentId='lt-module-'+groupIndex;head.setAttribute('aria-controls',contentId);
    const name=document.createElement('span');name.className='lt-module-name';name.textContent=String(groupIndex+1).padStart(2,'0')+' · '+group.title;
-   const count=document.createElement('span');count.className='lt-module-count';
+   const count=document.createElement('span');count.className='lt-module-count';count.dataset.progressModuleId=group.id;
    const moduleLessons=lessons.filter(item=>item.moduleId===group.id);
    const moduleDone=moduleLessons.filter(item=>progress.get(item.id)?.completed).length;
    const modulePercent=moduleLessons.length?Math.round(100*moduleDone/moduleLessons.length):0;
@@ -473,7 +501,7 @@ function renderLesson(preserveDraft=false){
    const content=document.createElement('div');content.id=contentId;content.className='lt-module-lessons';content.hidden=!isOpen;
    head.addEventListener('click',()=>{expandedModuleId=isOpen?null:group.id;renderLesson(true)});
    group.items.forEach(({lesson,index})=>{
-     const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.setAttribute('aria-current',String(index===selected));
+     const b=document.createElement('button');b.type='button';b.className='lt-lesson';b.dataset.progressLessonId=lesson.id;b.setAttribute('aria-current',String(index===selected));
      const num=document.createElement('span');num.className='lt-number';num.textContent=String(group.items.findIndex(x=>x.index===index)+1).padStart(2,'0');
      const info=document.createElement('span');const title=document.createElement('span');title.className='lt-ltitle';title.textContent=lesson.title;
      const time=document.createElement('span');time.className='lt-ltime';time.textContent=lesson.duration==='0:00'?'':lesson.duration;info.append(title,time);b.append(num,info);
