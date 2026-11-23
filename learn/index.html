@@ -608,15 +608,27 @@ async function initAuth(){
     TA.renderAuthWidget(el('auth-container'),async u=>{user=u;el('auth-container').replaceChildren();await initAuth()});
     el('new-note').disabled=true;return;
   }
+  adminVerified=await TA.isAdmin(user.id);
   const {data,error}=await TA.sb.from('course_enrollments').select('course_id').eq('course_id',COURSE_ID).eq('user_id',user.id).maybeSingle();
   if(error){status('კურსის წვდომის შემოწმება ვერ მოხერხდა: '+error.message);return}
-  if(!data){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
+  courseEnrolled=Boolean(data);
+  if(!courseEnrolled&&!adminVerified){status('თქვენს ანგარიშს ამ ვიდეოკურსზე წვდომა ჯერ არ აქვს. მიმართეთ აკადემიის ადმინისტრატორს.');return}
   el('auth-container').replaceChildren();
   await loadCurriculumForStudent();
-  await loadLearningProgress();
+  if(courseEnrolled){
+    await loadLearningProgress();
+  }else{
+    el('progress-save-status').textContent='ადმინის წინასწარი ხედი — პროგრესი მოსწავლის ანგარიშისთვისაა';
+    el('complete-lesson').disabled=true;
+    el('continue-lesson').hidden=true;
+  }
   el('course-content').classList.remove('lt-access-hidden');
-  await fetchNotes();
-  await loadSecureVideo();
+  if(courseEnrolled){await fetchNotes();await loadSecureVideo()}
+  else{
+    const screen=el('lt-video-screen');screen.textContent='ადმინისტრატორის წინასწარი ხედი. ვიდეოს დასაკრავად კურსზე ჩარიცხვაა საჭირო.';
+    el('new-note').disabled=true;
+  }
+  if(adminVerified&&window.TAInlineAdmin?.active())setCourseAdminMode(true);
  }catch(e){status('ავტორიზაციის შემოწმება ვერ მოხერხდა: '+e.message);el('new-note').disabled=true}
 }
 function switchTab(t){tab=t;for(const name of ['lessons','notes']){el('tab-'+name).setAttribute('aria-selected',String(name===t));el('panel-'+name).hidden=name!==t}if(t==='notes')showNotebook()}
@@ -740,7 +752,7 @@ el('export-notes').addEventListener('click',()=>{
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='traders-academy-notes-'+(selected+1)+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
 });
 el('lesson-filter').addEventListener('input',()=>renderLesson(true));
-el('complete-lesson').addEventListener('click',()=>updateLearningProgress(lessonId(selected),{completed:!progress.get(lessonId(selected))?.completed}));
+el('complete-lesson').addEventListener('click',()=>{if(!courseEnrolled)return;updateLearningProgress(lessonId(selected),{completed:!progress.get(lessonId(selected))?.completed})});
 el('continue-lesson').addEventListener('click',()=>seekToVideo(progress.get(lessonId(selected))?.last_position_seconds||0));
 el('tab-lessons').addEventListener('click',()=>switchTab('lessons'));
 el('tab-notes').addEventListener('click',()=>switchTab('notes'));
