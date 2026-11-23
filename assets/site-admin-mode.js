@@ -73,12 +73,13 @@ async function savePublicTexts(){
 function toggle(){
  if(!verified||working)return;
  enabled=!enabled;
+ try{sessionStorage.setItem('ta-admin-edit-mode',enabled?'1':'0')}catch{}
  document.documentElement.classList.toggle('ta-edit-mode',enabled);
  labelTargets();
  const b=document.getElementById('ta-inline-admin-toggle');
  if(b){b.textContent=enabled?'✓ რედაქტირების დასრულება':'✎ ადმინ რეჟიმი';b.setAttribute('aria-pressed',String(enabled))}
- const save=document.getElementById('ta-inline-admin-save');if(save)save.hidden=!enabled;
- msg(enabled?'ადმინ რეჟიმი ჩართულია. ცვლილებები უნდა შეინახო.':'ადმინ რეჟიმი გამორთულია');
+ const save=document.getElementById('ta-inline-admin-save');if(save)save.hidden=!enabled||isJournal||isAdminPage;
+ msg(enabled?(isJournal||isAdminPage?'ადმინ რეჟიმი ჩართულია — სრული მართვა ხელმისაწვდომია ადმინისტრირებაში.':'ადმინ რეჟიმი ჩართულია. ცვლილებები უნდა შეინახო.'):'ადმინ რეჟიმი გამორთულია');
  emit();
 }
 function toolbar(){
@@ -102,6 +103,7 @@ async function init(){
    const {data:profile,error:profileError}=await getDb().from('profiles').select('is_admin').eq('id',data.user.id).maybeSingle();
    if(profileError||!profile?.is_admin)return;
    verified=true;toolbar();
+   try{if(!enabled&&sessionStorage.getItem('ta-admin-edit-mode')==='1')toggle()}catch{}
  }catch(e){console.warn('Admin toolbar unavailable:',e)}
 }
 window.TAInlineAdmin={init,loadPublicTexts,active:()=>enabled};
@@ -111,7 +113,7 @@ function start(){
  try{getDb().auth.onAuthStateChange((event)=>{
    if(event==='SIGNED_IN'||event==='SIGNED_OUT')setTimeout(()=>{
      if(event==='SIGNED_OUT'){
-       verified=false;enabled=false;document.getElementById('ta-inline-admin')?.remove();
+       verified=false;enabled=false;try{sessionStorage.removeItem('ta-admin-edit-mode')}catch{}document.getElementById('ta-inline-admin')?.remove();
        document.documentElement.classList.remove('ta-edit-mode');
        labelTargets();
      }else init();
