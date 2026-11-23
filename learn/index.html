@@ -530,7 +530,7 @@ async function updateLearningProgress(id,changes){
  progressQueue.set(id,job);
  try{
    await job;
-   if(completionWrite&&version===progressSaveVersion.get(id))el('progress-save-status').textContent='✓ პროგრესი შენახულია ანგარიშზე';
+   if(completionWrite&&Boolean(progress.get(id)?.completed)===Boolean(next.completed))el('progress-save-status').textContent='✓ პროგრესი შენახულია ანგარიშზე';
    return true;
  }catch(error){
    console.warn('Progress save error:',error);
