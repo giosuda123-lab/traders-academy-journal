@@ -314,6 +314,125 @@ async function loadSecureVideo(){
 }
 
 // Progress is private per authenticated student and lives in Supabase.
+
+/* Direct, in-context curriculum editing for verified course administrators.
+   All writes also require Supabase admin RLS; UI visibility is not security. */
+let adminOriginalVideo=null,adminVideoRequest=0;
+function setLessonInlineEditor(){
+ const canEdit=Boolean(adminMode&&adminVerified&&lessons[selected]?.id);
+ el('course-content').classList.toggle('lt-admin-editing',canEdit);
+ for(const id of ['lesson-title','lesson-module-name','lesson-description']){
+   el(id).contentEditable=String(canEdit);
+   el(id).spellcheck=canEdit;
+ }
+ el('lt-admin-panel').hidden=!canEdit;
+ if(canEdit){
+   el('lesson-description-panel').hidden=false;
+   el('admin-lesson-duration').value=lessons[selected]?.duration||'0:00';
+   loadAdminVideoSource();
+ }
+}
+async function loadAdminVideoSource(){
+ const requestedId=lessonId(selected),token=++adminVideoRequest;
+ if(!requestedId||requestedId==='none'||!adminMode)return;
+ el('admin-video-provider').value='unchanged';
+ el('admin-video-id').value='';
+ const {data,error}=await TA.sb.from('course_lesson_videos')
+  .select('bunny_video_id,youtube_video_id').eq('lesson_id',requestedId).maybeSingle();
+ if(token!==adminVideoRequest||lessonId(selected)!==requestedId||!adminMode)return;
+ if(error){el('admin-course-status').textContent='ვიდეოს წყაროს წაკითხვა ვერ მოხერხდა: '+error.message;return}
+ adminOriginalVideo=data||null;
+ if(data?.youtube_video_id){
+   el('admin-video-provider').value='youtube';
+   el('admin-video-id').value='https://www.youtube.com/watch?v='+data.youtube_video_id;
+ }else if(data?.bunny_video_id){
+   el('admin-video-provider').value='bunny';
+   el('admin-video-id').value=data.bunny_video_id;
+ }else{
+   el('admin-video-provider').value='unchanged';
+ }
+}
+function parseAdminYouTube(input){
+ const value=input.trim();
+ if(/^[A-Za-z0-9_-]{11}$/.test(value))return value;
+ try{
+   const u=new URL(value),host=u.hostname.toLowerCase().replace(/^www\./,'');
+   let id='';
+   if(host==='youtu.be')id=u.pathname.split('/')[1]||'';
+   if(['youtube.com','m.youtube.com','youtube-nocookie.com'].includes(host)){
+     const pieces=u.pathname.split('/');
+     id=u.pathname==='/watch'?u.searchParams.get('v')||'':['shorts','embed','live'].includes(pieces[1])?pieces[2]||'':'';
+   }
+   return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
+ }catch{return null}
+}
+function setCourseAdminMode(next){
+ adminMode=Boolean(next&&adminVerified);
+ if(!adminMode)adminVideoRequest++;
+ renderLesson(true);
+ el('admin-course-status').textContent=adminMode?'შეგიძლია სათაურის, აღწერისა და მოდულის უშუალოდ რედაქტირება.':'';
+}
+async function saveInlineCourse(){
+ if(!adminVerified||!adminMode||!user)return;
+ const lesson=lessons[selected];
+ if(!lesson)return;
+ const button=el('admin-save-lesson'),message=el('admin-course-status');
+ const title=el('lesson-title').textContent.trim(),description=el('lesson-description').textContent.trim();
+ const moduleTitle=el('lesson-module-name').textContent.trim();
+ const durationText=el('admin-lesson-duration').value.trim();
+ const parts=durationText.split(':').map(Number);
+ if(!title||title.length>180||!moduleTitle||moduleTitle.length>180){message.textContent='სათაური და მოდული საჭიროა (მაქს. 180 სიმბოლო)';return}
+ if(description.length>10000){message.textContent='აღწერა მეტისმეტად გრძელია';return}
+ if(parts.length!==2||parts.some(x=>!Number.isInteger(x)||x<0)||parts[1]>59){message.textContent='ხანგრძლივობა ჩაწერე ფორმატით 12:34';return}
+ const duration=parts[0]*60+parts[1];
+ const provider=el('admin-video-provider').value,raw=el('admin-video-id').value.trim();
+ let payload=null;
+ if(provider==='bunny'){
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)){message.textContent='Bunny Video ID არასწორია';return}
+   payload={lesson_id:lesson.id,bunny_video_id:raw,youtube_video_id:null};
+ }
+ if(provider==='youtube'){
+   const id=parseAdminYouTube(raw);
+   if(!id){message.textContent='YouTube-ის ბმული ან ID არასწორია';return}
+   payload={lesson_id:lesson.id,bunny_video_id:null,youtube_video_id:id};
+ }
+ if(provider==='none'&&adminOriginalVideo&&!confirm('გაკვეთილს ვიდეოს მიბმა მოეხსნება. გავაგრძელოთ?'))return;
+ button.disabled=true;message.textContent='ცვლილებები ინახება...';
+ try{
+   if(moduleTitle!==lesson.module){
+     const {error}=await TA.sb.from('course_modules').update({title:moduleTitle}).eq('id',lesson.moduleId);
+     if(error)throw error;
+   }
+   const {error}=await TA.sb.from('course_lessons').update({title,description,duration_seconds:duration}).eq('id',lesson.id);
+   if(error)throw error;
+   const oldVideo=adminOriginalVideo;
+   const videoChanged=provider==='none'?Boolean(oldVideo):payload&&(
+     String(payload.bunny_video_id||'')!==String(oldVideo?.bunny_video_id||'')||
+     String(payload.youtube_video_id||'')!==String(oldVideo?.youtube_video_id||'')
+   );
+   if(videoChanged){
+     const response=provider==='none'
+       ?await TA.sb.from('course_lesson_videos').delete().eq('lesson_id',lesson.id)
+       :await TA.sb.from('course_lesson_videos').upsert(payload,{onConflict:'lesson_id'});
+     if(response.error)throw response.error;
+   }
+   const lessonIndex=selected;
+   await loadCurriculumForStudent();
+   selected=Math.min(lessonIndex,lessons.length-1);
+   renderLesson(true);
+   message.textContent='✓ ცვლილებები შენახულია. მოსწავლეებისთვისაც გამოჩნდება.';
+   if(videoChanged)await loadSecureVideo();
+ }catch(e){
+   message.textContent='შენახვა ვერ დასრულდა: '+e.message;
+ }finally{button.disabled=false}
+}
+window.addEventListener('ta-admin-mode-change',event=>{
+ if(!adminVerified)return;
+ setCourseAdminMode(Boolean(event.detail?.enabled));
+});
+window.addEventListener('ta-inline-admin-save-course',saveInlineCourse);
+el('admin-save-lesson').addEventListener('click',saveInlineCourse);
+
 async function loadLearningProgress(){
  if(!user)return;
  const {data,error}=await TA.sb.from('course_lesson_progress')
