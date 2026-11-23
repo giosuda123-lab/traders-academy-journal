@@ -21,7 +21,7 @@ function getCandidates(){
  if(isCourse||isJournal||isAdminPage||excluded.test(location.pathname))return [];
  const main=document.querySelector('main');if(!main)return [];
  return [...main.querySelectorAll('h1,h2,h3,p,.eyebrow')]
- .filter(el=>!el.closest('a,button,form,[contenteditable],.count-up,.ticker-wrap,.ta-inline-admin')&&!el.querySelector('input,textarea,select,video,iframe,button,a')&&el.textContent.trim().length>0&&el.textContent.trim().length<=1800);
+ .filter(el=>!el.closest('a,button,form,.count-up,.ticker-wrap,.ta-inline-admin')&&!el.parentElement?.closest('[contenteditable="true"]')&&el.children.length===0&&el.textContent.trim().length>0&&el.textContent.trim().length<=1800);
 }
 function labelTargets(){
  state.elements.clear();
