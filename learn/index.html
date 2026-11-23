@@ -318,6 +318,22 @@ async function loadSecureVideo(){
 /* Direct, in-context curriculum editing for verified course administrators.
    All writes also require Supabase admin RLS; UI visibility is not security. */
 let adminOriginalVideo=null,adminVideoRequest=0;
+const adminLessonDrafts=new Map();
+function captureAdminLessonDraft(){
+ if(!adminMode||!adminVerified)return;
+ const id=lessonId(selected);
+ if(!id||id==='none')return;
+ adminLessonDrafts.set(id,{
+   title:el('lesson-title').textContent,
+   module:el('lesson-module-name').textContent,
+   description:el('lesson-description').textContent,
+   duration:el('admin-lesson-duration').value,
+   provider:el('admin-video-provider').value,
+   videoId:el('admin-video-id').value
+ });
+ el('admin-course-status').textContent='ცვლილებები შესანახია';
+}
+
 function setLessonInlineEditor(){
  const canEdit=Boolean(adminMode&&adminVerified&&lessons[selected]?.id);
  el('course-content').classList.toggle('lt-admin-editing',canEdit);
@@ -328,8 +344,18 @@ function setLessonInlineEditor(){
  el('lt-admin-panel').hidden=!canEdit;
  if(canEdit){
    el('lesson-description-panel').hidden=false;
-   el('admin-lesson-duration').value=lessons[selected]?.duration||'0:00';
-   loadAdminVideoSource();
+   const draft=adminLessonDrafts.get(lessonId(selected));
+   if(draft){
+     el('lesson-title').textContent=draft.title;
+     el('lesson-module-name').textContent=draft.module;
+     el('lesson-description').textContent=draft.description;
+     el('admin-lesson-duration').value=draft.duration;
+     el('admin-video-provider').value=draft.provider;
+     el('admin-video-id').value=draft.videoId;
+   }else{
+     el('admin-lesson-duration').value=lessons[selected]?.duration||'0:00';
+     loadAdminVideoSource();
+   }
  }
 }
 async function loadAdminVideoSource(){
@@ -417,6 +443,7 @@ async function saveInlineCourse(){
      if(response.error)throw response.error;
    }
    const lessonIndex=selected;
+   adminLessonDrafts.delete(lesson.id);
    await loadCurriculumForStudent();
    selected=Math.min(lessonIndex,lessons.length-1);
    renderLesson(true);
@@ -432,6 +459,10 @@ window.addEventListener('ta-admin-mode-change',event=>{
 });
 window.addEventListener('ta-inline-admin-save-course',saveInlineCourse);
 el('admin-save-lesson').addEventListener('click',saveInlineCourse);
+for(const id of ['lesson-title','lesson-module-name','lesson-description','admin-lesson-duration','admin-video-provider','admin-video-id']){
+ el(id).addEventListener('input',captureAdminLessonDraft);
+ el(id).addEventListener('change',captureAdminLessonDraft);
+}
 
 async function loadLearningProgress(){
  if(!user)return;
