@@ -93,8 +93,49 @@ function toolbar(){
  const status=document.createElement('span');status.id='ta-inline-admin-status';status.setAttribute('role','status');
  host.append(toggleBtn,saveBtn,adminLink,status);document.body.append(host);
 }
+function mountAdminEntry(){
+ if(document.getElementById('ta-admin-entry'))return;
+ const entry=button('⚙',openAdminLogin);
+ entry.id='ta-admin-entry';entry.className='ta-admin-entry';
+ entry.title='ადმინისტრატორის შესვლა პირდაპირ საიტიდან';
+ entry.setAttribute('aria-label','ადმინისტრატორის შესვლა');
+ document.body.append(entry);
+}
+function openAdminLogin(){
+ if(document.getElementById('ta-admin-login'))return;
+ const overlay=document.createElement('div');overlay.id='ta-admin-login';overlay.className='ta-admin-login-overlay';
+ const dialog=document.createElement('section');dialog.className='ta-admin-login-card';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','ადმინისტრატორის შესვლა');
+ const h=document.createElement('h2');h.textContent='ადმინისტრატორის შესვლა';
+ const intro=document.createElement('p');intro.textContent='შედი შენი ადმინისტრატორის ანგარიშით — ცალკე /admin გვერდზე გადასვლა არ გჭირდება.';
+ const form=document.createElement('form');
+ const email=document.createElement('input');email.type='email';email.required=true;email.autocomplete='username';email.placeholder='Email';
+ const password=document.createElement('input');password.type='password';password.required=true;password.autocomplete='current-password';password.placeholder='პაროლი';
+ const notice=document.createElement('p');notice.className='ta-admin-login-feedback';notice.setAttribute('role','status');
+ const controls=document.createElement('div');controls.className='ta-admin-login-actions';
+ const cancel=button('დახურვა',()=>overlay.remove());
+ const submit=document.createElement('button');submit.type='submit';submit.textContent='შესვლა';
+ controls.append(cancel,submit);form.append(email,password,notice,controls);dialog.append(h,intro,form);overlay.append(dialog);document.body.append(overlay);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+ form.addEventListener('submit',async e=>{
+   e.preventDefault();submit.disabled=true;notice.textContent='მოწმდება...';
+   try{
+     const {data,error}=await getDb().auth.signInWithPassword({email:email.value.trim(),password:password.value});
+     if(error)throw error;
+     const {data:profile,error:profileError}=await getDb().from('profiles').select('is_admin').eq('id',data.user.id).maybeSingle();
+     if(profileError||!profile?.is_admin){
+       await getDb().auth.signOut();
+       throw new Error('ამ ანგარიშს ადმინისტრატორის უფლება არ აქვს');
+     }
+     overlay.remove();
+     location.reload(); // Refresh any page-specific auth state after switching accounts.
+   }catch(error){notice.textContent=error.message||'შესვლა ვერ მოხერხდა';submit.disabled=false}
+ });
+ email.focus();
+}
+
 async function init(){
  if(!window.supabase?.createClient)return;
+ mountAdminEntry();
  // Public visitors must see admin-published text even without login.
  await loadPublicTexts();
  try{
@@ -102,7 +143,7 @@ async function init(){
    if(error||!data?.user)return;
    const {data:profile,error:profileError}=await getDb().from('profiles').select('is_admin').eq('id',data.user.id).maybeSingle();
    if(profileError||!profile?.is_admin)return;
-   verified=true;toolbar();
+   verified=true;toolbar();document.getElementById('ta-admin-entry')?.remove();
    try{if(!enabled&&sessionStorage.getItem('ta-admin-edit-mode')==='1')toggle()}catch{}
  }catch(e){console.warn('Admin toolbar unavailable:',e)}
 }
@@ -113,7 +154,7 @@ function start(){
  try{getDb().auth.onAuthStateChange((event)=>{
    if(event==='SIGNED_IN'||event==='SIGNED_OUT')setTimeout(()=>{
      if(event==='SIGNED_OUT'){
-       verified=false;enabled=false;try{sessionStorage.removeItem('ta-admin-edit-mode')}catch{}document.getElementById('ta-inline-admin')?.remove();
+       verified=false;enabled=false;try{sessionStorage.removeItem('ta-admin-edit-mode')}catch{}document.getElementById('ta-inline-admin')?.remove();mountAdminEntry();
        document.documentElement.classList.remove('ta-edit-mode');
        labelTargets();
      }else init();
