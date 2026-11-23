@@ -218,6 +218,22 @@
 .ta-inline-admin [hidden]{display:none!important}
 @media(max-width:640px){.ta-inline-admin{left:8px;right:8px;bottom:8px;max-width:none;gap:5px;padding:8px}.ta-inline-admin button,.ta-inline-admin a{padding:8px;font-size:11px}}
 
+
+.ta-admin-entry{position:fixed;z-index:10008;bottom:16px;left:16px;width:40px;height:40px;border:1px solid rgba(230,185,77,.43);border-radius:50%;background:rgba(23,21,18,.8);color:#E6B94D;font:19px Inter,sans-serif;cursor:pointer;box-shadow:0 7px 20px #0005;opacity:.7}
+.ta-admin-entry:hover,.ta-admin-entry:focus-visible{opacity:1;background:#302516;border-color:#E6B94D}
+.ta-admin-login-overlay{position:fixed;inset:0;z-index:10020;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:18px}
+.ta-admin-login-card{background:#1C1913;color:#F0EAD8;border:1px solid #A9853C;border-radius:15px;padding:25px;width:min(440px,100%);box-shadow:0 25px 70px #000b;font:14px Inter,sans-serif}
+.ta-admin-login-card h2{font:600 22px 'Source Serif 4',Georgia,serif;margin:0 0 9px}
+.ta-admin-login-card p{color:#B3A88F;font-size:13px;line-height:1.6}
+.ta-admin-login-card form{display:grid;gap:10px;margin-top:17px}
+.ta-admin-login-card input{width:100%;min-height:43px;padding:10px 12px;background:#29241C;border:1px solid #51432C;border-radius:8px;color:#F0EAD8;font:14px Inter,sans-serif}
+.ta-admin-login-card input:focus{outline:2px solid #E6B94D}
+.ta-admin-login-actions{display:flex;gap:10px;justify-content:flex-end}
+.ta-admin-login-actions button{min-height:39px;padding:8px 14px;border-radius:8px;border:1px solid #A9853C;background:#2B251B;color:#F3D994;cursor:pointer;font:600 12px Inter,sans-serif}
+.ta-admin-login-actions button[type=submit]{background:#E6B94D;color:#1C1913}
+.ta-admin-login-feedback{min-height:20px;margin:0!important}
+@media(max-width:640px){.ta-admin-entry{left:9px;bottom:9px;width:34px;height:34px}}
+
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
