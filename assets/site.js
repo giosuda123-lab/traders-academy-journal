@@ -418,3 +418,15 @@ window.TA = (function(){
 
   return { sb, escapeHtml, fmtDate, withTimeout, CATEGORY_LABELS, mountNav, mountFooter, getUser, isAdmin, ensureProfile, renderAuthWidget, initScrollReveal, initScrollRevealRepeat, mountAmbient, initCountUp, uploadVideoFile, trackEvent, initNavScrollEffects, mountScrollProgress };
 })();
+
+
+/* Admin toolbar is available from any page that loads the common site script.
+ * The actual edit permission is always verified server-side through RLS. */
+(function mountAdminModeScript(){
+  if(document.querySelector('script[data-ta-inline-admin-script]'))return;
+  const script=document.createElement('script');
+  script.src='/assets/site-admin-mode.js?v=1';
+  script.defer=true;
+  script.dataset.taInlineAdminScript='true';
+  document.head.appendChild(script);
+})();
