@@ -318,6 +318,7 @@ async function loadSecureVideo(){
 /* Direct, in-context curriculum editing for verified course administrators.
    All writes also require Supabase admin RLS; UI visibility is not security. */
 let adminOriginalVideo=null,adminVideoRequest=0;
+const adminVideoCache=new Map();
 const adminLessonDrafts=new Map();
 function captureAdminLessonDraft(){
  if(!adminMode||!adminVerified)return;
@@ -346,6 +347,7 @@ function setLessonInlineEditor(){
    el('lesson-description-panel').hidden=false;
    const draft=adminLessonDrafts.get(lessonId(selected));
    if(draft){
+     adminOriginalVideo=adminVideoCache.get(lessonId(selected))||null;
      el('lesson-title').textContent=draft.title;
      el('lesson-module-name').textContent=draft.module;
      el('lesson-description').textContent=draft.description;
@@ -365,9 +367,10 @@ async function loadAdminVideoSource(){
  el('admin-video-id').value='';
  const {data,error}=await TA.sb.from('course_lesson_videos')
   .select('bunny_video_id,youtube_video_id').eq('lesson_id',requestedId).maybeSingle();
- if(token!==adminVideoRequest||lessonId(selected)!==requestedId||!adminMode)return;
+ if(token!==adminVideoRequest||lessonId(selected)!==requestedId||!adminMode||adminLessonDrafts.has(requestedId))return;
  if(error){el('admin-course-status').textContent='ვიდეოს წყაროს წაკითხვა ვერ მოხერხდა: '+error.message;return}
  adminOriginalVideo=data||null;
+ adminVideoCache.set(requestedId,adminOriginalVideo);
  if(data?.youtube_video_id){
    el('admin-video-provider').value='youtube';
    el('admin-video-id').value='https://www.youtube.com/watch?v='+data.youtube_video_id;
@@ -444,6 +447,7 @@ async function saveInlineCourse(){
    }
    const lessonIndex=selected;
    adminLessonDrafts.delete(lesson.id);
+   adminVideoCache.delete(lesson.id);
    await loadCurriculumForStudent();
    selected=Math.min(lessonIndex,lessons.length-1);
    renderLesson(true);
