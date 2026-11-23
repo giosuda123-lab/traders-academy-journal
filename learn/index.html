@@ -336,18 +336,58 @@ function refreshLearningProgress(){
  const position=current?.last_position_seconds||0;
  el('continue-lesson').hidden=position<=5;
  if(position>5)el('continue-lesson').textContent='▶ '+timestampValue(position)+'-დან';
+ document.querySelectorAll('[data-progress-lesson-id]').forEach(button=>{
+   const finished=Boolean(progress.get(button.dataset.progressLessonId)?.completed);
+   button.classList.toggle('lt-lesson-finished',finished);
+   let indicator=button.querySelector('.lt-lesson-completed');
+   if(finished&&!indicator){indicator=document.createElement('span');indicator.className='lt-lesson-completed';indicator.textContent='✓';indicator.title='დასრულებული';button.append(indicator)}
+   if(!finished&&indicator)indicator.remove();
+ });
+ document.querySelectorAll('[data-progress-module-id]').forEach(span=>{
+   const moduleLessons=lessons.filter(x=>x.moduleId===span.dataset.progressModuleId);
+   const count=moduleLessons.filter(x=>progress.get(x.id)?.completed).length;
+   span.textContent=count+'/'+moduleLessons.length+' დასრულებული · '+(moduleLessons.length?Math.round(count/moduleLessons.length*100):0)+'%';
+ });
 }
 async function updateLearningProgress(id,changes){
- if(!user||!id||id==='none')return;
- const previous=progress.get(id)||{completed:false,last_position_seconds:0};
- const next={...previous,...changes};
+ if(!user||!id||id==='none')return false;
+ const completionWrite=Object.prototype.hasOwnProperty.call(changes,'completed');
+ const before=progress.get(id)||{completed:false,last_position_seconds:0};
+ const next={...before,...changes};
  progress.set(id,next);
  refreshLearningProgress();
- const {error}=await TA.sb.from('course_lesson_progress').upsert({
-   user_id:user.id,lesson_id:id,last_position_seconds:next.last_position_seconds,
-   completed:next.completed,updated_at:new Date().toISOString()
- },{onConflict:'user_id,lesson_id'});
- if(error){console.warn('Progress save error:',error.message);progress.set(id,previous);refreshLearningProgress();}
+ const version=(progressSaveVersion.get(id)||0)+1;
+ progressSaveVersion.set(id,version);
+ if(completionWrite)el('progress-save-status').textContent='პროგრესი ინახება...';
+ // Serialize writes per lesson so automatic playback saves cannot override a
+ // completion update that was started moments earlier.
+ const prior=progressQueue.get(id)||Promise.resolve();
+ const job=prior.catch(()=>{}).then(async()=>{
+   const latest=progress.get(id)||next;
+   const {error}=await TA.sb.from('course_lesson_progress').upsert({
+     user_id:user.id,lesson_id:id,
+     last_position_seconds:Math.max(0,Math.floor(Number(latest.last_position_seconds)||0)),
+     completed:Boolean(latest.completed),
+     updated_at:new Date().toISOString()
+   },{onConflict:'user_id,lesson_id'});
+   if(error)throw error;
+ });
+ progressQueue.set(id,job);
+ try{
+   await job;
+   if(completionWrite&&version===progressSaveVersion.get(id))el('progress-save-status').textContent='✓ პროგრესი შენახულია ანგარიშზე';
+   return true;
+ }catch(error){
+   console.warn('Progress save error:',error);
+   if(version===progressSaveVersion.get(id)){
+     progress.set(id,before);
+     refreshLearningProgress();
+     el('progress-save-status').textContent='ვერ შეინახა: '+(error.message||'შეამოწმე Supabase-ის course_lesson_progress ცხრილი');
+   }
+   return false;
+ }finally{
+   if(progressQueue.get(id)===job)progressQueue.delete(id);
+ }
 }
 function seekToVideo(seconds){
  if(!Number.isFinite(seconds)||seconds<0)return;
