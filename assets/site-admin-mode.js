@@ -94,16 +94,29 @@ function toolbar(){
 }
 async function init(){
  if(!window.supabase?.createClient)return;
+ // Public visitors must see admin-published text even without login.
+ await loadPublicTexts();
  try{
    const {data,error}=await getDb().auth.getUser();
    if(error||!data?.user)return;
-   // UI convenience only — each write is also enforced by database RLS.
    const {data:profile,error:profileError}=await getDb().from('profiles').select('is_admin').eq('id',data.user.id).maybeSingle();
    if(profileError||!profile?.is_admin)return;
    verified=true;toolbar();
  }catch(e){console.warn('Admin toolbar unavailable:',e)}
- await loadPublicTexts();
 }
 window.TAInlineAdmin={init,loadPublicTexts,active:()=>enabled};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+function start(){
+ init();
+ // Supports login on the same page, not only a full reload.
+ try{getDb().auth.onAuthStateChange((event)=>{
+   if(event==='SIGNED_IN'||event==='SIGNED_OUT')setTimeout(()=>{
+     if(event==='SIGNED_OUT'){
+       verified=false;enabled=false;document.getElementById('ta-inline-admin')?.remove();
+       document.documentElement.classList.remove('ta-edit-mode');
+       labelTargets();
+     }else init();
+   },0);
+ })}catch{}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
