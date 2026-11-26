@@ -149,7 +149,29 @@
   #tj-drawer-scrim.show { display:block; opacity:1; }
   #tj-drawer { position:fixed; top:0; right:0; bottom:0; width:min(460px,92vw); background:var(--tj-panel); border-left:0.5px solid var(--tj-border); z-index:91; transform:translateX(100%); transition:transform var(--tj-complex) var(--tj-ease); overflow-y:auto; padding:22px 22px 40px; }
   #tj-drawer.show { transform:translateX(0); }
-  #tj-drawer.show > * { animation: tjFadeUp var(--tj-standard) var(--tj-ease) both; animation-delay:60ms; }
+  #tj-drawer.show > :not(.tj-drawer-close) { animation: tjFadeUp var(--tj-standard) var(--tj-ease) both; animation-delay:60ms; }
+  /* The close control must not inherit child transform animations: they displace
+     its painted position relative to its hit target during drawer transitions. */
+  #tj-drawer > .tj-drawer-close {
+    position:sticky;
+    top:0;
+    margin:0 0 12px auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:none;
+    width:44px;
+    height:44px;
+    min-height:44px;
+    padding:0;
+    z-index:12;
+    isolation:isolate;
+    transform:none;
+    animation:none!important;
+    touch-action:manipulation;
+  }
+  #tj-drawer > .tj-drawer-close:active { transform:none; }
+  #tj-drawer > .tj-drawer-close:focus-visible { outline:2px solid var(--tj-accent);outline-offset:2px; }
   .tj-drawer-close { position:absolute; top:18px; right:18px; background:var(--tj-panel2); border:none; color:var(--tj-text); border-radius:7px; width:30px; height:30px; cursor:pointer; font-size:14px; transition:transform var(--tj-fast) ease, background var(--tj-fast) ease; }
   .tj-drawer-close:hover { background:var(--tj-border); }
   .tj-drawer-close:active { transform:scale(0.88) rotate(90deg); }
@@ -656,6 +678,15 @@
   const drawerEl = document.getElementById('tj-drawer');
   const drawerScrim = document.getElementById('tj-drawer-scrim');
   drawerScrim.onclick = closeDrawer;
+  // Event delegation also covers drawers dynamically replaced by calendar and
+  // trade detail views. Keep one reliable hit handler for every X button.
+  drawerEl.addEventListener('click',event=>{
+    const close=event.target.closest('.tj-drawer-close');
+    if(!close||!drawerEl.contains(close))return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeDrawer();
+  });
   function openDrawer(html){
     drawerEl.innerHTML = html;
     drawerScrim.classList.add('show');
@@ -1223,7 +1254,7 @@
       </div>
       `}
     `);
-    drawerEl.querySelector('#tj-drawer-close-btn').onclick = closeDrawer;
+    // Close events are handled once by the drawer's delegated listener.
     drawerEl.querySelectorAll('[data-shotview]').forEach(img=>{ img.onclick = () => {
       const slot=img.dataset.shotview;
       const original=t.screenshots?.[slot];
