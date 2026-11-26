@@ -234,6 +234,30 @@
 .ta-admin-login-feedback{min-height:20px;margin:0!important}
 @media(max-width:640px){.ta-admin-entry{left:9px;bottom:9px;width:34px;height:34px}}
 
+
+  .tj-cash-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:12px}
+  .tj-cash-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--tj-text2)}
+  .tj-cash-form input,.tj-cash-form select{width:100%}
+  .tj-cash-list{margin-top:14px;display:flex;flex-direction:column;gap:5px}
+  .tj-cash-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--tj-border);flex-wrap:wrap;font-size:12px}
+  .tj-cash-row small{display:block;margin-top:4px;color:var(--tj-text3)}
+  .tj-cash-row strong{color:var(--tj-amber);font-family:'IBM Plex Mono',monospace}
+  .tj-cal-explainer{font-size:12px;color:var(--tj-text2);line-height:1.6;margin:-3px 0 12px}
+  .tj-cal-scroll{overflow-x:auto;padding-bottom:7px}
+  .tj-cal-scroll>.tj-cal-grid{min-width:625px}
+  .tj-cal-weekdays{text-align:center;margin-bottom:6px;font-size:11px;color:var(--tj-text3)}
+  .tj-cal-detailed{aspect-ratio:auto;min-height:84px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding:9px 8px;text-align:left;border:1px solid var(--tj-border);background:var(--tj-panel2);border-radius:8px;color:var(--tj-text);cursor:pointer}
+  .tj-cal-detailed:hover{transform:translateY(-2px);box-shadow:0 5px 13px rgba(0,0,0,.4);z-index:2}
+  .tj-cal-detailed.positive{background:rgba(95,168,118,.12);border-color:rgba(95,168,118,.45)}
+  .tj-cal-detailed.negative{background:rgba(193,93,76,.12);border-color:rgba(193,93,76,.45)}
+  .tj-cal-detailed.flat{border-color:rgba(230,185,77,.4)}
+  .tj-cal-date{font-size:12px;font-weight:600;color:var(--tj-text2)}
+  .tj-cal-usd{font-size:12.5px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--tj-text)}
+  .tj-cal-score{font-size:11px;white-space:nowrap;color:var(--tj-text2)}
+  .tj-cal-score b:first-child{color:var(--tj-green)}.tj-cal-score b:last-child{color:var(--tj-red)}
+  .tj-cal-sub,.tj-cal-empty{font-size:10px;color:var(--tj-text3)}
+  .tj-cal-trade{display:block;width:100%;margin:9px 0;text-align:left}
+
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
@@ -1596,7 +1620,7 @@
       </div>
       <div class="tj-panelcard tj-rise" style="padding:18px 20px; --tj-delay:220ms;">
         <div style="font-size:13px; font-weight:500; margin-bottom:12px;">სავაჭრო კალენდარი</div>
-        <div id="tj-dash-cal"></div>
+        <div class="tj-cal-explainer">დღეში: წმინდა $ შედეგი, მოგებული და წაგებული ტრეიდები. დააჭირე დღეს ტრეიდების სანახავად.</div><div id="tj-dash-cal"></div>
       </div>
     `;
 
@@ -1607,7 +1631,14 @@
     let cumR=0;
     const eqSeries = list.map(t=>(cumR+=num(t.resultR)));
     const dayGroups = {};
-    list.forEach(t=>{ dayGroups[t.date] = dayGroups[t.date] || {r:0,usd:0,n:0}; dayGroups[t.date].r += num(t.resultR); if (hasUsd(t)) dayGroups[t.date].usd += num(t.pnlUsd); dayGroups[t.date].n++; });
+    list.forEach(t=>{
+      const g=dayGroups[t.date]||(dayGroups[t.date]={r:0,usd:0,usdCount:0,n:0,wins:0,losses:0,be:0});
+      g.r+=num(t.resultR);g.n++;
+      if(hasUsd(t)){g.usd+=num(t.pnlUsd);g.usdCount++}
+      if(t.outcome==='win')g.wins++;
+      else if(t.outcome==='loss')g.losses++;
+      else if(t.outcome==='be')g.be++;
+    });
     const dayLabels = Object.keys(dayGroups).sort();
 
     ensureChartJs(() => {
@@ -1632,24 +1663,42 @@
     return time+', თრეიდერო';
   }
   function renderMiniCalendar(el, dayGroups){
-    const now = new Date();
-    const year = now.getFullYear(), month = now.getMonth();
-    const first = new Date(year, month, 1);
-    const startOffset = (first.getDay()+6)%7; // Monday start
-    const daysInMonth = new Date(year, month+1, 0).getDate();
-    const cells = [];
-    for (let i=0;i<startOffset;i++) cells.push(null);
-    for (let d=1; d<=daysInMonth; d++) cells.push(d);
-    const wd = ['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვ'];
-    el.innerHTML = `<div class="tj-cal-grid" style="margin-bottom:6px;">${wd.map(w=>`<div style="text-align:center; font-size:10px; color:var(--tj-text3);">${w}</div>`).join('')}</div>
-      <div class="tj-cal-grid">${cells.map((d,i)=>{
-        if (!d) return `<div></div>`;
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const g = dayGroups[dateStr];
-        let bg = 'var(--tj-panel2)';
-        if (g){ bg = g.r > 0 ? 'rgba(95,168,118,'+Math.min(0.85,0.35+Math.abs(g.r)/8)+')' : g.r < 0 ? 'rgba(193,93,76,'+Math.min(0.85,0.35+Math.abs(g.r)/8)+')' : 'var(--tj-border)'; }
-        return `<div class="tj-cal-cell ${g?'has-data':''}" style="background:${bg}; --i:${i};" title="${dateStr}${g?` · ${g.n} ტრეიდი · ${fmtR(g.r)}`:''}">${d}</div>`;
-      }).join('')}</div>`;
+    const now=new Date(),year=now.getFullYear(),month=now.getMonth();
+    const offset=(new Date(year,month,1).getDay()+6)%7;
+    const count=new Date(year,month+1,0).getDate();
+    const cells=[...Array(offset).fill(null),...Array.from({length:count},(_,i)=>i+1)];
+    const weekdays=['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვ'];
+    el.innerHTML='<div class="tj-cal-scroll"><div class="tj-cal-grid tj-cal-weekdays">'+weekdays.map(w=>'<span>'+w+'</span>').join('')+'</div>'+
+      '<div class="tj-cal-grid">'+cells.map((day,i)=>{
+        if(!day)return '<div></div>';
+        const date=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        const g=dayGroups[date],pnl=g&&g.usdCount?fmtUsd(g.usd):'—';
+        const tone=g&&g.usdCount?(g.usd>0?'positive':g.usd<0?'negative':'flat'):g?(g.r>0?'positive':g.r<0?'negative':'flat'):'empty';
+        return '<button type="button" class="tj-cal-cell tj-cal-detailed '+tone+'" style="--i:'+i+'" data-cal-day="'+date+'" title="'+date+(g?' · '+g.n+' ტრეიდი':'')+'">'+
+          '<span class="tj-cal-date">'+day+'</span>'+
+          (g?'<span class="tj-cal-usd">'+pnl+'</span>'+
+            '<span class="tj-cal-score"><b>W '+g.wins+'</b> · <b>L '+g.losses+'</b></span>'+
+            '<span class="tj-cal-sub">'+g.n+' ტრეიდი'+(g.be?' · BE '+g.be:'')+'</span>':'<span class="tj-cal-empty">—</span>')+
+          '</button>';
+      }).join('')+'</div></div>';
+    el.querySelectorAll('[data-cal-day]').forEach(button=>{
+      button.onclick=()=>{
+        const date=button.dataset.calDay;
+        const dayTrades=trades.filter(t=>t.date===date&&(!dashAccountId||t.accountId===dashAccountId));
+        const wins=dayTrades.filter(t=>t.outcome==='win').length;
+        const losses=dayTrades.filter(t=>t.outcome==='loss').length;
+        const usd=dayTrades.filter(hasUsd),net=usd.reduce((sum,t)=>sum+num(t.pnlUsd),0);
+        openDrawer('<button class="tj-drawer-close" id="tj-drawer-close-btn">✕</button>'+
+          '<h2 class="tj-serif" style="font-size:19px">'+fmtDate(date)+'</h2>'+
+          '<p style="font-size:13px;color:var(--tj-text2);margin:12px 0">'+dayTrades.length+' ტრეიდი · '+wins+' Win · '+losses+' Loss · '+
+          (usd.length?fmtUsd(net):'P&L $ არ არის მითითებული')+'</p>'+
+          (dayTrades.length?dayTrades.map(t=>'<button type="button" class="tj-btn tj-cal-trade" data-cal-trade="'+t.id+'">'+
+             escapeHtml((t.time||'—')+' · '+t.instrument)+' · '+(hasUsd(t)?fmtUsd(num(t.pnlUsd)):'—')+
+           '</button>').join(''):'<p style="color:var(--tj-text3)">ამ დღეს ტრეიდი არ არის.</p>'));
+        document.getElementById('tj-drawer-close-btn')?.addEventListener('click',closeDrawer);
+        document.querySelectorAll('[data-cal-trade]').forEach(b=>b.onclick=()=>openTradeDrawer(b.dataset.calTrade));
+      };
+    });
   }
 
   // ================= ANALYTICS =================
