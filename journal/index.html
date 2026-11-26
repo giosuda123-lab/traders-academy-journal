@@ -548,7 +548,7 @@
   if (readonlyExitBtn) readonlyExitBtn.addEventListener('click', () => { window.location.href = '../admin/index.html'; });
   document.getElementById('tj-logout-btn').addEventListener('click', async ()=>{
     await supabase.auth.signOut();
-    currentUser = null; trades = []; dailyReports = [];
+    currentUser = null; trades = []; dailyReports = []; withdrawals = [];
     shellEl.style.display = 'none'; authWrap.style.display = 'block';
     authTab = 'login'; renderAuthTabs(); renderAuthBody();
   });
@@ -1383,6 +1383,30 @@
     const dailyPnl = trades.filter(t=>t.accountId===accId && t.date===today && hasUsd(t)).reduce((s,t)=>s+num(t.pnlUsd),0);
     return { netPnl: cum, maxDrawdown: maxDD, dailyPnl, tradeCount: accTrades.length };
   }
+  // Withdrawals are private cash flows, not trade losses.
+  async function loadWithdrawals(){
+    if(!effectiveUserId()){withdrawals=[];return}
+    const {data,error}=await supabase.from('journal_withdrawals')
+      .select('id,account_id,withdrawal_date,amount_usd,note')
+      .eq('user_id',effectiveUserId()).order('withdrawal_date',{ascending:false});
+    if(error){withdrawals=[];showStatus('გამოტანები ვერ ჩაიტვირთა: '+error.message+' — საჭიროა journal-withdrawals.sql','error')}
+    else withdrawals=data||[];
+  }
+  async function recordWithdrawal(input){
+    if(guardReadOnly()||!currentUser)return false;
+    const {data,error}=await supabase.from('journal_withdrawals').insert({
+      user_id:effectiveUserId(),account_id:input.accountId,
+      withdrawal_date:input.date,amount_usd:input.amount,note:input.note
+    }).select('id,account_id,withdrawal_date,amount_usd,note').single();
+    if(error){showStatus('გამოტანის შენახვა ვერ მოხერხდა: '+error.message,'error');return false}
+    withdrawals.unshift(data);return true;
+  }
+  async function removeWithdrawal(id){
+    if(guardReadOnly())return false;
+    const {error}=await supabase.from('journal_withdrawals').delete().eq('id',id).eq('user_id',effectiveUserId());
+    if(error){showStatus('წაშლა ვერ მოხერხდა: '+error.message,'error');return false}
+    withdrawals=withdrawals.filter(w=>w.id!==id);return true;
+  }
   function renderAccounts(editId){
     const editing = editId ? accounts.find(a=>a.id===editId) : null;
     bodyEl.innerHTML = `
@@ -1398,6 +1422,19 @@
         ${editing?`<button type="button" id="tj-account-cancel" class="tj-btn" style="margin-left:8px;">გაუქმება</button>`:''}
         <input type="hidden" name="id" value="${editing?editing.id:''}"/>
       </form>
+      <section class="tj-panelcard" style="padding:18px 20px;margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:8px">⇩ თანხის გამოტანა</div>
+        <p style="font-size:12px;line-height:1.6;color:var(--tj-text2);margin-bottom:13px">გამოტანილი თანხა ბალანსს აკლდება, მაგრამ სავაჭრო P&L-ს და Win Rate-ს არ ცვლის.</p>
+        <form id="tj-withdraw-form" class="tj-cash-form">
+          <label>ანგარიში<select name="accountId" required><option value="">აირჩიე ანგარიში</option>${accounts.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join('')}</select></label>
+          <label>თარიღი<input type="date" name="date" required value="${todayStr()}"/></label>
+          <label>გამოტანილი თანხა ($)<input type="number" name="amount" step="0.01" min="0.01" required placeholder="მაგ. 250"/></label>
+          <label>შენიშვნა<input type="text" maxlength="500" name="note" placeholder="არასავალდებულო"/></label>
+          <button type="submit" class="tj-btn primary">+ გამოტანის შენახვა</button>
+        </form>
+        <p id="tj-withdraw-msg" style="font-size:12px;color:var(--tj-amber);margin-top:9px" role="status"></p>
+        <div id="tj-withdraw-list" class="tj-cash-list"></div>
+      </section>
       <div id="tj-accounts-list" style="display:flex; flex-direction:column; gap:12px;"></div>
     `;
     const form = bodyEl.querySelector('#tj-account-form');
@@ -1413,11 +1450,41 @@
       persistAccounts(); renderAccounts();
       showToast('ანგარიში შენახულია', 'ok');
     });
+    const withdrawForm=bodyEl.querySelector('#tj-withdraw-form');
+    const withdrawalList=bodyEl.querySelector('#tj-withdraw-list');
+    withdrawalList.innerHTML=withdrawals.length?withdrawals.slice(0,80).map(w=>{
+      const account=accounts.find(a=>a.id===w.account_id);
+      return `<div class="tj-cash-row">
+        <span>${fmtDate(w.withdrawal_date)} · ${escapeHtml(account?.label||'უცნობი ანგარიში')}<small>${escapeHtml(w.note||'')}</small></span>
+        <strong>−$${num(w.amount_usd).toLocaleString(undefined,{maximumFractionDigits:2})}</strong>
+        <button type="button" data-withdraw-del="${w.id}" class="tj-btn">წაშლა</button>
+      </div>`;
+    }).join(''):'<p style="font-size:12px;color:var(--tj-text3);margin-top:12px">გამოტანის ჩანაწერები არ არის.</p>';
+    withdrawalList.querySelectorAll('[data-withdraw-del]').forEach(b=>{
+      b.onclick=async()=>{
+        if(!confirm('წავშალოთ გამოტანის ჩანაწერი? ბალანსი თავიდან დაითვლება.'))return;
+        if(await removeWithdrawal(b.dataset.withdrawDel)){showToast('გამოტანა წაიშალა','ok');renderAccounts()}
+      };
+    });
+    withdrawForm.addEventListener('submit',async e=>{
+      e.preventDefault();if(guardReadOnly())return;
+      const fd=new FormData(withdrawForm),accountId=String(fd.get('accountId')||'');
+      const date=String(fd.get('date')||''),amount=Number(fd.get('amount'));
+      const msg=bodyEl.querySelector('#tj-withdraw-msg');
+      if(!accounts.some(a=>a.id===accountId)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(amount)||amount<=0){
+        msg.textContent='შეავსე ანგარიში, თარიღი და დადებითი თანხა';return;
+      }
+      const button=withdrawForm.querySelector('[type=submit]');button.disabled=true;
+      const ok=await recordWithdrawal({accountId,date,amount,note:String(fd.get('note')||'').slice(0,500)});
+      if(ok){showToast('გამოტანა შენახულია','ok');renderAccounts()}
+      else{msg.textContent='შენახვა ვერ მოხერხდა — გადაამოწმე Supabase';button.disabled=false}
+    });
     const listEl = bodyEl.querySelector('#tj-accounts-list');
     if (accounts.length===0){ listEl.innerHTML = `<div style="font-size:12.5px; color:var(--tj-text3); padding:20px 0;">ჯერ არცერთი ანგარიში არ დამატებულა.</div>`; return; }
     listEl.innerHTML = accounts.map(a => {
       const st = accountStats(a.id);
-      const balance = num(a.startBalance) + st.netPnl;
+      const cashOut=withdrawalTotal(a.id);
+      const balance = num(a.startBalance) + st.netPnl - cashOut;
       return `<div class="tj-panelcard" style="padding:18px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <div><span style="font-size:15px; font-weight:600;">${escapeHtml(a.label)}</span></div>
@@ -1429,7 +1496,8 @@
         <div class="tj-kpi-grid">
           ${metricCard('ბალანსი', '$'+balance.toLocaleString(undefined,{maximumFractionDigits:2}))}
           ${metricCard('საწყისი ბალანსი', '$'+num(a.startBalance).toLocaleString())}
-          ${metricCard('სულ P&L', fmtUsd(st.netPnl), st.tradeCount+' ტრეიდი', st.netPnl>=0?'var(--tj-green)':'var(--tj-red)')}
+          ${metricCard('სულ P&L',fmtUsd(st.netPnl),st.tradeCount+' ტრეიდი',st.netPnl>=0?'var(--tj-green)':'var(--tj-red)')}
+          ${metricCard('გამოტანილი','−$'+cashOut.toLocaleString(undefined,{maximumFractionDigits:2}),'არ არის სავაჭრო ზარალი','var(--tj-amber)')}
           ${metricCard('დღევანდელი P&L', fmtUsd(st.dailyPnl), '', st.dailyPnl>=0?'var(--tj-green)':'var(--tj-red)')}
           ${metricCard('მაქს. Drawdown', fmtUsd(st.maxDrawdown), '', 'var(--tj-red)')}
         </div>
@@ -2594,7 +2662,7 @@
     catch(e){ return false; }
   }
   async function startApp(){
-    await Promise.all([loadTrades(), loadDailyReports(), loadSettings()]);
+    await Promise.all([loadTrades(), loadDailyReports(), loadSettings(), loadWithdrawals()]);
     renderNav();
     renderPage();
   }
