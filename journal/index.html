@@ -1058,7 +1058,8 @@
         tradeContext: d.tradeContext||'', tradeContextOther: d.tradeContext==='other' ? (fd.get('tradeContextOther')||'') : '',
         entryPrice: fd.get('entryPrice')||'', exitPrice: fd.get('exitPrice')||'', stopPrice: fd.get('stopPrice')||'', targetPrice: fd.get('targetPrice')||'',
         riskUsd:fd.get('riskUsd')||'',riskBaseBalance:fd.get('riskBaseBalance')||'',riskPct:fd.get('riskPct')||'',resultR:fd.get('resultR')||'',resultPoints:fd.get('resultPoints')||'',pnlUsd:fd.get('pnlUsd')||'',
-        outcome: d.outcome||'', planAdherence: fd.get('planAdherence')||'yes',
+        outcome: d.outcome||(fd.get('pnlUsd')!==''?(Number(fd.get('pnlUsd'))>0?'win':Number(fd.get('pnlUsd'))<0?'loss':'be'):''),
+        planAdherence: fd.get('planAdherence')||'yes',
         confidence: fd.get('confidence')||'', discipline: fd.get('discipline')||'', execution: fd.get('execution')||'',
         emotionalState: d.emotionalState||'', qEntry: d.qEntry||'', qRisk: d.qRisk||'', qExit: d.qExit||'', qDiscipline: d.qDiscipline||'',
         screenshots: Object.assign({}, d.screenshots), chartAnnotations:Object.assign({},d.chartAnnotations), notes: fd.get('notes')||''
@@ -1150,7 +1151,7 @@
   function renderTrades(){
     const filtered = getFilteredTrades();
     bodyEl.innerHTML = renderFilterBar() + (filtered.length ? `<div class="tj-panelcard tj-table-wrap"><table class="tj-table" id="tj-trades-table">
-      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>ბაზრის ტიპი</th><th>სესია</th><th>რისკი</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
+      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>ბაზრის ტიპი</th><th>სესია</th><th>რისკი $ / %</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
       <tbody></tbody></table></div>` : `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">${trades.length ? 'ფილტრით ვერაფერი მოიძებნა.' : 'ჯერ არცერთი ტრეიდი არ დამატებულა. დაამატეთ "ახალი ტრეიდი" გვერდიდან.'}</div>`);
     wireFilterBar(renderTrades);
     const tbody = bodyEl.querySelector('#tj-trades-table tbody');
@@ -1164,7 +1165,7 @@
         <td>${(t.setups&&t.setups[0]) ? escapeHtml(t.setups[0])+(t.setups.length>1?` +${t.setups.length-1}`:'') : '-'}</td>
         <td>${t.marketTags&&t.marketTags.length?escapeHtml(t.marketTags.join(', ')):'-'}</td>
         <td>${sessionLabel(t.session)||'-'}</td>
-        <td class="tj-mono">${t.riskPct?t.riskPct+'%':'-'}</td>
+        <td class="tj-mono">${t.riskUsd?'$'+escapeHtml(t.riskUsd)+(t.riskPct?' · '+t.riskPct+'%':''):(t.riskPct?t.riskPct+'%':'-')}</td>
         <td class="tj-mono" style="color:${outcomeColor(t.outcome)};">${t.outcome?fmtR(num(t.resultR)):'-'}</td>
         <td class="tj-mono">${t.resultPoints?((num(t.resultPoints)>0?'+':'')+t.resultPoints):'-'}</td>
         <td class="tj-mono" style="color:${hasUsd(t)?(num(t.pnlUsd)>=0?'var(--tj-green)':'var(--tj-red)'):'var(--tj-text3)'};">${hasUsd(t)?fmtUsd(num(t.pnlUsd)):'-'}</td>
@@ -1678,7 +1679,7 @@
           '<span class="tj-cal-date">'+day+'</span>'+
           (g?'<span class="tj-cal-usd">'+pnl+'</span>'+
             '<span class="tj-cal-score"><b>W '+g.wins+'</b> · <b>L '+g.losses+'</b></span>'+
-            '<span class="tj-cal-sub">'+g.n+' ტრეიდი'+(g.be?' · BE '+g.be:'')+'</span>':'<span class="tj-cal-empty">—</span>')+
+            '<span class="tj-cal-sub">'+g.n+' ტრეიდი'+(g.be?' · BE '+g.be:'')+(g.usdCount<g.n?' · $ '+g.usdCount+'/'+g.n:'')+'</span>':'<span class="tj-cal-empty">—</span>')+
           '</button>';
       }).join('')+'</div></div>';
     el.querySelectorAll('[data-cal-day]').forEach(button=>{
