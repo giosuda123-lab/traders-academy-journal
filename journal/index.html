@@ -320,6 +320,7 @@
   let page = 'dashboard';
   let trades = [];
   let dailyReports = [];
+  let withdrawals = [];
   let editingTradeId = null;
   let drcDate = todayStr();
   let sidebarCollapsed = false;
@@ -770,12 +771,29 @@
       setups:[], vetoes:[], marketTags:[], srTags:[], marketNote:'',
       tradeContext:'', tradeContextOther:'',
       entryPrice:'', exitPrice:'', stopPrice:'', targetPrice:'',
-      riskPct:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
+      riskPct:'', riskUsd:'', riskBaseBalance:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
       planAdherence:'yes', confidence:'', discipline:'', execution:'',
       emotionalState:'', qEntry:'', qRisk:'', qExit:'', qDiscipline:'',
       screenshots:{before:null, entry:null, after:null}, chartAnnotations:{before:[],entry:[],after:[]}, notes:''
     }, prefill || {});
   }
+  function withdrawalTotal(accountId){
+    return withdrawals.filter(w=>w.account_id===accountId).reduce((sum,w)=>sum+num(w.amount_usd),0);
+  }
+  function liveBalance(accountId){
+    const acc=accounts.find(a=>a.id===accountId);
+    if(!acc)return null;
+    const pnl=trades.filter(t=>t.accountId===accountId&&hasUsd(t)).reduce((sum,t)=>sum+num(t.pnlUsd),0);
+    return num(acc.startBalance)+pnl-withdrawalTotal(accountId);
+  }
+  function riskMath(riskInput,baseInput,pnlInput){
+    const risk=Number(riskInput),base=Number(baseInput),pnl=Number(pnlInput);
+    return {
+      pct:riskInput!==''&&baseInput!==''&&Number.isFinite(risk)&&risk>0&&Number.isFinite(base)&&base>0?100*risk/base:null,
+      rr:riskInput!==''&&pnlInput!==''&&Number.isFinite(risk)&&risk>0&&Number.isFinite(pnl)?pnl/risk:null
+    };
+  }
+  const fixed=(n,d=2)=>String(Number(n.toFixed(d)));
   function historicalStatFor(arrKey, values){
     if (!values || !values.length) return null;
     const matches = trades.filter(t => (t[arrKey]||[]).some(v => values.includes(v)) && t.outcome);
@@ -851,11 +869,14 @@
         <div class="tj-panelcard" style="padding:18px 20px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">შედეგი</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:14px;">
-            <div>${fieldLabel('რისკი (% ანგარიშიდან)')}<input type="number" step="0.01" name="riskPct" value="${d.riskPct}"/></div>
-            <div>${fieldLabel('შედეგი (R)')}<input type="number" step="0.01" name="resultR" value="${d.resultR}"/></div>
+            <div>${fieldLabel('რისკი ($)')}<input type="number" min="0.01" step="0.01" name="riskUsd" value="${escapeHtml(d.riskUsd||'')}" placeholder="მაგ. 100"/></div>
+            <div>${fieldLabel('ანგარიშის ბალანსი ტრეიდის დროს ($)')}<input type="number" min="0.01" step="0.01" name="riskBaseBalance" value="${escapeHtml(d.riskBaseBalance||'')}" placeholder="აირჩიე ანგარიში ან ჩაწერე"/></div>
+            <div>${fieldLabel('რისკი (% ანგარიშიდან)')}<input type="number" step="0.0001" name="riskPct" value="${d.riskPct}"/></div>
+            <div>${fieldLabel('შედეგი (R)')}<input type="number" step="0.0001" name="resultR" value="${d.resultR}"/></div>
             <div>${fieldLabel('შედეგი (პოინტები)')}<input type="number" step="0.01" name="resultPoints" value="${d.resultPoints}"/></div>
             <div>${fieldLabel('P&L ($)')}<input type="number" step="0.01" name="pnlUsd" value="${d.pnlUsd}"/></div>
           </div>
+          <p id="tj-risk-math-hint" style="font-size:12px;color:var(--tj-text2);margin:0 0 14px">რისკი $ / ბალანსი $ = რისკი %. P&L $ / რისკი $ = შედეგი R.</p>
           <div style="margin-bottom:14px;">
             ${fieldLabel('შედეგის ტიპი')}
             <div style="display:flex; gap:8px;">
@@ -958,6 +979,27 @@
       el.addEventListener(evt, () => { d[el.name] = el.value; });
     });
 
+    const refreshMath=()=>{
+      const get=name=>form.elements.namedItem(name);
+      const accId=get('accountId')?.value||'';
+      const baseInput=get('riskBaseBalance');
+      if(!baseInput.value&&!editingTradeId&&accId){
+        const balance=liveBalance(accId);
+        if(balance!==null&&balance>0){baseInput.value=fixed(balance);d.riskBaseBalance=baseInput.value}
+      }
+      const math=riskMath(get('riskUsd').value,baseInput.value,get('pnlUsd').value);
+      if(math.pct!==null){get('riskPct').value=fixed(math.pct,4);d.riskPct=get('riskPct').value}
+      if(math.rr!==null){get('resultR').value=fixed(math.rr,4);d.resultR=get('resultR').value}
+      const hint=form.querySelector('#tj-risk-math-hint');
+      if(hint)hint.textContent=(math.pct===null?'':('რისკი '+fixed(math.pct)+'%'))+
+        (math.rr===null?'':(' · შედეგი '+fmtR(math.rr)));
+    };
+    ['riskUsd','riskBaseBalance','pnlUsd'].forEach(name=>form.elements.namedItem(name)?.addEventListener('input',refreshMath));
+    form.elements.namedItem('accountId')?.addEventListener('change',()=>{
+      if(!editingTradeId){form.elements.namedItem('riskBaseBalance').value='';d.riskBaseBalance=''}
+      refreshMath();
+    });
+    refreshMath();
     ['before','entry','after'].forEach(slot => {
       const input = form.querySelector(`[data-shot="${slot}"]`);
       input.onchange = async () => {
@@ -991,13 +1033,14 @@
         marketNote: fd.get('marketNote')||'',
         tradeContext: d.tradeContext||'', tradeContextOther: d.tradeContext==='other' ? (fd.get('tradeContextOther')||'') : '',
         entryPrice: fd.get('entryPrice')||'', exitPrice: fd.get('exitPrice')||'', stopPrice: fd.get('stopPrice')||'', targetPrice: fd.get('targetPrice')||'',
-        riskPct: fd.get('riskPct')||'', resultR: fd.get('resultR')||'', resultPoints: fd.get('resultPoints')||'', pnlUsd: fd.get('pnlUsd')||'',
+        riskUsd:fd.get('riskUsd')||'',riskBaseBalance:fd.get('riskBaseBalance')||'',riskPct:fd.get('riskPct')||'',resultR:fd.get('resultR')||'',resultPoints:fd.get('resultPoints')||'',pnlUsd:fd.get('pnlUsd')||'',
         outcome: d.outcome||'', planAdherence: fd.get('planAdherence')||'yes',
         confidence: fd.get('confidence')||'', discipline: fd.get('discipline')||'', execution: fd.get('execution')||'',
         emotionalState: d.emotionalState||'', qEntry: d.qEntry||'', qRisk: d.qRisk||'', qExit: d.qExit||'', qDiscipline: d.qDiscipline||'',
         screenshots: Object.assign({}, d.screenshots), chartAnnotations:Object.assign({},d.chartAnnotations), notes: fd.get('notes')||''
       };
       if (!tradeData.instrument){ msg.style.color='var(--tj-red)'; msg.textContent='ინსტრუმენტის ველი აუცილებელია.'; return; }
+      if(tradeData.riskUsd!==''&&(!Number.isFinite(Number(tradeData.riskUsd))||Number(tradeData.riskUsd)<=0)){msg.textContent='რისკი $ უნდა იყოს დადებითი რიცხვი';return}
       msg.textContent='';
       const submitBtn = form.querySelector('#tj-trade-submit');
       setBtnLoading(submitBtn, true, editingTradeId ? 'ინახება…' : 'ემატება…');
@@ -1129,7 +1172,7 @@
       <div class="tj-drawer-row"><span>Exit</span><span>${t.exitPrice||'-'}</span></div>
       <div class="tj-drawer-row"><span>Stop Loss</span><span>${t.stopPrice||'-'}</span></div>
       <div class="tj-drawer-row"><span>Take Profit</span><span>${t.targetPrice||'-'}</span></div>
-      <div class="tj-drawer-row"><span>რისკი</span><span>${t.riskPct?t.riskPct+'%':'-'}</span></div>
+      <div class="tj-drawer-row"><span>რისკი</span><span>${t.riskPct?t.riskPct+'%':'-'}${t.riskUsd?' · $'+escapeHtml(t.riskUsd):''}</span></div>
       <div class="tj-drawer-row"><span>პოინტები</span><span>${t.resultPoints||'-'}</span></div>
       <div class="tj-drawer-row"><span>სესია</span><span>${sessionLabel(t.session)||'-'}</span></div>
       <div class="tj-drawer-row"><span>ანგარიში</span><span>${acc?escapeHtml(acc.label):'-'}</span></div>
