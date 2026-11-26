@@ -234,6 +234,30 @@
 .ta-admin-login-feedback{min-height:20px;margin:0!important}
 @media(max-width:640px){.ta-admin-entry{left:9px;bottom:9px;width:34px;height:34px}}
 
+
+  .tj-cash-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:12px}
+  .tj-cash-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--tj-text2)}
+  .tj-cash-form input,.tj-cash-form select{width:100%}
+  .tj-cash-list{margin-top:14px;display:flex;flex-direction:column;gap:5px}
+  .tj-cash-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--tj-border);flex-wrap:wrap;font-size:12px}
+  .tj-cash-row small{display:block;margin-top:4px;color:var(--tj-text3)}
+  .tj-cash-row strong{color:var(--tj-amber);font-family:'IBM Plex Mono',monospace}
+  .tj-cal-explainer{font-size:12px;color:var(--tj-text2);line-height:1.6;margin:-3px 0 12px}
+  .tj-cal-scroll{overflow-x:auto;padding-bottom:7px}
+  .tj-cal-scroll>.tj-cal-grid{min-width:625px}
+  .tj-cal-weekdays{text-align:center;margin-bottom:6px;font-size:11px;color:var(--tj-text3)}
+  .tj-cal-detailed{aspect-ratio:auto;min-height:84px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding:9px 8px;text-align:left;border:1px solid var(--tj-border);background:var(--tj-panel2);border-radius:8px;color:var(--tj-text);cursor:pointer}
+  .tj-cal-detailed:hover{transform:translateY(-2px);box-shadow:0 5px 13px rgba(0,0,0,.4);z-index:2}
+  .tj-cal-detailed.positive{background:rgba(95,168,118,.12);border-color:rgba(95,168,118,.45)}
+  .tj-cal-detailed.negative{background:rgba(193,93,76,.12);border-color:rgba(193,93,76,.45)}
+  .tj-cal-detailed.flat{border-color:rgba(230,185,77,.4)}
+  .tj-cal-date{font-size:12px;font-weight:600;color:var(--tj-text2)}
+  .tj-cal-usd{font-size:12.5px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--tj-text)}
+  .tj-cal-score{font-size:11px;white-space:nowrap;color:var(--tj-text2)}
+  .tj-cal-score b:first-child{color:var(--tj-green)}.tj-cal-score b:last-child{color:var(--tj-red)}
+  .tj-cal-sub,.tj-cal-empty{font-size:10px;color:var(--tj-text3)}
+  .tj-cal-trade{display:block;width:100%;margin:9px 0;text-align:left}
+
 </style>
 <link rel="stylesheet" href="/assets/chart-review-studio.css?v=1">
 <script src="/assets/chart-review-studio.js?v=1"></script>
@@ -320,6 +344,7 @@
   let page = 'dashboard';
   let trades = [];
   let dailyReports = [];
+  let withdrawals = [];
   let editingTradeId = null;
   let drcDate = todayStr();
   let sidebarCollapsed = false;
@@ -547,7 +572,7 @@
   if (readonlyExitBtn) readonlyExitBtn.addEventListener('click', () => { window.location.href = '../admin/index.html'; });
   document.getElementById('tj-logout-btn').addEventListener('click', async ()=>{
     await supabase.auth.signOut();
-    currentUser = null; trades = []; dailyReports = [];
+    currentUser = null; trades = []; dailyReports = []; withdrawals = [];
     shellEl.style.display = 'none'; authWrap.style.display = 'block';
     authTab = 'login'; renderAuthTabs(); renderAuthBody();
   });
@@ -770,12 +795,29 @@
       setups:[], vetoes:[], marketTags:[], srTags:[], marketNote:'',
       tradeContext:'', tradeContextOther:'',
       entryPrice:'', exitPrice:'', stopPrice:'', targetPrice:'',
-      riskPct:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
+      riskPct:'', riskUsd:'', riskBaseBalance:'', resultR:'', resultPoints:'', pnlUsd:'', outcome:'',
       planAdherence:'yes', confidence:'', discipline:'', execution:'',
       emotionalState:'', qEntry:'', qRisk:'', qExit:'', qDiscipline:'',
       screenshots:{before:null, entry:null, after:null}, chartAnnotations:{before:[],entry:[],after:[]}, notes:''
     }, prefill || {});
   }
+  function withdrawalTotal(accountId){
+    return withdrawals.filter(w=>w.account_id===accountId).reduce((sum,w)=>sum+num(w.amount_usd),0);
+  }
+  function liveBalance(accountId){
+    const acc=accounts.find(a=>a.id===accountId);
+    if(!acc)return null;
+    const pnl=trades.filter(t=>t.accountId===accountId&&hasUsd(t)).reduce((sum,t)=>sum+num(t.pnlUsd),0);
+    return num(acc.startBalance)+pnl-withdrawalTotal(accountId);
+  }
+  function riskMath(riskInput,baseInput,pnlInput){
+    const risk=Number(riskInput),base=Number(baseInput),pnl=Number(pnlInput);
+    return {
+      pct:riskInput!==''&&baseInput!==''&&Number.isFinite(risk)&&risk>0&&Number.isFinite(base)&&base>0?100*risk/base:null,
+      rr:riskInput!==''&&pnlInput!==''&&Number.isFinite(risk)&&risk>0&&Number.isFinite(pnl)?pnl/risk:null
+    };
+  }
+  const fixed=(n,d=2)=>String(Number(n.toFixed(d)));
   function historicalStatFor(arrKey, values){
     if (!values || !values.length) return null;
     const matches = trades.filter(t => (t[arrKey]||[]).some(v => values.includes(v)) && t.outcome);
@@ -851,11 +893,14 @@
         <div class="tj-panelcard" style="padding:18px 20px; margin-bottom:16px;">
           <div style="font-size:13px; font-weight:600; margin-bottom:12px;">შედეგი</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-bottom:14px;">
-            <div>${fieldLabel('რისკი (% ანგარიშიდან)')}<input type="number" step="0.01" name="riskPct" value="${d.riskPct}"/></div>
-            <div>${fieldLabel('შედეგი (R)')}<input type="number" step="0.01" name="resultR" value="${d.resultR}"/></div>
+            <div>${fieldLabel('რისკი ($)')}<input type="number" min="0.01" step="0.01" name="riskUsd" value="${escapeHtml(d.riskUsd||'')}" placeholder="მაგ. 100"/></div>
+            <div>${fieldLabel('ანგარიშის ბალანსი ტრეიდის დროს ($)')}<input type="number" min="0.01" step="0.01" name="riskBaseBalance" value="${escapeHtml(d.riskBaseBalance||'')}" placeholder="აირჩიე ანგარიში ან ჩაწერე"/></div>
+            <div>${fieldLabel('რისკი (% ანგარიშიდან)')}<input type="number" step="0.0001" name="riskPct" value="${d.riskPct}"/></div>
+            <div>${fieldLabel('შედეგი (R)')}<input type="number" step="0.0001" name="resultR" value="${d.resultR}"/></div>
             <div>${fieldLabel('შედეგი (პოინტები)')}<input type="number" step="0.01" name="resultPoints" value="${d.resultPoints}"/></div>
             <div>${fieldLabel('P&L ($)')}<input type="number" step="0.01" name="pnlUsd" value="${d.pnlUsd}"/></div>
           </div>
+          <p id="tj-risk-math-hint" style="font-size:12px;color:var(--tj-text2);margin:0 0 14px">რისკი $ / ბალანსი $ = რისკი %. P&L $ / რისკი $ = შედეგი R.</p>
           <div style="margin-bottom:14px;">
             ${fieldLabel('შედეგის ტიპი')}
             <div style="display:flex; gap:8px;">
@@ -958,6 +1003,27 @@
       el.addEventListener(evt, () => { d[el.name] = el.value; });
     });
 
+    const refreshMath=()=>{
+      const get=name=>form.elements.namedItem(name);
+      const accId=get('accountId')?.value||'';
+      const baseInput=get('riskBaseBalance');
+      if(!baseInput.value&&!editingTradeId&&accId){
+        const balance=liveBalance(accId);
+        if(balance!==null&&balance>0){baseInput.value=fixed(balance);d.riskBaseBalance=baseInput.value}
+      }
+      const math=riskMath(get('riskUsd').value,baseInput.value,get('pnlUsd').value);
+      if(math.pct!==null){get('riskPct').value=fixed(math.pct,4);d.riskPct=get('riskPct').value}
+      if(math.rr!==null){get('resultR').value=fixed(math.rr,4);d.resultR=get('resultR').value}
+      const hint=form.querySelector('#tj-risk-math-hint');
+      if(hint)hint.textContent=(math.pct===null?'':('რისკი '+fixed(math.pct)+'%'))+
+        (math.rr===null?'':(' · შედეგი '+fmtR(math.rr)));
+    };
+    ['riskUsd','riskBaseBalance','pnlUsd'].forEach(name=>form.elements.namedItem(name)?.addEventListener('input',refreshMath));
+    form.elements.namedItem('accountId')?.addEventListener('change',()=>{
+      if(!editingTradeId){form.elements.namedItem('riskBaseBalance').value='';d.riskBaseBalance=''}
+      refreshMath();
+    });
+    refreshMath();
     ['before','entry','after'].forEach(slot => {
       const input = form.querySelector(`[data-shot="${slot}"]`);
       input.onchange = async () => {
@@ -991,13 +1057,15 @@
         marketNote: fd.get('marketNote')||'',
         tradeContext: d.tradeContext||'', tradeContextOther: d.tradeContext==='other' ? (fd.get('tradeContextOther')||'') : '',
         entryPrice: fd.get('entryPrice')||'', exitPrice: fd.get('exitPrice')||'', stopPrice: fd.get('stopPrice')||'', targetPrice: fd.get('targetPrice')||'',
-        riskPct: fd.get('riskPct')||'', resultR: fd.get('resultR')||'', resultPoints: fd.get('resultPoints')||'', pnlUsd: fd.get('pnlUsd')||'',
-        outcome: d.outcome||'', planAdherence: fd.get('planAdherence')||'yes',
+        riskUsd:fd.get('riskUsd')||'',riskBaseBalance:fd.get('riskBaseBalance')||'',riskPct:fd.get('riskPct')||'',resultR:fd.get('resultR')||'',resultPoints:fd.get('resultPoints')||'',pnlUsd:fd.get('pnlUsd')||'',
+        outcome: d.outcome||(fd.get('pnlUsd')!==''?(Number(fd.get('pnlUsd'))>0?'win':Number(fd.get('pnlUsd'))<0?'loss':'be'):''),
+        planAdherence: fd.get('planAdherence')||'yes',
         confidence: fd.get('confidence')||'', discipline: fd.get('discipline')||'', execution: fd.get('execution')||'',
         emotionalState: d.emotionalState||'', qEntry: d.qEntry||'', qRisk: d.qRisk||'', qExit: d.qExit||'', qDiscipline: d.qDiscipline||'',
         screenshots: Object.assign({}, d.screenshots), chartAnnotations:Object.assign({},d.chartAnnotations), notes: fd.get('notes')||''
       };
       if (!tradeData.instrument){ msg.style.color='var(--tj-red)'; msg.textContent='ინსტრუმენტის ველი აუცილებელია.'; return; }
+      if(tradeData.riskUsd!==''&&(!Number.isFinite(Number(tradeData.riskUsd))||Number(tradeData.riskUsd)<=0)){msg.textContent='რისკი $ უნდა იყოს დადებითი რიცხვი';return}
       msg.textContent='';
       const submitBtn = form.querySelector('#tj-trade-submit');
       setBtnLoading(submitBtn, true, editingTradeId ? 'ინახება…' : 'ემატება…');
@@ -1083,7 +1151,7 @@
   function renderTrades(){
     const filtered = getFilteredTrades();
     bodyEl.innerHTML = renderFilterBar() + (filtered.length ? `<div class="tj-panelcard tj-table-wrap"><table class="tj-table" id="tj-trades-table">
-      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>ბაზრის ტიპი</th><th>სესია</th><th>რისკი</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
+      <thead><tr><th>თარიღი</th><th>დრო</th><th>ინსტრ.</th><th>მიმართ.</th><th>Setup</th><th>ბაზრის ტიპი</th><th>სესია</th><th>რისკი $ / %</th><th>R</th><th>Points</th><th>P&L $</th><th>შედეგი</th></tr></thead>
       <tbody></tbody></table></div>` : `<div style="padding:40px 0; text-align:center; color:var(--tj-text2); font-size:13px;">${trades.length ? 'ფილტრით ვერაფერი მოიძებნა.' : 'ჯერ არცერთი ტრეიდი არ დამატებულა. დაამატეთ "ახალი ტრეიდი" გვერდიდან.'}</div>`);
     wireFilterBar(renderTrades);
     const tbody = bodyEl.querySelector('#tj-trades-table tbody');
@@ -1097,7 +1165,7 @@
         <td>${(t.setups&&t.setups[0]) ? escapeHtml(t.setups[0])+(t.setups.length>1?` +${t.setups.length-1}`:'') : '-'}</td>
         <td>${t.marketTags&&t.marketTags.length?escapeHtml(t.marketTags.join(', ')):'-'}</td>
         <td>${sessionLabel(t.session)||'-'}</td>
-        <td class="tj-mono">${t.riskPct?t.riskPct+'%':'-'}</td>
+        <td class="tj-mono">${t.riskUsd?'$'+escapeHtml(t.riskUsd)+(t.riskPct?' · '+t.riskPct+'%':''):(t.riskPct?t.riskPct+'%':'-')}</td>
         <td class="tj-mono" style="color:${outcomeColor(t.outcome)};">${t.outcome?fmtR(num(t.resultR)):'-'}</td>
         <td class="tj-mono">${t.resultPoints?((num(t.resultPoints)>0?'+':'')+t.resultPoints):'-'}</td>
         <td class="tj-mono" style="color:${hasUsd(t)?(num(t.pnlUsd)>=0?'var(--tj-green)':'var(--tj-red)'):'var(--tj-text3)'};">${hasUsd(t)?fmtUsd(num(t.pnlUsd)):'-'}</td>
@@ -1129,7 +1197,7 @@
       <div class="tj-drawer-row"><span>Exit</span><span>${t.exitPrice||'-'}</span></div>
       <div class="tj-drawer-row"><span>Stop Loss</span><span>${t.stopPrice||'-'}</span></div>
       <div class="tj-drawer-row"><span>Take Profit</span><span>${t.targetPrice||'-'}</span></div>
-      <div class="tj-drawer-row"><span>რისკი</span><span>${t.riskPct?t.riskPct+'%':'-'}</span></div>
+      <div class="tj-drawer-row"><span>რისკი</span><span>${t.riskPct?t.riskPct+'%':'-'}${t.riskUsd?' · $'+escapeHtml(t.riskUsd):''}</span></div>
       <div class="tj-drawer-row"><span>პოინტები</span><span>${t.resultPoints||'-'}</span></div>
       <div class="tj-drawer-row"><span>სესია</span><span>${sessionLabel(t.session)||'-'}</span></div>
       <div class="tj-drawer-row"><span>ანგარიში</span><span>${acc?escapeHtml(acc.label):'-'}</span></div>
@@ -1340,6 +1408,30 @@
     const dailyPnl = trades.filter(t=>t.accountId===accId && t.date===today && hasUsd(t)).reduce((s,t)=>s+num(t.pnlUsd),0);
     return { netPnl: cum, maxDrawdown: maxDD, dailyPnl, tradeCount: accTrades.length };
   }
+  // Withdrawals are private cash flows, not trade losses.
+  async function loadWithdrawals(){
+    if(!effectiveUserId()){withdrawals=[];return}
+    const {data,error}=await supabase.from('journal_withdrawals')
+      .select('id,account_id,withdrawal_date,amount_usd,note')
+      .eq('user_id',effectiveUserId()).order('withdrawal_date',{ascending:false});
+    if(error){withdrawals=[];showStatus('გამოტანები ვერ ჩაიტვირთა: '+error.message+' — საჭიროა journal-withdrawals.sql','error')}
+    else withdrawals=data||[];
+  }
+  async function recordWithdrawal(input){
+    if(guardReadOnly()||!currentUser)return false;
+    const {data,error}=await supabase.from('journal_withdrawals').insert({
+      user_id:effectiveUserId(),account_id:input.accountId,
+      withdrawal_date:input.date,amount_usd:input.amount,note:input.note
+    }).select('id,account_id,withdrawal_date,amount_usd,note').single();
+    if(error){showStatus('გამოტანის შენახვა ვერ მოხერხდა: '+error.message,'error');return false}
+    withdrawals.unshift(data);return true;
+  }
+  async function removeWithdrawal(id){
+    if(guardReadOnly())return false;
+    const {error}=await supabase.from('journal_withdrawals').delete().eq('id',id).eq('user_id',effectiveUserId());
+    if(error){showStatus('წაშლა ვერ მოხერხდა: '+error.message,'error');return false}
+    withdrawals=withdrawals.filter(w=>w.id!==id);return true;
+  }
   function renderAccounts(editId){
     const editing = editId ? accounts.find(a=>a.id===editId) : null;
     bodyEl.innerHTML = `
@@ -1355,6 +1447,19 @@
         ${editing?`<button type="button" id="tj-account-cancel" class="tj-btn" style="margin-left:8px;">გაუქმება</button>`:''}
         <input type="hidden" name="id" value="${editing?editing.id:''}"/>
       </form>
+      <section class="tj-panelcard" style="padding:18px 20px;margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:8px">⇩ თანხის გამოტანა</div>
+        <p style="font-size:12px;line-height:1.6;color:var(--tj-text2);margin-bottom:13px">გამოტანილი თანხა ბალანსს აკლდება, მაგრამ სავაჭრო P&L-ს და Win Rate-ს არ ცვლის.</p>
+        <form id="tj-withdraw-form" class="tj-cash-form">
+          <label>ანგარიში<select name="accountId" required><option value="">აირჩიე ანგარიში</option>${accounts.map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.label)}</option>`).join('')}</select></label>
+          <label>თარიღი<input type="date" name="date" required value="${todayStr()}"/></label>
+          <label>გამოტანილი თანხა ($)<input type="number" name="amount" step="0.01" min="0.01" required placeholder="მაგ. 250"/></label>
+          <label>შენიშვნა<input type="text" maxlength="500" name="note" placeholder="არასავალდებულო"/></label>
+          <button type="submit" class="tj-btn primary">+ გამოტანის შენახვა</button>
+        </form>
+        <p id="tj-withdraw-msg" style="font-size:12px;color:var(--tj-amber);margin-top:9px" role="status"></p>
+        <div id="tj-withdraw-list" class="tj-cash-list"></div>
+      </section>
       <div id="tj-accounts-list" style="display:flex; flex-direction:column; gap:12px;"></div>
     `;
     const form = bodyEl.querySelector('#tj-account-form');
@@ -1370,11 +1475,41 @@
       persistAccounts(); renderAccounts();
       showToast('ანგარიში შენახულია', 'ok');
     });
+    const withdrawForm=bodyEl.querySelector('#tj-withdraw-form');
+    const withdrawalList=bodyEl.querySelector('#tj-withdraw-list');
+    withdrawalList.innerHTML=withdrawals.length?withdrawals.slice(0,80).map(w=>{
+      const account=accounts.find(a=>a.id===w.account_id);
+      return `<div class="tj-cash-row">
+        <span>${fmtDate(w.withdrawal_date)} · ${escapeHtml(account?.label||'უცნობი ანგარიში')}<small>${escapeHtml(w.note||'')}</small></span>
+        <strong>−$${num(w.amount_usd).toLocaleString(undefined,{maximumFractionDigits:2})}</strong>
+        <button type="button" data-withdraw-del="${w.id}" class="tj-btn">წაშლა</button>
+      </div>`;
+    }).join(''):'<p style="font-size:12px;color:var(--tj-text3);margin-top:12px">გამოტანის ჩანაწერები არ არის.</p>';
+    withdrawalList.querySelectorAll('[data-withdraw-del]').forEach(b=>{
+      b.onclick=async()=>{
+        if(!confirm('წავშალოთ გამოტანის ჩანაწერი? ბალანსი თავიდან დაითვლება.'))return;
+        if(await removeWithdrawal(b.dataset.withdrawDel)){showToast('გამოტანა წაიშალა','ok');renderAccounts()}
+      };
+    });
+    withdrawForm.addEventListener('submit',async e=>{
+      e.preventDefault();if(guardReadOnly())return;
+      const fd=new FormData(withdrawForm),accountId=String(fd.get('accountId')||'');
+      const date=String(fd.get('date')||''),amount=Number(fd.get('amount'));
+      const msg=bodyEl.querySelector('#tj-withdraw-msg');
+      if(!accounts.some(a=>a.id===accountId)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(amount)||amount<=0){
+        msg.textContent='შეავსე ანგარიში, თარიღი და დადებითი თანხა';return;
+      }
+      const button=withdrawForm.querySelector('[type=submit]');button.disabled=true;
+      const ok=await recordWithdrawal({accountId,date,amount,note:String(fd.get('note')||'').slice(0,500)});
+      if(ok){showToast('გამოტანა შენახულია','ok');renderAccounts()}
+      else{msg.textContent='შენახვა ვერ მოხერხდა — გადაამოწმე Supabase';button.disabled=false}
+    });
     const listEl = bodyEl.querySelector('#tj-accounts-list');
     if (accounts.length===0){ listEl.innerHTML = `<div style="font-size:12.5px; color:var(--tj-text3); padding:20px 0;">ჯერ არცერთი ანგარიში არ დამატებულა.</div>`; return; }
     listEl.innerHTML = accounts.map(a => {
       const st = accountStats(a.id);
-      const balance = num(a.startBalance) + st.netPnl;
+      const cashOut=withdrawalTotal(a.id);
+      const balance = num(a.startBalance) + st.netPnl - cashOut;
       return `<div class="tj-panelcard" style="padding:18px 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <div><span style="font-size:15px; font-weight:600;">${escapeHtml(a.label)}</span></div>
@@ -1386,7 +1521,8 @@
         <div class="tj-kpi-grid">
           ${metricCard('ბალანსი', '$'+balance.toLocaleString(undefined,{maximumFractionDigits:2}))}
           ${metricCard('საწყისი ბალანსი', '$'+num(a.startBalance).toLocaleString())}
-          ${metricCard('სულ P&L', fmtUsd(st.netPnl), st.tradeCount+' ტრეიდი', st.netPnl>=0?'var(--tj-green)':'var(--tj-red)')}
+          ${metricCard('სულ P&L',fmtUsd(st.netPnl),st.tradeCount+' ტრეიდი',st.netPnl>=0?'var(--tj-green)':'var(--tj-red)')}
+          ${metricCard('გამოტანილი','−$'+cashOut.toLocaleString(undefined,{maximumFractionDigits:2}),'არ არის სავაჭრო ზარალი','var(--tj-amber)')}
           ${metricCard('დღევანდელი P&L', fmtUsd(st.dailyPnl), '', st.dailyPnl>=0?'var(--tj-green)':'var(--tj-red)')}
           ${metricCard('მაქს. Drawdown', fmtUsd(st.maxDrawdown), '', 'var(--tj-red)')}
         </div>
@@ -1485,7 +1621,7 @@
       </div>
       <div class="tj-panelcard tj-rise" style="padding:18px 20px; --tj-delay:220ms;">
         <div style="font-size:13px; font-weight:500; margin-bottom:12px;">სავაჭრო კალენდარი</div>
-        <div id="tj-dash-cal"></div>
+        <div class="tj-cal-explainer">დღეში: წმინდა $ შედეგი, მოგებული და წაგებული ტრეიდები. დააჭირე დღეს ტრეიდების სანახავად.</div><div id="tj-dash-cal"></div>
       </div>
     `;
 
@@ -1496,7 +1632,14 @@
     let cumR=0;
     const eqSeries = list.map(t=>(cumR+=num(t.resultR)));
     const dayGroups = {};
-    list.forEach(t=>{ dayGroups[t.date] = dayGroups[t.date] || {r:0,usd:0,n:0}; dayGroups[t.date].r += num(t.resultR); if (hasUsd(t)) dayGroups[t.date].usd += num(t.pnlUsd); dayGroups[t.date].n++; });
+    list.forEach(t=>{
+      const g=dayGroups[t.date]||(dayGroups[t.date]={r:0,usd:0,usdCount:0,n:0,wins:0,losses:0,be:0});
+      g.r+=num(t.resultR);g.n++;
+      if(hasUsd(t)){g.usd+=num(t.pnlUsd);g.usdCount++}
+      if(t.outcome==='win')g.wins++;
+      else if(t.outcome==='loss')g.losses++;
+      else if(t.outcome==='be')g.be++;
+    });
     const dayLabels = Object.keys(dayGroups).sort();
 
     ensureChartJs(() => {
@@ -1521,24 +1664,42 @@
     return time+', თრეიდერო';
   }
   function renderMiniCalendar(el, dayGroups){
-    const now = new Date();
-    const year = now.getFullYear(), month = now.getMonth();
-    const first = new Date(year, month, 1);
-    const startOffset = (first.getDay()+6)%7; // Monday start
-    const daysInMonth = new Date(year, month+1, 0).getDate();
-    const cells = [];
-    for (let i=0;i<startOffset;i++) cells.push(null);
-    for (let d=1; d<=daysInMonth; d++) cells.push(d);
-    const wd = ['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვ'];
-    el.innerHTML = `<div class="tj-cal-grid" style="margin-bottom:6px;">${wd.map(w=>`<div style="text-align:center; font-size:10px; color:var(--tj-text3);">${w}</div>`).join('')}</div>
-      <div class="tj-cal-grid">${cells.map((d,i)=>{
-        if (!d) return `<div></div>`;
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const g = dayGroups[dateStr];
-        let bg = 'var(--tj-panel2)';
-        if (g){ bg = g.r > 0 ? 'rgba(95,168,118,'+Math.min(0.85,0.35+Math.abs(g.r)/8)+')' : g.r < 0 ? 'rgba(193,93,76,'+Math.min(0.85,0.35+Math.abs(g.r)/8)+')' : 'var(--tj-border)'; }
-        return `<div class="tj-cal-cell ${g?'has-data':''}" style="background:${bg}; --i:${i};" title="${dateStr}${g?` · ${g.n} ტრეიდი · ${fmtR(g.r)}`:''}">${d}</div>`;
-      }).join('')}</div>`;
+    const now=new Date(),year=now.getFullYear(),month=now.getMonth();
+    const offset=(new Date(year,month,1).getDay()+6)%7;
+    const count=new Date(year,month+1,0).getDate();
+    const cells=[...Array(offset).fill(null),...Array.from({length:count},(_,i)=>i+1)];
+    const weekdays=['ორშ','სამ','ოთხ','ხუთ','პარ','შაბ','კვ'];
+    el.innerHTML='<div class="tj-cal-scroll"><div class="tj-cal-grid tj-cal-weekdays">'+weekdays.map(w=>'<span>'+w+'</span>').join('')+'</div>'+
+      '<div class="tj-cal-grid">'+cells.map((day,i)=>{
+        if(!day)return '<div></div>';
+        const date=year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        const g=dayGroups[date],pnl=g&&g.usdCount?fmtUsd(g.usd):'—';
+        const tone=g&&g.usdCount?(g.usd>0?'positive':g.usd<0?'negative':'flat'):g?(g.r>0?'positive':g.r<0?'negative':'flat'):'empty';
+        return '<button type="button" class="tj-cal-cell tj-cal-detailed '+tone+'" style="--i:'+i+'" data-cal-day="'+date+'" title="'+date+(g?' · '+g.n+' ტრეიდი':'')+'">'+
+          '<span class="tj-cal-date">'+day+'</span>'+
+          (g?'<span class="tj-cal-usd">'+pnl+'</span>'+
+            '<span class="tj-cal-score"><b>W '+g.wins+'</b> · <b>L '+g.losses+'</b></span>'+
+            '<span class="tj-cal-sub">'+g.n+' ტრეიდი'+(g.be?' · BE '+g.be:'')+(g.usdCount<g.n?' · $ '+g.usdCount+'/'+g.n:'')+'</span>':'<span class="tj-cal-empty">—</span>')+
+          '</button>';
+      }).join('')+'</div></div>';
+    el.querySelectorAll('[data-cal-day]').forEach(button=>{
+      button.onclick=()=>{
+        const date=button.dataset.calDay;
+        const dayTrades=trades.filter(t=>t.date===date&&(!dashAccountId||t.accountId===dashAccountId));
+        const wins=dayTrades.filter(t=>t.outcome==='win').length;
+        const losses=dayTrades.filter(t=>t.outcome==='loss').length;
+        const usd=dayTrades.filter(hasUsd),net=usd.reduce((sum,t)=>sum+num(t.pnlUsd),0);
+        openDrawer('<button class="tj-drawer-close" id="tj-drawer-close-btn">✕</button>'+
+          '<h2 class="tj-serif" style="font-size:19px">'+fmtDate(date)+'</h2>'+
+          '<p style="font-size:13px;color:var(--tj-text2);margin:12px 0">'+dayTrades.length+' ტრეიდი · '+wins+' Win · '+losses+' Loss · '+
+          (usd.length?fmtUsd(net):'P&L $ არ არის მითითებული')+'</p>'+
+          (dayTrades.length?dayTrades.map(t=>'<button type="button" class="tj-btn tj-cal-trade" data-cal-trade="'+t.id+'">'+
+             escapeHtml((t.time||'—')+' · '+t.instrument)+' · '+(hasUsd(t)?fmtUsd(num(t.pnlUsd)):'—')+
+           '</button>').join(''):'<p style="color:var(--tj-text3)">ამ დღეს ტრეიდი არ არის.</p>'));
+        document.getElementById('tj-drawer-close-btn')?.addEventListener('click',closeDrawer);
+        document.querySelectorAll('[data-cal-trade]').forEach(b=>b.onclick=()=>openTradeDrawer(b.dataset.calTrade));
+      };
+    });
   }
 
   // ================= ANALYTICS =================
@@ -2551,7 +2712,7 @@
     catch(e){ return false; }
   }
   async function startApp(){
-    await Promise.all([loadTrades(), loadDailyReports(), loadSettings()]);
+    await Promise.all([loadTrades(), loadDailyReports(), loadSettings(), loadWithdrawals()]);
     renderNav();
     renderPage();
   }
