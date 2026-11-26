@@ -981,6 +981,49 @@
       el.addEventListener(evt, () => { d[el.name] = el.value; });
     });
 
+    const mathFields=['riskUsd','riskBaseBalance','pnlUsd'];
+    const updateRiskMath=(changedField,fromUser)=>{
+      const riskInput=form.elements.namedItem('riskUsd');
+      const baseInput=form.elements.namedItem('riskBaseBalance');
+      const pnlInput=form.elements.namedItem('pnlUsd');
+      const pctInput=form.elements.namedItem('riskPct');
+      const rInput=form.elements.namedItem('resultR');
+      const accountInput=form.elements.namedItem('accountId');
+      const accId=accountInput?.value||d.accountId;
+      // Use a snapshot: balance changes later must not silently rewrite old trades.
+      if(!baseInput.value&&accId&&!editingTradeId){
+        const bal=accountLiveBalance(accId);
+        if(bal!==null&&bal>0){
+          baseInput.value=decimal(bal);d.riskBaseBalance=baseInput.value;
+        }
+      }
+      const math=derivedTradeMath(riskInput.value,baseInput.value,pnlInput.value);
+      if(math.riskPct!==null){
+        pctInput.value=decimal(math.riskPct,4);d.riskPct=pctInput.value;
+      }
+      if(math.resultR!==null){
+        rInput.value=decimal(math.resultR,4);d.resultR=rInput.value;
+      }
+      const hint=form.querySelector('#tj-risk-math-hint');
+      if(hint){
+        const statements=[];
+        if(math.riskPct!==null)statements.push('რისკი: '+decimal(math.riskPct,2)+'%');
+        if(math.resultR!==null)statements.push('შედეგი: '+fmtR(math.resultR));
+        hint.textContent=statements.join(' · ')||'რისკი $ + ანგარიშის ბალანსი $ → რისკი %. P&L $ + რისკი $ → შედეგი R.';
+      }
+    };
+    mathFields.forEach(name=>{
+      form.elements.namedItem(name)?.addEventListener('input',()=>updateRiskMath(name,true));
+    });
+    form.elements.namedItem('accountId')?.addEventListener('change',()=>{
+      if(!editingTradeId){
+        form.elements.namedItem('riskBaseBalance').value='';
+        d.riskBaseBalance='';
+      }
+      updateRiskMath('accountId',true);
+    });
+    updateRiskMath('initial',false);
+
     ['before','entry','after'].forEach(slot => {
       const input = form.querySelector(`[data-shot="${slot}"]`);
       input.onchange = async () => {
